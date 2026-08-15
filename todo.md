@@ -42,5 +42,5 @@
 - [x] Add explicit cross-user denial tests for messages, tasks, memories, preferences, and confirmations, including read, update, and delete cases where supported.
 - [x] Add direct private database-helper tests or an equivalent verified database contract that demonstrates user-scoped mutations cannot affect another user’s records.
 - [x] Add a forged-user-id preference update test and document why preference routes cannot target another user record.
-- [ ] Create a private GitHub repository for the Jarvis source and publish the validated project state without credentials or environment files.
-- [ ] Write a clear local setup guide covering dependencies, database configuration, secure provider credentials, development startup, test execution, and deployment notes.
+- [x] Create a private GitHub repository for the Jarvis source and publish the validated project state without credentials or environment files.
+- [x] Write a clear local setup guide covering dependencies, database configuration, secure provider credentials, development startup, test execution, and deployment notes.
