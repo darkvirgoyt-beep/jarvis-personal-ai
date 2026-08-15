@@ -6,6 +6,7 @@ import { HudPanel } from "@/components/HudPanel";
 import { JarvisCore, type JarvisCoreState } from "@/components/JarvisCore";
 import { JarvisExtensions } from "@/components/JarvisExtensions";
 import { JarvisModelSelector } from "@/components/JarvisModelSelector";
+import { JarvisModeNav, type JarvisWorkspaceMode } from "@/components/JarvisModeNav";
 import { WakeWordListener } from "@/components/WakeWordListener";
 import { startLogin } from "@/const";
 import { streamJarvisResponse, transcribeJarvisAudio } from "@/lib/jarvisApi";
@@ -61,6 +62,7 @@ export default function Home() {
   const [agent, setAgent] = useState<Agent>("General");
   const [interaction, setInteraction] = useState(initialJarvisInteractionState);
   const { coreState, voiceState, isSending } = interaction;
+  const [activeMode, setActiveMode] = useState<JarvisWorkspaceMode>("command");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [continuousMode, setContinuousMode] = useState(false);
@@ -137,6 +139,20 @@ export default function Home() {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [isSending, voiceState]);
+
+  useEffect(() => {
+    const handleModeShortcut = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (!event.altKey || !(target instanceof HTMLElement) || target.closest("input, textarea, select, button")) return;
+      const nextMode: Record<string, JarvisWorkspaceMode> = { "1": "command", "2": "conversations", "3": "workspace", "4": "settings" };
+      const mode = nextMode[event.key];
+      if (!mode) return;
+      event.preventDefault();
+      setActiveMode(mode);
+    };
+    window.addEventListener("keydown", handleModeShortcut);
+    return () => window.removeEventListener("keydown", handleModeShortcut);
+  }, []);
 
   const addActivity = (entry: string) => setActivity((current) => [entry, ...current].slice(0, 5));
   const transitionInteraction = (event: JarvisInteractionEvent) => {
@@ -350,7 +366,12 @@ export default function Home() {
 
   return (
     <main className="jarvis-grid min-h-screen overflow-x-hidden px-3 py-3 text-slate-100 sm:px-5 sm:py-5">
-      <div className="mx-auto grid w-full max-w-[1540px] grid-cols-1 gap-3 xl:grid-cols-[245px_minmax(0,1fr)_285px]">
+      <div className="mx-auto mb-3 flex w-full max-w-[1540px] flex-col gap-3 rounded-sm border border-cyan-300/15 bg-slate-950/45 px-3 py-3 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        <div className="flex items-center gap-3"><div className="flex size-8 items-center justify-center rounded-sm border border-cyan-300/30 bg-cyan-300/10 text-cyan-100"><Layers3 className="size-4" /></div><div><p className="hud-label">JARVIS WORKSPACE</p><p className="mt-1 text-xs text-slate-500">Command Center, Conversations, Private Workspace, and Settings</p></div></div>
+        <JarvisModeNav activeMode={activeMode} onModeChange={setActiveMode} pendingApprovals={pendingConfirmations.length} />
+      </div>
+
+      <div aria-label="Command Center" className={cn("mx-auto grid w-full max-w-[1540px] grid-cols-1 gap-3 xl:grid-cols-[245px_minmax(0,1fr)_285px]", activeMode !== "command" && "hidden")}>
         <aside className="hidden xl:flex xl:flex-col xl:gap-3">
           <HudPanel className="p-4">
             <div className="flex items-center gap-3">
@@ -421,9 +442,11 @@ export default function Home() {
         </aside>
       </div>
 
-      <JarvisActionDock onPropose={(input) => proposeConfirmation.mutateAsync(input)} onResolve={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} onActivity={addActivity} suggestionsEnabled={contextualSuggestions} onSuggestionsChange={async (enabled) => { await updatePreferences.mutateAsync({ contextualSuggestions: enabled }); setContextualSuggestions(enabled); await utils.jarvis.preferences.get.invalidate(); addActivity(`Contextual suggestions ${enabled ? "enabled" : "disabled"} for this private workspace`); }} />
-      <JarvisWorkspaceDock items={workspaceItemsQuery.data ?? []} onPropose={(input) => proposeWorkspace.mutateAsync(input)} onExecute={async (input) => { const item = await executeWorkspace.mutateAsync(input); await Promise.all([utils.jarvis.workspace.list.invalidate(), utils.jarvis.confirmations.list.invalidate()]); return item; }} onReject={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} onActivity={addActivity} />
-      <JarvisExtensions voiceStorageKey={`jarvisVoice:${user?.id ?? "anonymous"}`} onRun={(command, commandAgent) => { setAgent(commandAgent); void handleSendMessage(command, commandAgent); }} onCopyLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to copy yet"); return; } void navigator.clipboard.writeText(latest).then(() => addActivity("Latest Jarvis response copied to clipboard")).catch(() => addActivity("Clipboard access was not available in this browser")); }} onExportLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to export yet"); return; } const exportData = buildJarvisMarkdownExport(latest); const file = new Blob([exportData.text], { type: exportData.mimeType }); const url = URL.createObjectURL(file); const link = document.createElement("a"); link.href = url; link.download = exportData.filename; link.click(); URL.revokeObjectURL(url); addActivity("Latest Jarvis response downloaded as Markdown"); }} />
+      <AnimatePresence mode="wait">
+        {activeMode === "conversations" && <motion.section aria-label="Conversations" key="conversations" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="hud-panel mx-auto flex min-h-[calc(100vh-180px)] w-full max-w-[1540px] flex-col overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-300/15 px-5 py-4"><div><p className="hud-label">CONVERSATIONS</p><h1 className="mt-1 text-lg font-semibold text-white">Conversations with {selectedAgent.name}</h1></div><span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 font-mono text-[10px] text-cyan-100">{messages.length} MESSAGES</span></div><AIChatBox messages={messages} onSendMessage={handleSendMessage} isLoading={isSending} voiceState={voiceState} onVoiceStart={handleVoiceStart} onVoiceStop={handleVoiceStop} placeholder="Ask Jarvis anything, or hold the mic to speak…" emptyStateMessage="This private conversation is ready for your next command." suggestedPrompts={quickCommands} height="100%" className="flex-1 border-0 shadow-none" /></motion.section>}
+        {activeMode === "workspace" && <motion.section aria-label="Private Workspace" key="workspace" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="mx-auto grid w-full max-w-[1540px] gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]"><JarvisWorkspaceDock items={workspaceItemsQuery.data ?? []} onPropose={(input) => proposeWorkspace.mutateAsync(input)} onExecute={async (input) => { const item = await executeWorkspace.mutateAsync(input); await Promise.all([utils.jarvis.workspace.list.invalidate(), utils.jarvis.confirmations.list.invalidate()]); return item; }} onReject={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} onActivity={addActivity} /><JarvisActionDock onPropose={(input) => proposeConfirmation.mutateAsync(input)} onResolve={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} onActivity={addActivity} suggestionsEnabled={contextualSuggestions} onSuggestionsChange={async (enabled) => { await updatePreferences.mutateAsync({ contextualSuggestions: enabled }); setContextualSuggestions(enabled); await utils.jarvis.preferences.get.invalidate(); addActivity(`Contextual suggestions ${enabled ? "enabled" : "disabled"} for this private workspace`); }} /></motion.section>}
+        {activeMode === "settings" && <motion.section aria-label="Settings" key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="mx-auto w-full max-w-[1540px]"><JarvisExtensions voiceStorageKey={`jarvisVoice:${user?.id ?? "anonymous"}`} onRun={(command, commandAgent) => { setAgent(commandAgent); setActiveMode("conversations"); void handleSendMessage(command, commandAgent); }} onCopyLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to copy yet"); return; } void navigator.clipboard.writeText(latest).then(() => addActivity("Latest Jarvis response copied to clipboard")).catch(() => addActivity("Clipboard access was not available in this browser")); }} onExportLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to export yet"); return; } const exportData = buildJarvisMarkdownExport(latest); const file = new Blob([exportData.text], { type: exportData.mimeType }); const url = URL.createObjectURL(file); const link = document.createElement("a"); link.href = url; link.download = exportData.filename; link.click(); URL.revokeObjectURL(url); addActivity("Latest Jarvis response downloaded as Markdown"); }} /></motion.section>}
+      </AnimatePresence>
       <WakeWordListener enabled={continuousMode && voiceEnabled && voiceState === "idle" && !isSending} onWakeWord={() => { addActivity("Wake word detected — opening voice link"); void handleVoiceStart(); }} onUnsupported={() => addActivity("Wake word needs Chrome or another supported browser")} />
 
       <AnimatePresence>

@@ -62,7 +62,7 @@ export function JarvisWorkspaceDock({
   return (
     <section className="hud-panel p-4 sm:p-5" aria-label="Jarvis virtual workspace">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><p className="hud-label">JARVIS // VIRTUAL WORKSPACE</p><h2 className="mt-1 text-base font-semibold text-slate-100">Private files, folders, and code</h2><p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">This is an isolated Jarvis workspace, not your phone or computer. File writes are stored privately only after explicit approval. No deletes or device access are enabled here.</p></div>
+        <div><p className="hud-label">JARVIS // PRIVATE WORKSPACE</p><h2 className="mt-1 text-base font-semibold text-slate-100">Private files, folders, and code</h2><p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">This is an isolated Jarvis workspace, not your phone or computer. File writes are stored privately only after explicit approval. No deletes or device access are enabled here.</p></div>
         <span className="flex items-center gap-1.5 rounded-sm border border-cyan-300/25 bg-cyan-300/[0.06] px-2 py-1 text-[10px] text-cyan-100"><HardDrive className="size-3" /> ISOLATED</span>
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-[0.75fr_1.25fr_auto]">

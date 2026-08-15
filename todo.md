@@ -85,3 +85,8 @@
 - [x] Open approved safe external destinations directly in a new tab after explicit confirmation, while retaining private approval records and operating-system safeguards for calls, messages, and app handoffs.
 - [x] Add explicit authenticated execution coverage for workspace file and folder proposals, approval requirements, and persisted ownership metadata.
 - [x] Add component-level coverage showing distinct workspace file, folder, and code operations and its separation from a future persistent virtual computer.
+- [x] Redesign Jarvis with a clearly separated responsive workspace shell for Command Center, Conversations, Private Workspace, and Settings modes without copying another product’s interface.
+- [x] Add smooth, interruption-safe motion, keyboard-accessible mode switching, and visual hierarchy improvements while preserving Jarvis’s cyberpunk identity and approval safeguards.
+- [x] Add deterministic mode-navigation coverage and desktop/mobile viewport verification for the redesigned Jarvis workspace.
+- [x] Verify the final UI exposes the exact Command Center, Conversations, Private Workspace, and Settings mode surfaces with distinct content areas.
+- [x] Capture passing mode-navigation test and TypeScript outputs that prove the revised interaction contract.
