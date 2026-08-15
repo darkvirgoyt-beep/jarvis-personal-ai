@@ -70,10 +70,10 @@
 - [x] Add the persisted Nemotron default to the visible settings selector and verify its exact preference update payload.
 - [x] Extract a shared model contract used by the stream runtime and both Jarvis model selectors, then prove the settings surface’s persistence payload.
 - [x] Add a focused Home settings-modal interaction test that asserts the exact persisted model preference payload.
-- [ ] Document Jarvis’s supported browser/mobile capabilities and explicit security boundaries for location, maps, search, voice, app launch, calls, messages, and device unlock.
-- [ ] Add a permission-based location and nearby-place discovery foundation that requests browser geolocation only after user action and keeps location data private by default.
-- [ ] Add an approved-action system for web search, map directions, and app-link handoff, with a distinct confirmation before any external navigation or communication handoff.
-- [ ] Design native mobile companion requirements for device unlock, phone calls, messages, WhatsApp, and Instagram actions without bypassing operating-system authentication or platform permissions.
-- [ ] Add contextual suggestion controls that are opt-in, transparent about the data used, and scoped to the authenticated user.
+- [x] Document Jarvis’s supported browser/mobile capabilities and explicit security boundaries for location, maps, search, voice, app launch, calls, messages, and device unlock.
+- [x] Add a permission-based location and nearby-place discovery foundation that requests browser geolocation only after user action and keeps location data private by default.
+- [x] Add an approved-action system for web search, map directions, and app-link handoff, with a distinct confirmation before any external navigation or communication handoff.
+- [x] Design native mobile companion requirements for device unlock, phone calls, messages, WhatsApp, and Instagram actions without bypassing operating-system authentication or platform permissions.
+- [x] Add contextual suggestion controls that are opt-in, transparent about the data used, and scoped to the authenticated user.
 - [x] Make Jarvis’s default speech profile warm and feminine while retaining browser/device voice selection, speed control, and a clear fallback when no matching installed voice exists.
 - [x] Document how to clone, configure, validate, and contribute to the private Jarvis repository, distinguishing the current web app from the planned permission-based Android companion.

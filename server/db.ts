@@ -254,6 +254,7 @@ export async function updateJarvisPreferences(input: {
   voiceEnabled?: number;
   voiceName?: string | null;
   continuousMode?: number;
+  contextualSuggestions?: number;
   speechRate?: number;
   privacyMode?: "standard" | "minimal";
   visualMode?: "hud" | "reduced_motion";

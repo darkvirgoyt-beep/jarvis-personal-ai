@@ -35,7 +35,7 @@ vi.mock("@/lib/trpc", () => ({
     jarvis: {
       tasks: { list: { useQuery: () => queryResult }, create: { useMutation: () => mutationResult }, update: { useMutation: () => mutationResult } },
       memory: { list: { useQuery: () => queryResult }, create: { useMutation: () => mutationResult }, delete: { useMutation: () => mutationResult } },
-      confirmations: { list: { useQuery: () => queryResult }, resolve: { useMutation: () => mutationResult } },
+      confirmations: { list: { useQuery: () => queryResult }, propose: { useMutation: () => mutationResult }, resolve: { useMutation: () => mutationResult } },
       preferences: {
         get: { useQuery: () => ({ data: { model: "nemotron-3-ultra", voiceEnabled: 1, continuousMode: 0, personality: "balanced" } }) },
         update: { useMutation: () => ({ mutateAsync: updatePreferences, isPending: false }) },

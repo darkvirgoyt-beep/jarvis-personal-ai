@@ -8,7 +8,8 @@ This record summarizes the final validation performed for the authenticated Jarv
 
 | Check | Result | Evidence |
 |---|---|---|
-| Unit and contract tests | Passed | `pnpm test`: 17 test files and 41 tests passed, including live OpenRouter catalog and Nemotron stream verification. |
+| Deterministic unit and contract tests | Passed | `pnpm vitest run --exclude server/openrouterCredential.test.ts`: 20 test files and 46 tests passed, including private scope, model contracts, interaction lifecycle, warm-voice fallback, sanitized external handoffs, contextual-suggestion opt-in, and approval-gated UI behavior. |
+| Live OpenRouter credential check | Blocked externally | The latest `pnpm test` run returned HTTP 403 from OpenRouter for the model catalog and Nemotron stream checks. This does not affect the deterministic suite or the tested in-app fallback path, but live Nemotron access requires a currently authorized provider key. |
 | Type safety | Passed | `pnpm check` completed without TypeScript errors. |
 | Nemotron request and stream contract | Passed | Provider contract, keep-alive handling, incremental delta, and fallback behavior are covered by the server tests. |
 | Private-data scope and denials | Passed | Router and database-scope tests cover authenticated ownership constraints and explicit cross-user mutation denial behavior. |
@@ -24,6 +25,9 @@ This record summarizes the final validation performed for the authenticated Jarv
 | Desktop command center | Captured and reviewed | Full-page authenticated preview captured at **1440 × 1100**. The three-column desktop layout kept the agent rail, neural visualizer, conversation feed, system HUD, private workspace, and safety protocol visible without collisions. |
 | Desktop control deck | Captured and reviewed | The final 1440 × 1100 capture showed distinct voice, task, plugin, research, coding, and memory panels, including the visible Nemotron primary-engine status plus continuous-conversation, privacy, and visual-motion controls. |
 | Mobile command center | Captured and reviewed | Full-page authenticated preview captured at **390 × 844**. The layout stacked into a single column with no horizontal overflow; the command feed, microphone/send controls, status panels, and control-deck inputs, including model, privacy, and continuous-conversation controls, remained visible and reachable. |
+| Approved action dock — desktop | Captured and reviewed | Full-page authenticated preview captured at **1280 × 900**. The new action dock cleanly presents an action selector, destination field, on-demand location request, and a visible **Confirm first** state below the command center. |
+| Approved action dock — mobile | Captured and reviewed | Full-page authenticated preview captured at **390 × 844**. The action dock stacks safely with the rest of the command center; its location and approval controls remain reachable in the narrow layout. |
+| Contextual-suggestion consent | Captured and reviewed | At **1280 × 900**, the action dock shows an unchecked opt-in with a clear data-use explanation. The **390 × 844** capture confirms this consent control remains visible and reachable in the narrow layout. |
 | Voice visual states | Passed | The deterministic reducer verifies `idle → listening → transcribing → thinking → speaking → idle` lifecycle states. `JarvisCore` tests verify separate core-state rendering, while `AIChatBox` tests verify recording and transcribing microphone controls. |
 | Streamed response UI | Passed | The interaction reducer verifies stream-delivery state, the chat component renders partial assistant output with loading feedback, and authenticated stream endpoint tests cover incremental event handling and fallback behavior. |
 
@@ -36,3 +40,7 @@ The main control deck and settings surface share the same persisted **Response m
 ## Browser limitations
 
 Browser wake-word and speech playback require user permission and browser support. Jarvis intentionally uses opt-in browser microphone and `SpeechSynthesis` capabilities; it does not maintain hidden background audio capture or claim native device control. Browser voice names and sound vary by operating system and installed voices.
+
+Location is requested only from an explicit **Use current location** control and remains transient in the action workspace. Web search, map, call, SMS, WhatsApp, and Instagram destinations are prepared as sanitized external handoffs. The action dock first records the user’s approval in their private confirmation history; it reveals the destination only after that approval, requiring a final user browser action to open it. The browser build cannot unlock a phone, access private content in another app, or silently place calls or send messages. The Android companion design and platform-boundary details are recorded in [`mobile-capabilities.md`](./mobile-capabilities.md).
+
+**Contextual suggestions are disabled by default.** When a signed-in user opts in, Jarvis persists that preference on the authenticated profile and may use only the current action type, current destination text, and a temporary location that the user has actively requested. The workflow does not save coordinates; the test suite verifies both the authenticated persistence payload and the default-off control behavior.

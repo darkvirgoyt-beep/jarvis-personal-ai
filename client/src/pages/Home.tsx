@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
+import { JarvisActionDock } from "@/components/JarvisActionDock";
 import { HudPanel } from "@/components/HudPanel";
 import { JarvisCore, type JarvisCoreState } from "@/components/JarvisCore";
 import { JarvisExtensions } from "@/components/JarvisExtensions";
@@ -62,6 +63,7 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [continuousMode, setContinuousMode] = useState(false);
+  const [contextualSuggestions, setContextualSuggestions] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [memoryDraft, setMemoryDraft] = useState("");
   const [taskDraft, setTaskDraft] = useState("");
@@ -80,6 +82,7 @@ export default function Home() {
   const createTask = trpc.jarvis.tasks.create.useMutation();
   const updateTask = trpc.jarvis.tasks.update.useMutation();
   const resolveConfirmation = trpc.jarvis.confirmations.resolve.useMutation();
+  const proposeConfirmation = trpc.jarvis.confirmations.propose.useMutation();
   const conversationsQuery = trpc.jarvis.conversations.list.useQuery(undefined, { enabled: Boolean(user) });
   const historyQuery = trpc.jarvis.conversations.messages.useQuery(
     { conversationId: activeConversationId ?? 0 },
@@ -107,6 +110,7 @@ export default function Home() {
     if (!preferencesQuery.data) return;
     setVoiceEnabled(Boolean(preferencesQuery.data.voiceEnabled));
     setContinuousMode(Boolean(preferencesQuery.data.continuousMode));
+    setContextualSuggestions(Boolean(preferencesQuery.data.contextualSuggestions));
   }, [preferencesQuery.data]);
 
   useEffect(() => {
@@ -413,6 +417,7 @@ export default function Home() {
         </aside>
       </div>
 
+      <JarvisActionDock onPropose={(input) => proposeConfirmation.mutateAsync(input)} onResolve={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} onActivity={addActivity} suggestionsEnabled={contextualSuggestions} onSuggestionsChange={async (enabled) => { await updatePreferences.mutateAsync({ contextualSuggestions: enabled }); setContextualSuggestions(enabled); await utils.jarvis.preferences.get.invalidate(); addActivity(`Contextual suggestions ${enabled ? "enabled" : "disabled"} for this private workspace`); }} />
       <JarvisExtensions voiceStorageKey={`jarvisVoice:${user?.id ?? "anonymous"}`} onRun={(command, commandAgent) => { setAgent(commandAgent); void handleSendMessage(command, commandAgent); }} onCopyLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to copy yet"); return; } void navigator.clipboard.writeText(latest).then(() => addActivity("Latest Jarvis response copied to clipboard")).catch(() => addActivity("Clipboard access was not available in this browser")); }} onExportLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to export yet"); return; } const exportData = buildJarvisMarkdownExport(latest); const file = new Blob([exportData.text], { type: exportData.mimeType }); const url = URL.createObjectURL(file); const link = document.createElement("a"); link.href = url; link.download = exportData.filename; link.click(); URL.revokeObjectURL(url); addActivity("Latest Jarvis response downloaded as Markdown"); }} />
       <WakeWordListener enabled={continuousMode && voiceEnabled && voiceState === "idle" && !isSending} onWakeWord={() => { addActivity("Wake word detected — opening voice link"); void handleVoiceStart(); }} onUnsupported={() => addActivity("Wake word needs Chrome or another supported browser")} />
 

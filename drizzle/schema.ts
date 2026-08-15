@@ -84,6 +84,7 @@ export const jarvisPreferences = mysqlTable("jarvisPreferences", {
   voiceEnabled: int("voiceEnabled").notNull().default(1),
   voiceName: varchar("voiceName", { length: 240 }),
   continuousMode: int("continuousMode").notNull().default(0),
+  contextualSuggestions: int("contextualSuggestions").notNull().default(0),
   speechRate: int("speechRate").notNull().default(100),
   privacyMode: mysqlEnum("privacyMode", ["standard", "minimal"]).notNull().default("standard"),
   visualMode: mysqlEnum("visualMode", ["hud", "reduced_motion"]).notNull().default("hud"),

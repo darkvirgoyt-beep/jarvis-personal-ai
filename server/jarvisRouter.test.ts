@@ -93,6 +93,7 @@ describe("Jarvis private router", () => {
     await caller.jarvis.preferences.get();
     await caller.jarvis.preferences.update({
       continuousMode: true,
+      contextualSuggestions: true,
       privacyMode: "minimal",
       voiceName: "Jarvis Browser Voice",
       visualMode: "reduced_motion",
@@ -114,6 +115,7 @@ describe("Jarvis private router", () => {
     expect(db.updateJarvisPreferences).toHaveBeenCalledWith(expect.objectContaining({
       userId: 42,
       continuousMode: 1,
+      contextualSuggestions: 1,
       privacyMode: "minimal",
       voiceName: "Jarvis Browser Voice",
       visualMode: "reduced_motion",
@@ -158,21 +160,21 @@ describe("Jarvis private router", () => {
   });
 
   it("persists the privacy-memory model only on the authenticated profile while memory mutations retain the same scope", async () => {
-    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ userId: 7, privacyMode: "standard", continuousMode: 0 } as never);
-    vi.mocked(db.updateJarvisPreferences).mockResolvedValue({ userId: 7, privacyMode: "minimal", continuousMode: 1 } as never);
+    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ userId: 7, privacyMode: "standard", continuousMode: 0, contextualSuggestions: 0 } as never);
+    vi.mocked(db.updateJarvisPreferences).mockResolvedValue({ userId: 7, privacyMode: "minimal", continuousMode: 1, contextualSuggestions: 1 } as never);
     vi.mocked(db.createJarvisMemory).mockResolvedValue(undefined as never);
     vi.mocked(db.updateJarvisMemory).mockResolvedValue(1);
     vi.mocked(db.deleteJarvisMemory).mockResolvedValue(1);
     const caller = appRouter.createCaller(privateContext(7));
 
     await caller.jarvis.preferences.get();
-    await caller.jarvis.preferences.update({ privacyMode: "minimal", continuousMode: true, userId: 42 } as never);
+    await caller.jarvis.preferences.update({ privacyMode: "minimal", continuousMode: true, contextualSuggestions: true, userId: 42 } as never);
     await caller.jarvis.memory.create({ content: "Keep project notes private", category: "project" });
     await caller.jarvis.memory.update({ id: 31, content: "Keep project notes private and concise", category: "project" });
     await caller.jarvis.memory.delete({ id: 31 });
 
     expect(db.getJarvisPreferences).toHaveBeenCalledWith(7);
-    expect(db.updateJarvisPreferences).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, privacyMode: "minimal", continuousMode: 1 }));
+    expect(db.updateJarvisPreferences).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, privacyMode: "minimal", continuousMode: 1, contextualSuggestions: 1 }));
     expect(db.updateJarvisPreferences).not.toHaveBeenCalledWith(expect.objectContaining({ userId: 42 }));
     expect(db.createJarvisMemory).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, content: "Keep project notes private" }));
     expect(db.updateJarvisMemory).toHaveBeenCalledWith(7, 31, "Keep project notes private and concise", "project");
