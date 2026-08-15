@@ -42,136 +42,104 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
-}
-
-.dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+:root, .dark {
+  --radius: 0.25rem;
+  --background: oklch(0.12 0.012 255);
+  --foreground: oklch(0.93 0.018 210);
+  --card: oklch(0.165 0.018 255 / 0.9);
+  --card-foreground: oklch(0.93 0.018 210);
+  --popover: oklch(0.17 0.018 255);
+  --popover-foreground: oklch(0.93 0.018 210);
+  --primary: oklch(0.83 0.14 195);
+  --primary-foreground: oklch(0.15 0.02 250);
+  --secondary: oklch(0.21 0.022 265);
+  --secondary-foreground: oklch(0.88 0.02 210);
+  --muted: oklch(0.21 0.02 260);
+  --muted-foreground: oklch(0.65 0.025 245);
+  --accent: oklch(0.25 0.04 300);
+  --accent-foreground: oklch(0.94 0.018 210);
+  --destructive: oklch(0.67 0.22 20);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.72 0.08 205 / 0.16);
+  --input: oklch(0.72 0.08 205 / 0.2);
+  --ring: oklch(0.83 0.14 195);
+  --chart-1: oklch(0.83 0.14 195);
+  --chart-2: oklch(0.72 0.19 330);
+  --chart-3: oklch(0.75 0.11 235);
+  --chart-4: oklch(0.75 0.15 180);
+  --chart-5: oklch(0.77 0.16 300);
+  --sidebar: oklch(0.15 0.017 255);
+  --sidebar-foreground: oklch(0.9 0.02 210);
+  --sidebar-primary: oklch(0.83 0.14 195);
+  --sidebar-primary-foreground: oklch(0.15 0.02 250);
+  --sidebar-accent: oklch(0.22 0.025 265);
+  --sidebar-accent-foreground: oklch(0.9 0.02 210);
+  --sidebar-border: oklch(0.72 0.08 205 / 0.16);
+  --sidebar-ring: oklch(0.83 0.14 195);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  button:not(:disabled),
-  [role="button"]:not([aria-disabled="true"]),
-  [type="button"]:not(:disabled),
-  [type="submit"]:not(:disabled),
-  [type="reset"]:not(:disabled),
-  a[href],
-  select:not(:disabled),
-  input[type="checkbox"]:not(:disabled),
-  input[type="radio"]:not(:disabled) {
-    @apply cursor-pointer;
-  }
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; min-width: 320px; }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [type="button"]:not(:disabled), [type="submit"]:not(:disabled), [type="reset"]:not(:disabled), a[href], select:not(:disabled), input[type="checkbox"]:not(:disabled), input[type="radio"]:not(:disabled) { @apply cursor-pointer; }
 }
 
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
-  .container {
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
-    padding-right: 1rem;
-  }
+  .container { width: 100%; margin-inline: auto; padding-inline: 1rem; }
+  .flex { min-height: 0; min-width: 0; }
+  @media (min-width: 640px) { .container { padding-inline: 1.5rem; } }
+  @media (min-width: 1024px) { .container { max-width: 1280px; padding-inline: 2rem; } }
 
-  .flex {
-    min-height: 0;
-    min-width: 0;
-  }
+  .jarvis-grid { background-color: #050914; background-image: linear-gradient(rgba(93, 227, 255, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(93, 227, 255, 0.035) 1px, transparent 1px), radial-gradient(circle at 50% -18%, rgba(49, 197, 255, 0.13), transparent 42%), radial-gradient(circle at 88% 74%, rgba(241, 74, 207, 0.08), transparent 34%); background-size: 36px 36px, 36px 36px, auto, auto; }
+  .hud-panel { position: relative; overflow: hidden; border: 1px solid rgba(95, 231, 255, 0.14); background: linear-gradient(145deg, rgba(12, 25, 45, 0.88), rgba(5, 12, 27, 0.78)); box-shadow: inset 0 1px 0 rgba(160, 244, 255, 0.04), 0 14px 42px rgba(0, 0, 0, 0.18); }
+  .hud-panel::before, .hud-panel::after { content: ""; position: absolute; width: 17px; height: 17px; pointer-events: none; }
+  .hud-panel::before { left: -1px; top: -1px; border-left: 1px solid rgba(137, 244, 255, 0.72); border-top: 1px solid rgba(137, 244, 255, 0.72); }
+  .hud-panel::after { bottom: -1px; right: -1px; border-right: 1px solid rgba(243, 105, 214, 0.7); border-bottom: 1px solid rgba(243, 105, 214, 0.7); }
+  .hud-label { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.2em; color: rgba(167, 238, 255, 0.82); }
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: #58e7ff; box-shadow: 0 0 9px rgba(88, 231, 255, 0.9); }
+  .status-dot--listening { background: #ff6ee4; box-shadow: 0 0 11px rgba(255, 110, 228, 0.95); animation: jarvis-pulse 1.2s ease-in-out infinite; }
+  .status-dot--thinking { animation: jarvis-pulse 0.75s ease-in-out infinite; }
+  .status-dot--speaking { background: #c5f8ff; animation: jarvis-pulse 0.55s ease-in-out infinite; }
 
-  @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
-      padding-right: 1.5rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem; /* 32px - desktop padding */
-      padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
-    }
-  }
+  .jarvis-core { position: relative; display: grid; width: 205px; height: 205px; place-items: center; border-radius: 50%; }
+  .jarvis-core--compact { transform: scale(0.72); transform-origin: center; margin-block: -24px; }
+  .jarvis-core::before { content: ""; position: absolute; inset: 18px; border-radius: 50%; background: radial-gradient(circle, rgba(148, 244, 255, 0.34) 0%, rgba(41, 197, 255, 0.15) 24%, rgba(6, 14, 30, 0.05) 52%, transparent 70%); filter: blur(2px); }
+  .jarvis-core__halo, .jarvis-core__arc, .jarvis-core__axis { position: absolute; border-radius: 50%; }
+  .jarvis-core__halo--outer { inset: 0; border: 1px solid rgba(120, 235, 255, 0.32); box-shadow: 0 0 20px rgba(89, 222, 255, 0.16), inset 0 0 20px rgba(89, 222, 255, 0.08); animation: jarvis-spin 13s linear infinite; }
+  .jarvis-core__halo--middle { inset: 19px; border: 1px dashed rgba(255, 96, 221, 0.45); animation: jarvis-spin-reverse 9s linear infinite; }
+  .jarvis-core__halo--inner { inset: 40px; border: 1px solid rgba(127, 242, 255, 0.42); box-shadow: inset 0 0 16px rgba(63, 208, 255, 0.14); animation: jarvis-pulse 2.4s ease-in-out infinite; }
+  .jarvis-core__arc { width: 180px; height: 90px; border: 1px solid transparent; border-top-color: rgba(114, 236, 255, 0.9); border-left-color: rgba(114, 236, 255, 0.24); transform: rotate(-28deg) skewX(11deg); animation: jarvis-spin 6.5s linear infinite; }
+  .jarvis-core__arc--two { width: 168px; height: 80px; border-top-color: rgba(255, 104, 225, 0.84); border-right-color: rgba(255, 104, 225, 0.26); transform: rotate(124deg) skewX(-11deg); animation: jarvis-spin-reverse 5.4s linear infinite; }
+  .jarvis-core__axis { width: 154px; height: 154px; border: 1px solid rgba(103, 228, 255, 0.17); transform: rotate(45deg) scaleY(0.34); }
+  .jarvis-core__waveform { position: absolute; z-index: 1; display: flex; width: 154px; height: 84px; align-items: center; justify-content: center; gap: 5px; pointer-events: none; }
+  .jarvis-core__wavebar { width: 3px; height: 7px; border-radius: 999px; background: rgba(155, 240, 255, 0.42); box-shadow: 0 0 8px rgba(92, 232, 255, 0.22); transform-origin: center; transition: height 180ms cubic-bezier(0.23, 1, 0.32, 1), background 180ms cubic-bezier(0.23, 1, 0.32, 1), opacity 180ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .jarvis-core--listening .jarvis-core__wavebar { background: rgba(255, 147, 232, 0.9); box-shadow: 0 0 10px rgba(255, 91, 219, 0.48); animation: jarvis-listening-wave 0.78s ease-in-out infinite alternate; }
+  .jarvis-core--listening .jarvis-core__wavebar:nth-child(2n) { animation-delay: -0.26s; }
+  .jarvis-core--listening .jarvis-core__wavebar:nth-child(3n) { animation-delay: -0.48s; }
+  .jarvis-core--thinking .jarvis-core__wavebar { height: 20px; opacity: 0.65; animation: jarvis-thinking-wave 0.7s linear infinite; }
+  .jarvis-core--thinking .jarvis-core__wavebar:nth-child(2n) { animation-delay: -0.18s; }
+  .jarvis-core--speaking .jarvis-core__waveform { width: 182px; gap: 6px; }
+  .jarvis-core--speaking .jarvis-core__wavebar { background: rgba(184, 250, 255, 0.95); box-shadow: 0 0 12px rgba(116, 239, 255, 0.6); animation: jarvis-speaking-wave 0.48s ease-in-out infinite alternate; }
+  .jarvis-core--speaking .jarvis-core__wavebar:nth-child(2n) { animation-delay: -0.12s; }
+  .jarvis-core--speaking .jarvis-core__wavebar:nth-child(3n) { animation-delay: -0.29s; }
+  .jarvis-core__nucleus { position: relative; display: grid; width: 66px; height: 66px; place-items: center; border: 1px solid rgba(168, 245, 255, 0.78); border-radius: 50%; color: #d5fbff; background: radial-gradient(circle at 38% 32%, rgba(202, 250, 255, 0.95), rgba(89, 226, 255, 0.48) 30%, rgba(16, 56, 89, 0.68) 66%, rgba(5, 9, 22, 0.95)); box-shadow: 0 0 26px rgba(87, 227, 255, 0.58), 0 0 72px rgba(80, 141, 255, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.45); }
+  .jarvis-core--listening .jarvis-core__nucleus { color: #ffe0f8; border-color: rgba(255, 138, 232, 0.92); background: radial-gradient(circle at 38% 32%, #ffe4fa, rgba(255, 91, 219, 0.55) 32%, rgba(74, 19, 80, 0.75) 69%, rgba(18, 5, 29, 0.95)); box-shadow: 0 0 36px rgba(255, 92, 219, 0.72), 0 0 92px rgba(255, 60, 190, 0.25), inset 0 0 20px rgba(255, 255, 255, 0.42); animation: jarvis-pulse 0.85s ease-in-out infinite; }
+  .jarvis-core--listening .jarvis-core__halo--outer { border-color: rgba(255, 115, 229, 0.66); animation-duration: 4.6s; }
+  .jarvis-core--thinking .jarvis-core__halo--outer, .jarvis-core--thinking .jarvis-core__arc { animation-duration: 2.8s; }
+  .jarvis-core--thinking .jarvis-core__halo--middle { animation-duration: 2.1s; }
+  .jarvis-core--speaking .jarvis-core__halo--inner { border-style: dashed; animation-duration: 0.46s; }
+  .jarvis-core--speaking .jarvis-core__arc { animation-duration: 1.75s; }
+  .voice-command-button { display: flex; width: 40px; height: 40px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid rgba(255, 126, 228, 0.32); border-radius: 2px; background: rgba(255, 72, 207, 0.09); color: rgb(255, 202, 243); transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .voice-command-button:hover { border-color: rgba(255, 149, 235, 0.6); background: rgba(255, 72, 207, 0.17); }
+  .voice-command-button:active { transform: scale(0.97); }
+  .voice-command-button--recording { border-color: rgba(255, 159, 237, 0.9); background: rgba(255, 72, 207, 0.28); box-shadow: 0 0 20px rgba(255, 72, 207, 0.3); animation: jarvis-pulse 0.9s ease-in-out infinite; }
 }
+
+@keyframes jarvis-spin { to { transform: rotate(360deg); } }
+@keyframes jarvis-spin-reverse { to { transform: rotate(-360deg); } }
+@keyframes jarvis-pulse { 0%, 100% { opacity: 0.82; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.04); } }
+@keyframes jarvis-listening-wave { 0% { height: 10px; opacity: 0.52; } 100% { height: 54px; opacity: 1; } }
+@keyframes jarvis-thinking-wave { 0%, 100% { transform: scaleY(0.5); opacity: 0.35; } 50% { transform: scaleY(1.7); opacity: 0.9; } }
+@keyframes jarvis-speaking-wave { 0% { height: 12px; opacity: 0.54; } 100% { height: 64px; opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; } }

@@ -1,0 +1,1 @@
+ALTER TABLE `jarvisPreferences` MODIFY COLUMN `model` varchar(80) NOT NULL DEFAULT 'nemotron-3-ultra';

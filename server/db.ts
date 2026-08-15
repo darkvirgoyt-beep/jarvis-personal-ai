@@ -1,9 +1,26 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  InsertUser,
+  jarvisConfirmations,
+  jarvisConversations,
+  jarvisMemories,
+  jarvisMessages,
+  jarvisPreferences,
+  jarvisTasks,
+  users,
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+
+/** Test-only injection point for verifying user-scoped query contracts without a live database. */
+export function setJarvisDbForTests(db: ReturnType<typeof drizzle> | null) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Jarvis database test injection is unavailable outside tests");
+  }
+  _db = db;
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -89,4 +106,168 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+async function requireDb() {
+  const db = await getDb();
+  if (!db) throw new Error("Jarvis data storage is unavailable");
+  return db;
+}
+
+export async function listJarvisConversations(userId: number) {
+  const db = await requireDb();
+  return db.select().from(jarvisConversations)
+    .where(eq(jarvisConversations.userId, userId))
+    .orderBy(desc(jarvisConversations.updatedAt));
+}
+
+export async function createJarvisConversation(userId: number, title: string, activeAgent: "general" | "coding" | "research" | "files" | "system" | "creative") {
+  const db = await requireDb();
+  const result = await db.insert(jarvisConversations).values({ userId, title, activeAgent });
+  const conversationId = Number(result[0].insertId);
+  const records = await db.select().from(jarvisConversations)
+    .where(and(eq(jarvisConversations.id, conversationId), eq(jarvisConversations.userId, userId))).limit(1);
+  return records[0];
+}
+
+export async function getJarvisConversation(userId: number, conversationId: number) {
+  const db = await requireDb();
+  const records = await db.select().from(jarvisConversations)
+    .where(and(eq(jarvisConversations.id, conversationId), eq(jarvisConversations.userId, userId))).limit(1);
+  return records[0];
+}
+
+export async function listJarvisMessages(userId: number, conversationId: number) {
+  const db = await requireDb();
+  return db.select().from(jarvisMessages)
+    .where(and(eq(jarvisMessages.userId, userId), eq(jarvisMessages.conversationId, conversationId)))
+    .orderBy(jarvisMessages.createdAt);
+}
+
+export async function createJarvisMessage(input: {
+  userId: number;
+  conversationId: number;
+  role: "user" | "assistant" | "system";
+  content: string;
+  agent: string;
+}) {
+  const db = await requireDb();
+  await db.insert(jarvisMessages).values(input);
+  await db.update(jarvisConversations).set({ updatedAt: new Date() })
+    .where(and(eq(jarvisConversations.id, input.conversationId), eq(jarvisConversations.userId, input.userId)));
+}
+
+export async function listJarvisMemories(userId: number) {
+  const db = await requireDb();
+  return db.select().from(jarvisMemories)
+    .where(eq(jarvisMemories.userId, userId))
+    .orderBy(desc(jarvisMemories.updatedAt));
+}
+
+export async function createJarvisMemory(input: {
+  userId: number;
+  content: string;
+  category: "preference" | "project" | "personal" | "fact" | "note";
+  source?: "manual" | "conversation";
+}) {
+  const db = await requireDb();
+  await db.insert(jarvisMemories).values({ ...input, source: input.source ?? "manual" });
+}
+
+export async function updateJarvisMemory(userId: number, id: number, content: string, category: "preference" | "project" | "personal" | "fact" | "note") {
+  const db = await requireDb();
+  const result = await db.update(jarvisMemories).set({ content, category, updatedAt: new Date() })
+    .where(and(eq(jarvisMemories.id, id), eq(jarvisMemories.userId, userId)));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
+export async function deleteJarvisMemory(userId: number, id: number) {
+  const db = await requireDb();
+  const result = await db.delete(jarvisMemories).where(and(eq(jarvisMemories.id, id), eq(jarvisMemories.userId, userId)));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
+export async function listJarvisTasks(userId: number) {
+  const db = await requireDb();
+  return db.select().from(jarvisTasks)
+    .where(eq(jarvisTasks.userId, userId))
+    .orderBy(desc(jarvisTasks.updatedAt));
+}
+
+export async function createJarvisTask(input: {
+  userId: number;
+  title: string;
+  notes?: string | null;
+  priority: "low" | "medium" | "high";
+  dueAt?: Date | null;
+}) {
+  const db = await requireDb();
+  await db.insert(jarvisTasks).values({ ...input, notes: input.notes ?? null, dueAt: input.dueAt ?? null });
+}
+
+export async function updateJarvisTask(input: {
+  userId: number;
+  id: number;
+  title?: string;
+  notes?: string | null;
+  status?: "todo" | "in_progress" | "done";
+  priority?: "low" | "medium" | "high";
+  dueAt?: Date | null;
+}) {
+  const db = await requireDb();
+  const { userId, id, ...values } = input;
+  const result = await db.update(jarvisTasks).set({ ...values, updatedAt: new Date() })
+    .where(and(eq(jarvisTasks.id, id), eq(jarvisTasks.userId, userId)));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
+export async function getJarvisPreferences(userId: number) {
+  const db = await requireDb();
+  const existing = await db.select().from(jarvisPreferences).where(eq(jarvisPreferences.userId, userId)).limit(1);
+  if (existing[0]) return existing[0];
+  await db.insert(jarvisPreferences).values({ userId });
+  const created = await db.select().from(jarvisPreferences).where(eq(jarvisPreferences.userId, userId)).limit(1);
+  return created[0];
+}
+
+export async function updateJarvisPreferences(input: {
+  userId: number;
+  model?: string;
+  personality?: "balanced" | "concise" | "strategic" | "creative";
+  voiceEnabled?: number;
+  continuousMode?: number;
+  speechRate?: number;
+}) {
+  const db = await requireDb();
+  const { userId, ...values } = input;
+  await db.insert(jarvisPreferences).values({ userId, ...values }).onDuplicateKeyUpdate({
+    set: { ...values, updatedAt: new Date() },
+  });
+  return getJarvisPreferences(userId);
+}
+
+export async function listJarvisConfirmations(userId: number) {
+  const db = await requireDb();
+  return db.select().from(jarvisConfirmations)
+    .where(eq(jarvisConfirmations.userId, userId))
+    .orderBy(desc(jarvisConfirmations.createdAt));
+}
+
+export async function createJarvisConfirmation(input: {
+  userId: number;
+  action: string;
+  riskLevel: "low" | "medium" | "high";
+  payload: string;
+}) {
+  const db = await requireDb();
+  const result = await db.insert(jarvisConfirmations).values(input);
+  const id = Number(result[0].insertId);
+  const records = await db.select().from(jarvisConfirmations)
+    .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, input.userId))).limit(1);
+  return records[0];
+}
+
+export async function resolveJarvisConfirmation(userId: number, id: number, status: "approved" | "rejected") {
+  const db = await requireDb();
+  const result = await db.update(jarvisConfirmations).set({ status, resolvedAt: new Date() })
+    .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, userId), eq(jarvisConfirmations.status, "pending")));
+  return Number(result[0]?.affectedRows ?? 0);
+}

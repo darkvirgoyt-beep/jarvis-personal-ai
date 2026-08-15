@@ -1,0 +1,44 @@
+# Project TODO
+
+- [x] Establish the high-contrast cyberpunk visual system with deep-black surfaces, neon cyan and pink accents, technical HUD framing, accessibility-safe contrast, and responsive layouts.
+- [x] Build the Jarvis command-center dashboard with an animated listening waveform, distinct speaking pulse, system telemetry, activity log, and agent-status panel.
+- [x] Add typed conversational input with keyboard shortcut support, message history, quick command prompts, and error/loading states.
+- [x] Add microphone recording with press-and-hold and keyboard activation, capture consent, visual feedback, and browser compatibility fallback.
+- [x] Integrate authenticated speech-to-text transcription for recorded voice commands.
+- [ ] Implement voice activation controls, including an opt-in wake-word-ready interface and continuous-conversation mode suitable for browser limitations.
+- [ ] Add client-side text-to-speech responses with selectable Jarvis voice personality settings and speaking-state visual feedback.
+- [ ] Add a secure streamed LLM chat procedure with context-aware responses, real-time output rendering, model routing, and robust failure feedback.
+- [x] Define the specialist-agent routing layer for Coding, Research, File Management, System Assistant, and Creative Assistant workflows.
+- [ ] Add a reviewable multi-step action-plan view that shows proposed tool steps before any high-impact operation executes.
+- [x] Create private database tables and server procedures for user-scoped conversations, messages, memory entries, tasks, and user preferences.
+- [ ] Build memory controls for saving, reviewing, editing, and deleting long-term Jarvis memories, preferences, and project context.
+- [ ] Build a private task manager with creation, status updates, priority, due dates, and natural-language task extraction from commands.
+- [ ] Add research workflow support with source-linked summaries and a user-visible research record.
+- [ ] Add coding-workflow support with structured code suggestions, language selection, and safe copy/export actions.
+- [x] Add confirmations for risky or destructive operations and ensure that no file, command, or external-system action occurs without explicit approval.
+- [ ] Create a plugin and custom-command foundation with disabled-by-default integrations and a user-control settings surface.
+- [ ] Add model, voice, continuous-mode, memory, privacy, and visual-preference settings scoped to the authenticated user.
+- [x] Verify all user data operations are authorization-scoped, validate input, and do not expose cross-user content.
+- [x] Write and run Vitest coverage for private data helpers, agent routing, confirmation gates, task behavior, and assistant response procedures.
+- [ ] Verify desktop and mobile visual design, typed commands, voice controls, streamed response behavior, and listening/speaking visual states.
+- [x] Document deferred external integrations, including Gmail, Calendar, smart-home services, native computer control, offline support, cloud sync, and schedule-based automations.
+- [x] Analyze the supplied video reference and translate its observable interaction patterns, motion cues, and visual hierarchy into original Jarvis interface requirements.
+- [x] Adapt the Jarvis command center, voice interaction states, and assistant activity feedback to match the approved reference direction without copying third-party branding or proprietary assets.
+- [x] Wire the Jarvis core into verified idle, listening, thinking, and speaking state transitions during the command flow.
+- [x] Refine the central visualizer into a distinct waveform/pulse system that reacts differently while listening and speaking.
+- [x] Prove real Jarvis token streaming end-to-end with a supported streaming provider/helper, or explicitly document the platform limitation and adjust the feature scope to a streaming-style fallback.
+- [x] Add comprehensive Vitest coverage for all Jarvis private data procedures and stream/transcribe endpoints, including cross-user access attempts for conversations, messages, tasks, memories, preferences, and confirmations.
+- [x] Configure the supplied OpenAI-compatible credential securely for server-side Jarvis inference without exposing it to the browser.
+- [x] Connect Nemotron 3 Ultra as Jarvis’s primary response engine and verify the exact provider model identifier.
+- [x] Verify real token-streaming end-to-end through Nemotron 3 Ultra and retain an explicit resilient fallback for unavailable provider responses.
+- [x] Configure the supplied OpenAI-compatible credential securely for server-side Jarvis inference without exposing it to the browser.
+- [x] Query the compatible model catalog, validate the user-selected Nemotron 3 Ultra model, and make it the primary Jarvis response engine.
+- [x] Verify true token-streaming behavior end-to-end through the selected Nemotron provider and retain an explicit resilient fallback for unavailable provider responses.
+- [x] Add integration coverage for incremental response deltas and persistence through the authenticated Jarvis stream endpoint.
+- [x] Add explicit cross-user authorization tests for messages, tasks, memories, preferences, and confirmations.
+- [x] Add private data-helper and task-behavior tests, including task status, priority, due-date, and command-extraction behavior.
+- [x] Implement and test a provider-unavailable fallback path for Jarvis response generation.
+- [x] Document the specific performance criteria used to select Nemotron 3 Ultra as the user-approved primary model.
+- [x] Add explicit cross-user denial tests for messages, tasks, memories, preferences, and confirmations, including read, update, and delete cases where supported.
+- [x] Add direct private database-helper tests or an equivalent verified database contract that demonstrates user-scoped mutations cannot affect another user’s records.
+- [x] Add a forged-user-id preference update test and document why preference routes cannot target another user record.

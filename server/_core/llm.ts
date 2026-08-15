@@ -69,6 +69,7 @@ export type InvokeParams = {
   model?: string;
   thinking?: Record<string, unknown>;
   reasoning?: Record<string, unknown>;
+  signal?: AbortSignal;
 };
 
 export type ToolCall = {
@@ -325,6 +326,7 @@ const fetchWithBackoff = async (
       );
       await sleep(computeBackoffDelay(attempt, retryAfterMs));
     } catch (error) {
+      if (init.signal?.aborted) throw error;
       lastError = error;
       if (attempt === RETRY_MAX_RETRIES) throw error;
       console.warn(
@@ -418,6 +420,36 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   }
 
   return (await response.json()) as InvokeResult;
+}
+
+/** Opens an upstream SSE stream for server-side proxying without exposing API credentials. */
+export async function streamLLM(params: InvokeParams): Promise<Response> {
+  assertApiKey();
+  const payload: Record<string, unknown> = {
+    messages: params.messages.map(normalizeMessage),
+    stream: true,
+  };
+  if (params.model) payload.model = params.model;
+  const resolvedMaxTokens = params.max_tokens ?? params.maxTokens;
+  if (typeof resolvedMaxTokens === "number") payload.max_tokens = resolvedMaxTokens;
+  if (params.thinking) payload.thinking = params.thinking;
+  if (params.reasoning) payload.reasoning = params.reasoning;
+
+  const response = await fetchWithBackoff(resolveApiUrl(), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "text/event-stream",
+      authorization: `Bearer ${ENV.forgeApiKey}`,
+    },
+    body: JSON.stringify(payload),
+    signal: params.signal,
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`LLM stream failed: ${response.status} ${response.statusText} – ${errorText}`);
+  }
+  return response;
 }
 
 export type ModelInfo = {

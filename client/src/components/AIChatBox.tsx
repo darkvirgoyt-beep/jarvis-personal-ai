@@ -1,8 +1,7 @@
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles } from "lucide-react";
+import { Loader2, Mic, Send, Sparkles, Square, User } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Streamdown } from "streamdown";
 
@@ -57,6 +56,10 @@ export type AIChatBoxProps = {
    * Click to send directly
    */
   suggestedPrompts?: string[];
+  voiceState?: "idle" | "recording" | "transcribing" | "unavailable";
+  onVoiceStart?: () => void;
+  onVoiceStop?: () => void;
+  onInputChange?: (content: string) => void;
 };
 
 /**
@@ -119,6 +122,10 @@ export function AIChatBox({
   height = "600px",
   emptyStateMessage = "Start a conversation with AI",
   suggestedPrompts,
+  voiceState = "idle",
+  onVoiceStart,
+  onVoiceStop,
+  onInputChange,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -172,6 +179,7 @@ export function AIChatBox({
 
     onSendMessage(trimmedInput);
     setInput("");
+    onInputChange?.("");
 
     // Scroll immediately after sending
     scrollToBottom();
@@ -191,7 +199,7 @@ export function AIChatBox({
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col bg-card text-card-foreground rounded-lg border shadow-sm",
+        "flex min-h-0 flex-col overflow-hidden bg-slate-950/70 text-card-foreground",
         className
       )}
       style={{ height }}
@@ -202,8 +210,8 @@ export function AIChatBox({
           <div className="flex h-full flex-col p-4">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground">
               <div className="flex flex-col items-center gap-3">
-                <Sparkles className="size-12 opacity-20" />
-                <p className="text-sm">{emptyStateMessage}</p>
+                <Sparkles className="size-12 text-cyan-200/30" />
+                <p className="text-sm text-slate-400">{emptyStateMessage}</p>
               </div>
 
               {suggestedPrompts && suggestedPrompts.length > 0 && (
@@ -213,7 +221,7 @@ export function AIChatBox({
                       key={index}
                       onClick={() => onSendMessage(prompt)}
                       disabled={isLoading}
-                      className="rounded-lg border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-sm border border-cyan-300/15 bg-slate-900/80 px-3 py-2 text-xs text-slate-300 transition-all duration-150 hover:border-cyan-300/45 hover:bg-cyan-300/10 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {prompt}
                     </button>
@@ -224,7 +232,7 @@ export function AIChatBox({
           </div>
         ) : (
           <ScrollArea className="h-full">
-            <div className="flex flex-col space-y-4 p-4">
+            <div className="flex flex-col space-y-5 p-5">
               {displayMessages.map((message, index) => {
                 // Apply min-height to last message only if NOT loading (when loading, the loading indicator gets it)
                 const isLastMessage = index === displayMessages.length - 1;
@@ -247,17 +255,17 @@ export function AIChatBox({
                     }
                   >
                     {message.role === "assistant" && (
-                      <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Sparkles className="size-4 text-primary" />
+                      <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10">
+                        <Sparkles className="size-4 text-cyan-200" />
                       </div>
                     )}
 
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-lg px-4 py-2.5",
+                        "max-w-[84%] rounded-sm px-4 py-3 text-sm leading-6",
                         message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
+                          ? "border border-fuchsia-400/35 bg-fuchsia-500/10 text-fuchsia-50"
+                          : "border border-cyan-300/15 bg-slate-900/75 text-slate-200"
                       )}
                     >
                       {message.role === "assistant" ? (
@@ -272,8 +280,8 @@ export function AIChatBox({
                     </div>
 
                     {message.role === "user" && (
-                      <div className="size-8 shrink-0 mt-1 rounded-full bg-secondary flex items-center justify-center">
-                        <User className="size-4 text-secondary-foreground" />
+                      <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full border border-fuchsia-400/25 bg-fuchsia-500/10">
+                        <User className="size-4 text-fuchsia-200" />
                       </div>
                     )}
                   </div>
@@ -289,11 +297,11 @@ export function AIChatBox({
                       : undefined
                   }
                 >
-                  <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="size-4 text-primary" />
+                  <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10">
+                    <Sparkles className="size-4 text-cyan-200" />
                   </div>
-                  <div className="rounded-lg bg-muted px-4 py-2.5">
-                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  <div className="rounded-sm border border-cyan-300/15 bg-slate-900/75 px-4 py-3">
+                    <Loader2 className="size-4 animate-spin text-cyan-200" />
                   </div>
                 </div>
               )}
@@ -306,29 +314,44 @@ export function AIChatBox({
       <form
         ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="flex gap-2 p-4 border-t bg-background/50 items-end"
+        className="flex items-end gap-2 border-t border-cyan-300/15 bg-slate-950/85 p-3"
       >
         <Textarea
           ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            onInputChange?.(e.target.value);
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="flex-1 max-h-32 resize-none min-h-9"
+          className="min-h-10 max-h-32 flex-1 resize-none rounded-sm border-cyan-300/20 bg-slate-900/80 text-slate-100 placeholder:text-slate-600 focus-visible:border-cyan-300/55 focus-visible:ring-cyan-300/20"
           rows={1}
         />
-        <Button
+        {onVoiceStart && onVoiceStop && (
+          <button
+            type="button"
+            aria-label={voiceState === "recording" ? "Release to send voice command" : "Hold to talk to Jarvis"}
+            onPointerDown={onVoiceStart}
+            onPointerUp={onVoiceStop}
+            onPointerLeave={() => voiceState === "recording" && onVoiceStop()}
+            disabled={voiceState === "unavailable" || isLoading}
+            className={cn("voice-command-button", voiceState === "recording" && "voice-command-button--recording")}
+          >
+            {voiceState === "recording" ? <Square className="size-3.5 fill-current" /> : <Mic className="size-4" />}
+          </button>
+        )}
+        <button
           type="submit"
-          size="icon"
           disabled={!input.trim() || isLoading}
-          className="shrink-0 h-[38px] w-[38px]"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-cyan-300/30 bg-cyan-300/10 text-cyan-100 transition-all duration-150 hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-35 active:scale-[0.97]"
         >
           {isLoading ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
             <Send className="size-4" />
           )}
-        </Button>
+        </button>
       </form>
     </div>
   );
