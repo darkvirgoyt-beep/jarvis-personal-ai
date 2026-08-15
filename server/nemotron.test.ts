@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NEMOTRON_ULTRA_MODEL, streamNemotronUltra } from "./nemotron";
+import { NEMOTRON_ULTRA_MODEL, isNemotronCredentialUnavailable, streamNemotronUltra } from "./nemotron";
 
 const savedApiKey = process.env.OPENROUTER_API_KEY;
 
@@ -8,6 +8,12 @@ afterEach(() => {
 });
 
 describe("Nemotron 3 Ultra provider", () => {
+  it("recognizes missing and unauthorized provider credentials without treating transient failures as auth errors", () => {
+    expect(isNemotronCredentialUnavailable(new Error("Jarvis Nemotron provider is not configured"))).toBe(true);
+    expect(isNemotronCredentialUnavailable(new Error("Nemotron provider request failed (403): forbidden"))).toBe(true);
+    expect(isNemotronCredentialUnavailable(new Error("upstream timed out"))).toBe(false);
+  });
+
   it("opens an OpenRouter SSE request with the fixed Jarvis primary model", async () => {
     process.env.OPENROUTER_API_KEY = "test-provider-key";
     const fetchImpl = vi.fn().mockResolvedValue(new Response("data: [DONE]\n\n", {

@@ -17,7 +17,10 @@ vi.mock("./db", () => ({
 vi.mock("./_core/llm", () => ({ streamLLM: vi.fn() }));
 vi.mock("./storage", () => ({ storagePut: vi.fn(), storageGetSignedUrl: vi.fn() }));
 vi.mock("./_core/voiceTranscription", () => ({ transcribeAudio: vi.fn() }));
-vi.mock("./nemotron", () => ({ streamNemotronUltra: vi.fn() }));
+vi.mock("./nemotron", () => ({
+  streamNemotronUltra: vi.fn(),
+  isNemotronCredentialUnavailable: (error: unknown) => /not configured|\b401\b|\b403\b|unauthorized|forbidden|invalid (api )?key|authorization/i.test(error instanceof Error ? error.message : String(error)),
+}));
 
 import * as db from "./db";
 import { sdk } from "./_core/sdk";
@@ -101,7 +104,7 @@ describe("Jarvis authenticated endpoints", () => {
     expect(streamNemotronUltra).toHaveBeenCalled();
     expect(streamLLM).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-5-mini" }));
     expect(res.writes.join("")).toContain('"text":"Fallback response"');
-    expect(res.writes.join("")).toContain('"provider":"fallback"');
+    expect(res.writes.join("")).toContain('"provider":"managed-fallback"');
     expect(db.createJarvisMessage).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, conversationId: 12, content: "Fallback response" }));
   });
 
@@ -127,6 +130,27 @@ describe("Jarvis authenticated endpoints", () => {
     expect(streamLLM).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-5" }));
     expect(streamNemotronUltra).not.toHaveBeenCalled();
     expect(res.writes.join("")).toContain('"model":"gpt-5"');
+  });
+
+  it("uses the labelled local basic mode directly when the primary provider key is unauthorized", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
+    registerJarvisStream(app);
+    vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
+    vi.mocked(db.createJarvisConversation).mockResolvedValue({ id: 15 } as never);
+    vi.mocked(db.listJarvisMessages).mockResolvedValue([] as never);
+    vi.mocked(db.listJarvisMemories).mockResolvedValue([] as never);
+    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ personality: "balanced" } as never);
+    vi.mocked(db.createJarvisMessage).mockResolvedValue(undefined);
+    vi.mocked(streamNemotronUltra).mockRejectedValue(new Error("Nemotron provider request failed (403): forbidden"));
+    vi.mocked(streamLLM).mockReset();
+    const res = responseRecorder();
+
+    await handler!({ body: { content: "Build a private website for my studio", agent: "coding" } } as Request, res as unknown as Response);
+
+    expect(streamLLM).not.toHaveBeenCalled();
+    expect(res.writes.join("")).toContain('"provider":"basic-local","reason":"provider-auth"');
+    expect(res.writes.join("")).toContain("Jarvis basic response mode is active");
   });
 
   it("persists a research summary and only valid unique HTTPS sources for the signed-in user", async () => {

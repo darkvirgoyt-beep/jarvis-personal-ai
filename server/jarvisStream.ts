@@ -2,12 +2,13 @@ import express, { type Express, type Request, type Response } from "express";
 import { z } from "zod";
 import * as db from "./db";
 import { streamLLM } from "./_core/llm";
-import { streamNemotronUltra } from "./nemotron";
+import { isNemotronCredentialUnavailable, streamNemotronUltra } from "./nemotron";
 import { isAlternateJarvisModel } from "../shared/jarvisModels";
 import { sdk } from "./_core/sdk";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { storageGetSignedUrl, storagePut } from "./storage";
 import { agentInstructions, extractMemoryCommand, extractTaskCommand, requiresExplicitConfirmation } from "./jarvisPolicies";
+import { buildJarvisBasicFallback } from "./jarvisBasicFallback";
 
 const streamInputSchema = z.object({
   content: z.string().trim().min(1).max(12000),
@@ -124,7 +125,28 @@ export function registerJarvisStream(app: Express) {
       ].join("\n\n");
 
       const modelMessages = [{ role: "system" as const, content: systemPrompt }, ...recentHistory];
-      let upstream: globalThis.Response;
+      let upstream: globalThis.Response | undefined;
+      let fullResponse = "";
+      const emitBasicFallback = (reason: "provider-auth" | "providers-unavailable") => {
+        fullResponse = buildJarvisBasicFallback(input.content, input.agent);
+        writeEvent(res, "meta", { provider: "basic-local", reason });
+        if (!closed) writeEvent(res, "delta", { text: fullResponse });
+      };
+      const useManagedFallback = async () => {
+        writeEvent(res, "meta", { provider: "managed-fallback", model: "gpt-5-mini" });
+        try {
+          upstream = await streamLLM({
+            model: "gpt-5-mini",
+            maxTokens: 1100,
+            messages: modelMessages,
+            signal: controller.signal,
+          });
+        } catch (fallbackError) {
+          if (controller.signal.aborted) throw fallbackError;
+          console.warn("[Jarvis] Managed fallback unavailable; returning the local basic response mode.");
+          emitBasicFallback("providers-unavailable");
+        }
+      };
       const alternateModel = isAlternateJarvisModel(preferences?.model) ? preferences.model : undefined;
       if (alternateModel) {
         try {
@@ -139,29 +161,37 @@ export function registerJarvisStream(app: Express) {
           if (controller.signal.aborted) throw providerError;
           console.warn(`[Jarvis] Selected model ${alternateModel} unavailable; returning to Nemotron 3 Ultra.`);
           writeEvent(res, "meta", { provider: "nemotron-fallback" });
-          upstream = await streamNemotronUltra({ messages: modelMessages, signal: controller.signal });
+          try {
+            upstream = await streamNemotronUltra({ messages: modelMessages, signal: controller.signal });
+          } catch (nemotronError) {
+            if (controller.signal.aborted) throw nemotronError;
+            if (isNemotronCredentialUnavailable(nemotronError)) {
+              console.warn("[Jarvis] Nemotron credentials are unavailable; returning the local basic response mode.");
+              emitBasicFallback("provider-auth");
+            } else {
+              await useManagedFallback();
+            }
+          }
         }
       } else {
         try {
           upstream = await streamNemotronUltra({ messages: modelMessages, signal: controller.signal });
         } catch (providerError) {
           if (controller.signal.aborted) throw providerError;
-          console.warn("[Jarvis] Nemotron 3 Ultra unavailable; using the configured resilient fallback.");
-          writeEvent(res, "meta", { provider: "fallback" });
-          upstream = await streamLLM({
-            model: "gpt-5-mini",
-            maxTokens: 1100,
-            messages: modelMessages,
-            signal: controller.signal,
-          });
+          if (isNemotronCredentialUnavailable(providerError)) {
+            console.warn("[Jarvis] Nemotron credentials are unavailable; returning the local basic response mode.");
+            emitBasicFallback("provider-auth");
+          } else {
+            console.warn("[Jarvis] Nemotron 3 Ultra unavailable; using the configured resilient fallback.");
+            await useManagedFallback();
+          }
         }
       }
-      let fullResponse = "";
-      if (upstream.headers.get("content-type")?.includes("application/json")) {
+      if (upstream?.headers.get("content-type")?.includes("application/json")) {
         const response = await upstream.json();
         fullResponse = parseDelta(response);
         if (fullResponse && !closed) writeEvent(res, "delta", { text: fullResponse });
-      } else {
+      } else if (upstream) {
         if (!upstream.body) throw new Error("Jarvis response stream was unavailable");
         const reader = upstream.body.getReader();
         const decoder = new TextDecoder();

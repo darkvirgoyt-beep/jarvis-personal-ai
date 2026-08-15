@@ -90,3 +90,11 @@
 - [x] Add deterministic mode-navigation coverage and desktop/mobile viewport verification for the redesigned Jarvis workspace.
 - [x] Verify the final UI exposes the exact Command Center, Conversations, Private Workspace, and Settings mode surfaces with distinct content areas.
 - [x] Capture passing mode-navigation test and TypeScript outputs that prove the revised interaction contract.
+- [x] Add a distinct Jarvis Builder workspace for planning and generating website or application project scaffolds from natural-language prompts.
+- [x] Add an explicit backend capability selection and generated architecture plan for application projects without executing unreviewed code or deploying a project silently.
+- [x] Add a reviewable compile/readiness report that separates static UI, frontend, backend, database, and integration requirements before any project handoff.
+- [x] Add a clearly labelled no-provider-key response fallback so Jarvis can continue basic assistance when the primary model is unavailable, without promising unlimited external inference.
+- [x] Refine Jarvis into a more attractive, clearly separated Replit/Cursor-inspired builder layout for desktop and phone while preserving its original cyberpunk visual identity and approval safeguards.
+- [x] Add deterministic tests, responsive visual verification, and documentation for the new builder workflow and fallback behavior.
+- [x] Route missing or unauthorized OpenRouter credentials to the explicit local basic-response mode instead of a managed-provider retry.
+- [x] Surface a distinct provider-auth/key-unavailable status in the Jarvis UI and add stream coverage for that safe fallback path.

@@ -1,5 +1,10 @@
 export const NEMOTRON_ULTRA_MODEL = "nvidia/nemotron-3-ultra-550b-a55b";
 
+export function isNemotronCredentialUnavailable(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /not configured|\b401\b|\b403\b|unauthorized|forbidden|invalid (api )?key|authorization/i.test(message);
+}
+
 type JarvisModelMessage = {
   role: "system" | "user" | "assistant";
   content: string;

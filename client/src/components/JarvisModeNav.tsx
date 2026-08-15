@@ -1,14 +1,15 @@
-import { Command, FolderCode, MessageSquareText, SlidersHorizontal } from "lucide-react";
+import { Command, FolderCode, MessageSquareText, SlidersHorizontal, WandSparkles } from "lucide-react";
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export type JarvisWorkspaceMode = "command" | "conversations" | "workspace" | "settings";
+export type JarvisWorkspaceMode = "command" | "conversations" | "builder" | "workspace" | "settings";
 
 const modes: { id: JarvisWorkspaceMode; label: string; shortcut: string; icon: typeof Command }[] = [
   { id: "command", label: "Command Center", shortcut: "1", icon: Command },
   { id: "conversations", label: "Conversations", shortcut: "2", icon: MessageSquareText },
-  { id: "workspace", label: "Private Workspace", shortcut: "3", icon: FolderCode },
-  { id: "settings", label: "Settings", shortcut: "4", icon: SlidersHorizontal },
+  { id: "builder", label: "Builder", shortcut: "3", icon: WandSparkles },
+  { id: "workspace", label: "Private Workspace", shortcut: "4", icon: FolderCode },
+  { id: "settings", label: "Settings", shortcut: "5", icon: SlidersHorizontal },
 ];
 
 export function JarvisModeNav({ activeMode, onModeChange, pendingApprovals = 0 }: { activeMode: JarvisWorkspaceMode; onModeChange: (mode: JarvisWorkspaceMode) => void; pendingApprovals?: number }) {
