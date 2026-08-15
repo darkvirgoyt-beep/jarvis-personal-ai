@@ -78,3 +78,10 @@
 - [x] Make Jarvis’s default speech profile warm and feminine while retaining browser/device voice selection, speed control, and a clear fallback when no matching installed voice exists.
 - [x] Document how to clone, configure, validate, and contribute to the private Jarvis repository, distinguishing the current web app from the planned permission-based Android companion.
 - [x] Provide a safe environment-variable inventory and setup template for local development, GitHub documentation, and deployed Jarvis configuration without exposing credentials.
+- [x] Open approved safe external destinations directly in a new tab after explicit confirmation, while retaining private approval records and operating-system safeguards for calls, messages, and app handoffs.
+- [x] Add approval-gated workspace proposals for creating files, creating folders, and writing code without accessing personal-device files or executing destructive operations silently.
+- [x] Add a user-scoped Jarvis virtual-workspace interface that distinguishes the managed workspace from any future persistent virtual computer.
+- [x] Document the optional persistent virtual-computer setup and its consent, authentication, and operating-system isolation boundaries before connecting one to Jarvis.
+- [x] Open approved safe external destinations directly in a new tab after explicit confirmation, while retaining private approval records and operating-system safeguards for calls, messages, and app handoffs.
+- [x] Add explicit authenticated execution coverage for workspace file and folder proposals, approval requirements, and persisted ownership metadata.
+- [x] Add component-level coverage showing distinct workspace file, folder, and code operations and its separation from a future persistent virtual computer.

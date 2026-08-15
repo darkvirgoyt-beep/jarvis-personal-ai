@@ -25,6 +25,12 @@ Location is treated as transient command context. Jarvis requests it through the
 
 The future Android module will be a signed mobile client that authenticates to the existing Jarvis backend. It will never embed `OPENROUTER_API_KEY`, database credentials, or session-signing secrets. Native capabilities must be behind runtime permissions, confirmation sheets, and Android’s intent resolver. Android documents common implicit intents for maps, phone, web search, and text messaging; Jarvis will use those user-visible handoffs rather than direct, unattended execution. Before issuing an implicit intent, the companion should verify that a compatible application is available and otherwise show an actionable, non-destructive error. [2]
 
+## Optional Isolated Virtual Computer
+
+Jarvis’s browser **Private workspace** is already a user-scoped, approval-gated storage workspace; it is not a general-purpose operating system and cannot access a personal phone or computer. A separate Cloud Computer may later supply an isolated, persistent Ubuntu environment for approved coding, browser research, and workspace automation. It must be created or attached by the owner, authenticated separately, and kept distinct from the Jarvis web runtime. No operation should be enabled until the owner approves the precise workspace or command scope.
+
+The virtual computer begins as a Linux environment rather than an unlocked imitation of the owner’s device. It must not be used to bypass lock screens, obtain credentials, access another app’s private content, or run unattended actions outside a configured approval policy. Secrets remain in the secure server-side environment or the connected service’s own permission store rather than in project files or client code.
+
 ## Technical References
 
 The browser Geolocation API requires permission and can be invoked with `getCurrentPosition()` after a user request. Android common intents are the appropriate pattern for asking another installed application to view a map, dial a number, or compose a message. [1] [2]

@@ -3,12 +3,15 @@ import { z } from "zod";
 import * as db from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 import { JARVIS_MODEL_VALUES } from "../../shared/jarvisModels";
+import { buildJarvisWorkspaceProposal, jarvisWorkspaceStoragePath, JARVIS_WORKSPACE_OPERATIONS } from "../../shared/jarvisWorkspace";
+import { storageGet, storagePut } from "../storage";
 
 const agentSchema = z.enum(["general", "coding", "research", "files", "system", "creative"]);
 const memoryCategorySchema = z.enum(["preference", "project", "personal", "fact", "note"]);
 const taskStatusSchema = z.enum(["todo", "in_progress", "done"]);
 const taskPrioritySchema = z.enum(["low", "medium", "high"]);
 const modelSchema = z.enum(JARVIS_MODEL_VALUES);
+const workspaceOperationSchema = z.enum(JARVIS_WORKSPACE_OPERATIONS);
 
 async function requireConversation(userId: number, conversationId: number) {
   const conversation = await db.getJarvisConversation(userId, conversationId);
@@ -147,5 +150,70 @@ export const jarvisRouter = router({
           : "Jarvis rejected the proposed action. No external action was executed.",
       } as const;
     }),
+  }),
+
+  workspace: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const items = await db.listJarvisWorkspaceItems(ctx.user.id);
+      return Promise.all(items.map(async (item) => ({
+        ...item,
+        storageUrl: item.storageKey ? (await storageGet(item.storageKey)).url : null,
+      })));
+    }),
+    propose: protectedProcedure.input(z.object({
+      operation: workspaceOperationSchema,
+      path: z.string().trim().min(1).max(700),
+      content: z.string().max(100_000).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const proposal = buildJarvisWorkspaceProposal(input.operation, input.path, input.content ?? "");
+      return db.createJarvisConfirmation({
+        userId: ctx.user.id,
+        action: `Workspace ${proposal.operation}: ${proposal.path}`,
+        riskLevel: "medium",
+        payload: JSON.stringify({ type: "jarvis-workspace", ...proposal }),
+      });
+    }),
+    execute: protectedProcedure.input(z.object({ confirmationId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const confirmation = await db.getJarvisConfirmation(ctx.user.id, input.confirmationId);
+        if (!confirmation || confirmation.status === "rejected" || confirmation.status === "executed") {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Jarvis workspace approval was not found or is no longer available" });
+        }
+        let payload: unknown;
+        try { payload = JSON.parse(confirmation.payload); } catch { throw new TRPCError({ code: "BAD_REQUEST", message: "Jarvis workspace approval is invalid" }); }
+        const parsed = z.object({
+          type: z.literal("jarvis-workspace"),
+          operation: workspaceOperationSchema,
+          path: z.string(),
+          name: z.string(),
+          content: z.string(),
+          contentType: z.string(),
+        }).safeParse(payload);
+        if (!parsed.success) throw new TRPCError({ code: "BAD_REQUEST", message: "Jarvis workspace approval is invalid" });
+        const proposal = buildJarvisWorkspaceProposal(parsed.data.operation, parsed.data.path, parsed.data.content);
+        if (confirmation.status === "pending") {
+          const approved = await db.resolveJarvisConfirmation(ctx.user.id, confirmation.id, "approved");
+          if (!approved) throw new TRPCError({ code: "CONFLICT", message: "Jarvis workspace approval could not be claimed" });
+        }
+        let storageKey: string | null = null;
+        let sizeBytes = 0;
+        if (proposal.operation !== "folder") {
+          const stored = await storagePut(jarvisWorkspaceStoragePath(ctx.user.id, proposal.path), proposal.content, proposal.contentType);
+          storageKey = stored.key;
+          sizeBytes = Buffer.byteLength(proposal.content, "utf8");
+        }
+        const item = await db.createJarvisWorkspaceItem({
+          userId: ctx.user.id,
+          path: proposal.path,
+          name: proposal.name,
+          itemType: proposal.operation === "folder" ? "folder" : "file",
+          storageKey,
+          contentType: proposal.operation === "folder" ? null : proposal.contentType,
+          sizeBytes,
+        });
+        const executed = await db.markJarvisConfirmationExecuted(ctx.user.id, confirmation.id);
+        if (!executed) throw new TRPCError({ code: "CONFLICT", message: "Jarvis workspace action could not be finalized" });
+        return item;
+      }),
   }),
 });

@@ -9,6 +9,7 @@ import {
   jarvisPreferences,
   jarvisResearchRecords,
   jarvisTasks,
+  jarvisWorkspaceItems,
   users,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -294,4 +295,47 @@ export async function resolveJarvisConfirmation(userId: number, id: number, stat
   const result = await db.update(jarvisConfirmations).set({ status, resolvedAt: new Date() })
     .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, userId), eq(jarvisConfirmations.status, "pending")));
   return Number(result[0]?.affectedRows ?? 0);
+}
+
+export async function getJarvisConfirmation(userId: number, id: number) {
+  const db = await requireDb();
+  const records = await db.select().from(jarvisConfirmations)
+    .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, userId))).limit(1);
+  return records[0];
+}
+
+export async function markJarvisConfirmationExecuted(userId: number, id: number) {
+  const db = await requireDb();
+  const result = await db.update(jarvisConfirmations).set({ status: "executed", resolvedAt: new Date() })
+    .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, userId), eq(jarvisConfirmations.status, "approved")));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
+export async function listJarvisWorkspaceItems(userId: number) {
+  const db = await requireDb();
+  return db.select().from(jarvisWorkspaceItems)
+    .where(eq(jarvisWorkspaceItems.userId, userId))
+    .orderBy(desc(jarvisWorkspaceItems.updatedAt));
+}
+
+export async function createJarvisWorkspaceItem(input: {
+  userId: number;
+  path: string;
+  name: string;
+  itemType: "file" | "folder";
+  storageKey?: string | null;
+  contentType?: string | null;
+  sizeBytes?: number;
+}) {
+  const db = await requireDb();
+  const result = await db.insert(jarvisWorkspaceItems).values({
+    ...input,
+    storageKey: input.storageKey ?? null,
+    contentType: input.contentType ?? null,
+    sizeBytes: input.sizeBytes ?? 0,
+  });
+  const id = Number(result[0].insertId);
+  const records = await db.select().from(jarvisWorkspaceItems)
+    .where(and(eq(jarvisWorkspaceItems.id, id), eq(jarvisWorkspaceItems.userId, input.userId))).limit(1);
+  return records[0];
 }

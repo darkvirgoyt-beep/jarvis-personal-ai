@@ -29,6 +29,7 @@ vi.mock("@/lib/trpc", () => ({
         memory: { list: { invalidate: vi.fn() } },
         tasks: { list: { invalidate: vi.fn() } },
         confirmations: { list: { invalidate: vi.fn() } },
+        workspace: { list: { invalidate: vi.fn() } },
         conversations: { list: { invalidate: vi.fn() }, messages: { invalidate: vi.fn() } },
       },
     }),
@@ -36,6 +37,7 @@ vi.mock("@/lib/trpc", () => ({
       tasks: { list: { useQuery: () => queryResult }, create: { useMutation: () => mutationResult }, update: { useMutation: () => mutationResult } },
       memory: { list: { useQuery: () => queryResult }, create: { useMutation: () => mutationResult }, delete: { useMutation: () => mutationResult } },
       confirmations: { list: { useQuery: () => queryResult }, propose: { useMutation: () => mutationResult }, resolve: { useMutation: () => mutationResult } },
+      workspace: { list: { useQuery: () => queryResult }, propose: { useMutation: () => mutationResult }, execute: { useMutation: () => mutationResult } },
       preferences: {
         get: { useQuery: () => ({ data: { model: "nemotron-3-ultra", voiceEnabled: 1, continuousMode: 0, personality: "balanced" } }) },
         update: { useMutation: () => ({ mutateAsync: updatePreferences, isPending: false }) },

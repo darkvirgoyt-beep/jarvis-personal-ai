@@ -61,14 +61,28 @@ export function JarvisActionDock({
 
   const resolve = async (decision: "approved" | "rejected") => {
     if (!proposal) return;
-    await onResolve({ id: proposal.recordId, decision });
     if (decision === "rejected") {
+      await onResolve({ id: proposal.recordId, decision });
       onActivity("External handoff rejected — nothing was opened");
       setProposal(undefined);
       return;
     }
-    setProposal((current) => current ? { ...current, approved: true } : current);
-    onActivity("External handoff approved — destination is ready for your final browser open");
+    const destinationWindow = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      await onResolve({ id: proposal.recordId, decision });
+      if (destinationWindow) {
+        destinationWindow.opener = null;
+        destinationWindow.location.href = proposal.action.url;
+        onActivity(`${proposal.action.label} opened after explicit approval`);
+        setProposal(undefined);
+      } else {
+        setProposal((current) => current ? { ...current, approved: true } : current);
+        onActivity("External handoff approved — your browser blocked the new tab, so use the safe open link");
+      }
+    } catch (reason) {
+      destinationWindow?.close();
+      setError(reason instanceof Error ? reason.message : "Jarvis could not record that approval.");
+    }
   };
 
   const suggestions = location
@@ -95,7 +109,7 @@ export function JarvisActionDock({
       <div className="mt-3 flex flex-wrap items-center gap-2"><button onClick={requestLocation} disabled={isLoadingLocation} className="rounded-sm border border-cyan-300/20 bg-cyan-300/[0.04] px-2.5 py-1.5 text-[10px] text-cyan-100 transition hover:bg-cyan-300/10 disabled:opacity-50"><MapPin className="mr-1 inline size-3.5" />{isLoadingLocation ? "REQUESTING LOCATION" : "USE CURRENT LOCATION"}</button><span className="text-[10px] text-slate-600">{locationMessage}</span></div>
       <div className="mt-3 rounded-sm border border-white/[0.07] bg-black/20 px-3 py-2.5"><label className="flex cursor-pointer items-start gap-2.5"><input aria-label="Enable contextual suggestions" type="checkbox" checked={suggestionsEnabled} onChange={(event) => void onSuggestionsChange(event.target.checked)} className="mt-0.5 accent-cyan-300" /><span><span className="text-[11px] text-slate-300">Opt in to contextual suggestions</span><span className="mt-0.5 block text-[10px] leading-4 text-slate-600">Uses only this action dock’s selected action, current destination, and a temporary location if you requested it. Jarvis does not save coordinates.</span></span></label>{suggestionsEnabled && <div className="mt-2 flex flex-wrap gap-2">{suggestions.map((suggestion) => <button key={suggestion.label} onClick={() => { setKind(suggestion.kind); setDestination(suggestion.destination); onActivity(`Contextual suggestion selected: ${suggestion.label}`); }} className="rounded-sm border border-cyan-300/15 bg-cyan-300/[0.04] px-2 py-1 text-[10px] text-cyan-100 transition hover:bg-cyan-300/10">{suggestion.label}</button>)}</div>}</div>
       {error && <p role="alert" className="mt-3 text-xs text-rose-300">{error}</p>}
-      {proposal && <div className="mt-4 rounded-sm border border-amber-300/25 bg-amber-300/[0.04] p-3"><div className="flex gap-2"><Smartphone className="mt-0.5 size-4 shrink-0 text-amber-200" /><div><p className="text-xs font-medium text-amber-100">Review external handoff</p><p className="mt-1 text-xs leading-5 text-slate-400">{proposal.action.label}: <span className="text-slate-200">{proposal.action.destination}</span></p><p className="mt-1 text-[10px] leading-4 text-slate-600">No destination opens until you approve. Calls and messages then remain subject to your device and destination app.</p></div></div><div className="mt-3 flex flex-wrap gap-2">{!proposal.approved ? <><button onClick={() => void resolve("rejected")} className="rounded-sm border border-white/10 px-2.5 py-1.5 text-[10px] text-slate-400 hover:text-white">REJECT</button><button onClick={() => void resolve("approved")} className="rounded-sm border border-amber-300/35 bg-amber-300/10 px-2.5 py-1.5 text-[10px] font-semibold text-amber-100 hover:bg-amber-300/20">APPROVE HANDOFF</button></> : <a href={proposal.action.url} target="_blank" rel="noreferrer" onClick={() => onActivity(`${proposal.action.label} opened after explicit approval`)} className="rounded-sm border border-cyan-300/35 bg-cyan-300/10 px-2.5 py-1.5 text-[10px] font-semibold text-cyan-50 hover:bg-cyan-300/20"><Navigation className="mr-1 inline size-3.5" />OPEN APPROVED DESTINATION</a>}</div></div>}
+      {proposal && <div className="mt-4 rounded-sm border border-amber-300/25 bg-amber-300/[0.04] p-3"><div className="flex gap-2"><Smartphone className="mt-0.5 size-4 shrink-0 text-amber-200" /><div><p className="text-xs font-medium text-amber-100">Review external handoff</p><p className="mt-1 text-xs leading-5 text-slate-400">{proposal.action.label}: <span className="text-slate-200">{proposal.action.destination}</span></p><p className="mt-1 text-[10px] leading-4 text-slate-600">Approval opens the prepared destination in a new tab. Calls and messages then remain subject to your device and destination app.</p></div></div><div className="mt-3 flex flex-wrap gap-2">{!proposal.approved ? <><button onClick={() => void resolve("rejected")} className="rounded-sm border border-white/10 px-2.5 py-1.5 text-[10px] text-slate-400 hover:text-white">REJECT</button><button onClick={() => void resolve("approved")} className="rounded-sm border border-amber-300/35 bg-amber-300/10 px-2.5 py-1.5 text-[10px] font-semibold text-amber-100 hover:bg-amber-300/20">APPROVE &amp; OPEN</button></> : <a href={proposal.action.url} target="_blank" rel="noreferrer" onClick={() => onActivity(`${proposal.action.label} opened after explicit approval`)} className="rounded-sm border border-cyan-300/35 bg-cyan-300/10 px-2.5 py-1.5 text-[10px] font-semibold text-cyan-50 hover:bg-cyan-300/20"><Navigation className="mr-1 inline size-3.5" />OPEN APPROVED DESTINATION</a>}</div></div>}
     </section>
   );
 }

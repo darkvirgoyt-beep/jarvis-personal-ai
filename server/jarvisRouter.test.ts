@@ -18,7 +18,13 @@ vi.mock("./db", () => ({
   listJarvisConfirmations: vi.fn(),
   createJarvisConfirmation: vi.fn(),
   resolveJarvisConfirmation: vi.fn(),
+  getJarvisConfirmation: vi.fn(),
+  markJarvisConfirmationExecuted: vi.fn(),
+  listJarvisWorkspaceItems: vi.fn(),
+  createJarvisWorkspaceItem: vi.fn(),
 }));
+
+vi.mock("./storage", () => ({ storageGet: vi.fn(), storagePut: vi.fn() }));
 
 import * as db from "./db";
 import { appRouter } from "./routers";
@@ -197,5 +203,60 @@ describe("Jarvis private router", () => {
     expect(db.deleteJarvisMemory).toHaveBeenCalledWith(7, 99);
     expect(db.updateJarvisTask).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, id: 99 }));
     expect(db.resolveJarvisConfirmation).toHaveBeenCalledWith(7, 99, "approved");
+  });
+
+  it("keeps virtual-workspace proposals and execution records scoped to the signed-in user", async () => {
+    vi.mocked(db.createJarvisConfirmation).mockResolvedValue({ id: 73 } as never);
+    vi.mocked(db.getJarvisConfirmation).mockResolvedValue({
+      id: 73,
+      userId: 7,
+      status: "pending",
+      payload: JSON.stringify({ type: "jarvis-workspace", operation: "code", path: "src/jarvis.ts", name: "jarvis.ts", content: "export {};", contentType: "text/plain; charset=utf-8" }),
+    } as never);
+    vi.mocked(db.resolveJarvisConfirmation).mockResolvedValue(1);
+    vi.mocked(db.createJarvisWorkspaceItem).mockResolvedValue({ id: 9, userId: 7, path: "src/jarvis.ts" } as never);
+    vi.mocked(db.markJarvisConfirmationExecuted).mockResolvedValue(1);
+    const { storagePut } = await import("./storage");
+    vi.mocked(storagePut).mockResolvedValue({ key: "jarvis-workspace/7/src/jarvis_123.ts", url: "/manus-storage/x" });
+    const caller = appRouter.createCaller(privateContext(7));
+
+    await caller.jarvis.workspace.propose({ operation: "code", path: "src/jarvis.ts", content: "export {};" });
+    await caller.jarvis.workspace.execute({ confirmationId: 73 });
+
+    expect(db.createJarvisConfirmation).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, action: "Workspace code: src/jarvis.ts" }));
+    expect(db.getJarvisConfirmation).toHaveBeenCalledWith(7, 73);
+    expect(db.resolveJarvisConfirmation).toHaveBeenCalledWith(7, 73, "approved");
+    expect(db.createJarvisWorkspaceItem).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, path: "src/jarvis.ts", itemType: "file" }));
+    expect(db.markJarvisConfirmationExecuted).toHaveBeenCalledWith(7, 73);
+  });
+
+  it.each([
+    { operation: "file" as const, path: "notes/brief.md", content: "Private brief", itemType: "file" as const, storesBytes: true },
+    { operation: "folder" as const, path: "projects/jarvis", content: undefined, itemType: "folder" as const, storesBytes: false },
+  ])("requires an authenticated approval before creating a private $operation workspace item", async ({ operation, path, content, itemType, storesBytes }) => {
+    vi.mocked(db.createJarvisConfirmation).mockResolvedValue({ id: 88 } as never);
+    vi.mocked(db.getJarvisConfirmation).mockResolvedValue({
+      id: 88,
+      userId: 7,
+      status: "pending",
+      payload: JSON.stringify({ type: "jarvis-workspace", operation, path, name: path.split("/").at(-1), content: content ?? "", contentType: "text/plain; charset=utf-8" }),
+    } as never);
+    vi.mocked(db.resolveJarvisConfirmation).mockResolvedValue(1);
+    vi.mocked(db.createJarvisWorkspaceItem).mockResolvedValue({ id: 12, userId: 7, path } as never);
+    vi.mocked(db.markJarvisConfirmationExecuted).mockResolvedValue(1);
+    const { storagePut } = await import("./storage");
+    vi.mocked(storagePut).mockResolvedValue({ key: `jarvis-workspace/7/${path}`, url: "/manus-storage/x" });
+    const caller = appRouter.createCaller(privateContext(7));
+
+    await caller.jarvis.workspace.propose({ operation, path, ...(content ? { content } : {}) });
+    await caller.jarvis.workspace.execute({ confirmationId: 88 });
+
+    expect(db.createJarvisConfirmation).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, action: `Workspace ${operation}: ${path}` }));
+    expect(db.getJarvisConfirmation).toHaveBeenCalledWith(7, 88);
+    expect(db.resolveJarvisConfirmation).toHaveBeenCalledWith(7, 88, "approved");
+    expect(db.createJarvisWorkspaceItem).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, path, itemType }));
+    expect(db.markJarvisConfirmationExecuted).toHaveBeenCalledWith(7, 88);
+    if (storesBytes) expect(storagePut).toHaveBeenCalled();
+    else expect(storagePut).not.toHaveBeenCalled();
   });
 });

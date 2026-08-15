@@ -1,4 +1,4 @@
-import { index, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -104,6 +104,22 @@ export const jarvisConfirmations = mysqlTable("jarvisConfirmations", {
   resolvedAt: timestamp("resolvedAt"),
 }, (table) => [index("jarvisConfirmationUserStatusIdx").on(table.userId, table.status, table.createdAt)]);
 
+export const jarvisWorkspaceItems = mysqlTable("jarvisWorkspaceItems", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  path: varchar("path", { length: 700 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  itemType: mysqlEnum("itemType", ["file", "folder"]).notNull(),
+  storageKey: varchar("storageKey", { length: 1024 }),
+  contentType: varchar("contentType", { length: 160 }),
+  sizeBytes: int("sizeBytes").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("jarvisWorkspaceUserPathUnique").on(table.userId, table.path),
+  index("jarvisWorkspaceUserUpdatedIdx").on(table.userId, table.updatedAt),
+]);
+
 export type JarvisConversation = typeof jarvisConversations.$inferSelect;
 export type JarvisMessage = typeof jarvisMessages.$inferSelect;
 export type JarvisMemory = typeof jarvisMemories.$inferSelect;
@@ -111,3 +127,4 @@ export type JarvisTask = typeof jarvisTasks.$inferSelect;
 export type JarvisResearchRecord = typeof jarvisResearchRecords.$inferSelect;
 export type JarvisPreference = typeof jarvisPreferences.$inferSelect;
 export type JarvisConfirmation = typeof jarvisConfirmations.$inferSelect;
+export type JarvisWorkspaceItem = typeof jarvisWorkspaceItems.$inferSelect;

@@ -7,9 +7,11 @@ import { JarvisActionDock } from "./JarvisActionDock";
 describe("JarvisActionDock", () => {
   afterEach(cleanup);
 
-  it("requires a recorded approval before revealing an external handoff link", async () => {
+  it("requires a recorded approval before opening an external handoff in a new tab", async () => {
     const onPropose = vi.fn().mockResolvedValue({ id: 14 });
     const onResolve = vi.fn().mockResolvedValue({ success: true });
+    const openedWindow = { opener: window, location: { href: "" }, close: vi.fn() } as unknown as Window;
+    const open = vi.spyOn(window, "open").mockReturnValue(openedWindow);
     render(<JarvisActionDock onPropose={onPropose} onResolve={onResolve} onActivity={vi.fn()} suggestionsEnabled={false} onSuggestionsChange={vi.fn().mockResolvedValue(undefined)} />);
 
     fireEvent.change(screen.getByLabelText("External action type"), { target: { value: "whatsapp" } });
@@ -19,9 +21,11 @@ describe("JarvisActionDock", () => {
     await waitFor(() => expect(onPropose).toHaveBeenCalledWith(expect.objectContaining({ action: "WhatsApp handoff", riskLevel: "medium" })));
     expect(screen.queryByRole("link", { name: /open approved destination/i })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /approve handoff/i }));
+    fireEvent.click(screen.getByRole("button", { name: /approve.*open/i }));
     await waitFor(() => expect(onResolve).toHaveBeenCalledWith({ id: 14, decision: "approved" }));
-    expect(screen.getByRole("link", { name: /open approved destination/i }).getAttribute("href")).toContain("https://wa.me/919876543210?text=Hello");
+    expect(open).toHaveBeenCalledWith("", "_blank", "noopener,noreferrer");
+    expect((openedWindow as unknown as { location: { href: string } }).location.href).toContain("https://wa.me/919876543210?text=Hello");
+    open.mockRestore();
   });
 
   it("keeps contextual suggestions off until the user explicitly opts in", async () => {
