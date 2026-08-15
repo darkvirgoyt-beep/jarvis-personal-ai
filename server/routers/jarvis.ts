@@ -2,12 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
+import { JARVIS_MODEL_VALUES } from "../../shared/jarvisModels";
 
 const agentSchema = z.enum(["general", "coding", "research", "files", "system", "creative"]);
 const memoryCategorySchema = z.enum(["preference", "project", "personal", "fact", "note"]);
 const taskStatusSchema = z.enum(["todo", "in_progress", "done"]);
 const taskPrioritySchema = z.enum(["low", "medium", "high"]);
-const modelSchema = z.enum(["nemotron-3-ultra", "gpt-5-mini", "gpt-5", "claude-sonnet-4-6", "gemini-3-flash-preview"]);
+const modelSchema = z.enum(JARVIS_MODEL_VALUES);
 
 async function requireConversation(userId: number, conversationId: number) {
   const conversation = await db.getJarvisConversation(userId, conversationId);
@@ -89,21 +90,33 @@ export const jarvisRouter = router({
     }),
   }),
 
+  research: router({
+    list: protectedProcedure.query(({ ctx }) => db.listJarvisResearchRecords(ctx.user.id)),
+  }),
+
   preferences: router({
     get: protectedProcedure.query(({ ctx }) => db.getJarvisPreferences(ctx.user.id)),
     update: protectedProcedure.input(z.object({
       model: modelSchema.optional(),
       personality: z.enum(["balanced", "concise", "strategic", "creative"]).optional(),
       voiceEnabled: z.boolean().optional(),
+      voiceName: z.string().trim().max(240).nullable().optional(),
       continuousMode: z.boolean().optional(),
       speechRate: z.number().int().min(70).max(140).optional(),
+      privacyMode: z.enum(["standard", "minimal"]).optional(),
+      visualMode: z.enum(["hud", "reduced_motion"]).optional(),
+      pluginSettings: z.string().max(4000).nullable().optional(),
     })).mutation(({ ctx, input }) => db.updateJarvisPreferences({
       userId: ctx.user.id,
       model: input.model,
       personality: input.personality,
       voiceEnabled: input.voiceEnabled === undefined ? undefined : Number(input.voiceEnabled),
+      voiceName: input.voiceName,
       continuousMode: input.continuousMode === undefined ? undefined : Number(input.continuousMode),
       speechRate: input.speechRate,
+      privacyMode: input.privacyMode,
+      visualMode: input.visualMode,
+      pluginSettings: input.pluginSettings,
     })),
   }),
 

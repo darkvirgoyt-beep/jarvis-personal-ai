@@ -7,6 +7,10 @@ describe("Jarvis safety and command policies", () => {
     expect(JARVIS_AGENTS.every(agent => agentInstructions[agent].trim().length > 30)).toBe(true);
     expect(agentInstructions.files).toContain("do not imply");
     expect(agentInstructions.system).toContain("never claim");
+    expect(agentInstructions.coding).toContain("Implementation plan");
+    expect(agentInstructions.coding).toContain("Code suggestion");
+    expect(agentInstructions.coding).toContain("Tests");
+    expect(agentInstructions.coding).toContain("Risks");
   });
 
   it("requires a confirmation gate for destructive and external commands", () => {

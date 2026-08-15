@@ -2,6 +2,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Loader2, Mic, Send, Sparkles, Square, User } from "lucide-react";
+import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { Streamdown } from "streamdown";
 
@@ -331,14 +332,15 @@ export function AIChatBox({
         {onVoiceStart && onVoiceStop && (
           <button
             type="button"
-            aria-label={voiceState === "recording" ? "Release to send voice command" : "Hold to talk to Jarvis"}
+            aria-label={voiceState === "recording" ? "Release to send voice command" : voiceState === "transcribing" ? "Transcribing voice command" : "Hold to talk to Jarvis"}
+            aria-busy={voiceState === "transcribing"}
             onPointerDown={onVoiceStart}
             onPointerUp={onVoiceStop}
             onPointerLeave={() => voiceState === "recording" && onVoiceStop()}
             disabled={voiceState === "unavailable" || isLoading}
-            className={cn("voice-command-button", voiceState === "recording" && "voice-command-button--recording")}
+            className={cn("voice-command-button", voiceState === "recording" && "voice-command-button--recording", voiceState === "transcribing" && "voice-command-button--transcribing")}
           >
-            {voiceState === "recording" ? <Square className="size-3.5 fill-current" /> : <Mic className="size-4" />}
+            {voiceState === "recording" ? <Square className="size-3.5 fill-current" /> : voiceState === "transcribing" ? <Loader2 className="size-4 animate-spin" /> : <Mic className="size-4" />}
           </button>
         )}
         <button

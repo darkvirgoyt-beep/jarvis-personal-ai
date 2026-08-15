@@ -38,7 +38,8 @@ describe("OpenRouter credential", () => {
     expect(reader).toBeDefined();
     const decoder = new TextDecoder();
     let receivedDataFrame = false;
-    for (let attempt = 0; attempt < 8 && !receivedDataFrame; attempt += 1) {
+    const deadline = Date.now() + 20_000;
+    while (Date.now() < deadline && !receivedDataFrame) {
       const frame = await reader!.read();
       if (frame.done) break;
       const frameText = decoder.decode(frame.value, { stream: true });

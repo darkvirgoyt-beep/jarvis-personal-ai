@@ -1,4 +1,5 @@
 import { Activity, AudioLines, Bot, Sparkles } from "lucide-react";
+import React from "react";
 import { cn } from "@/lib/utils";
 
 export type JarvisCoreState = "idle" | "listening" | "thinking" | "speaking";

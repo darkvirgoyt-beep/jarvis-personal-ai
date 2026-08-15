@@ -7,6 +7,7 @@ import {
   jarvisMemories,
   jarvisMessages,
   jarvisPreferences,
+  jarvisResearchRecords,
   jarvisTasks,
   users,
 } from "../drizzle/schema";
@@ -219,6 +220,24 @@ export async function updateJarvisTask(input: {
   return Number(result[0]?.affectedRows ?? 0);
 }
 
+export async function listJarvisResearchRecords(userId: number) {
+  const db = await requireDb();
+  return db.select().from(jarvisResearchRecords)
+    .where(eq(jarvisResearchRecords.userId, userId))
+    .orderBy(desc(jarvisResearchRecords.createdAt));
+}
+
+export async function createJarvisResearchRecord(input: {
+  userId: number;
+  conversationId: number;
+  topic: string;
+  sourceLedger: string;
+  summary: string;
+}) {
+  const db = await requireDb();
+  await db.insert(jarvisResearchRecords).values(input);
+}
+
 export async function getJarvisPreferences(userId: number) {
   const db = await requireDb();
   const existing = await db.select().from(jarvisPreferences).where(eq(jarvisPreferences.userId, userId)).limit(1);
@@ -233,8 +252,12 @@ export async function updateJarvisPreferences(input: {
   model?: string;
   personality?: "balanced" | "concise" | "strategic" | "creative";
   voiceEnabled?: number;
+  voiceName?: string | null;
   continuousMode?: number;
   speechRate?: number;
+  privacyMode?: "standard" | "minimal";
+  visualMode?: "hud" | "reduced_motion";
+  pluginSettings?: string | null;
 }) {
   const db = await requireDb();
   const { userId, ...values } = input;

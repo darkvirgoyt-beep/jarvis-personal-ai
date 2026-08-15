@@ -66,14 +66,28 @@ export const jarvisTasks = mysqlTable("jarvisTasks", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [index("jarvisTaskUserStatusIdx").on(table.userId, table.status, table.updatedAt)]);
 
+export const jarvisResearchRecords = mysqlTable("jarvisResearchRecords", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  conversationId: int("conversationId").notNull(),
+  topic: varchar("topic", { length: 500 }).notNull(),
+  sourceLedger: text("sourceLedger").notNull(),
+  summary: text("summary").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("jarvisResearchUserCreatedIdx").on(table.userId, table.createdAt)]);
+
 export const jarvisPreferences = mysqlTable("jarvisPreferences", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
   model: varchar("model", { length: 80 }).notNull().default("nemotron-3-ultra"),
   personality: mysqlEnum("personality", ["balanced", "concise", "strategic", "creative"]).notNull().default("balanced"),
   voiceEnabled: int("voiceEnabled").notNull().default(1),
+  voiceName: varchar("voiceName", { length: 240 }),
   continuousMode: int("continuousMode").notNull().default(0),
   speechRate: int("speechRate").notNull().default(100),
+  privacyMode: mysqlEnum("privacyMode", ["standard", "minimal"]).notNull().default("standard"),
+  visualMode: mysqlEnum("visualMode", ["hud", "reduced_motion"]).notNull().default("hud"),
+  pluginSettings: text("pluginSettings"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -93,5 +107,6 @@ export type JarvisConversation = typeof jarvisConversations.$inferSelect;
 export type JarvisMessage = typeof jarvisMessages.$inferSelect;
 export type JarvisMemory = typeof jarvisMemories.$inferSelect;
 export type JarvisTask = typeof jarvisTasks.$inferSelect;
+export type JarvisResearchRecord = typeof jarvisResearchRecords.$inferSelect;
 export type JarvisPreference = typeof jarvisPreferences.$inferSelect;
 export type JarvisConfirmation = typeof jarvisConfirmations.$inferSelect;

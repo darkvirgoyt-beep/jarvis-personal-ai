@@ -9,6 +9,7 @@ vi.mock("./db", () => ({
   createJarvisTask: vi.fn(),
   createJarvisMemory: vi.fn(),
   createJarvisConfirmation: vi.fn(),
+  createJarvisResearchRecord: vi.fn(),
   listJarvisMessages: vi.fn(),
   listJarvisMemories: vi.fn(),
   getJarvisPreferences: vi.fn(),
@@ -102,5 +103,56 @@ describe("Jarvis authenticated endpoints", () => {
     expect(res.writes.join("")).toContain('"text":"Fallback response"');
     expect(res.writes.join("")).toContain('"provider":"fallback"');
     expect(db.createJarvisMessage).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, conversationId: 12, content: "Fallback response" }));
+  });
+
+  it("honors a validated persisted model preference while retaining Nemotron as the default path", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
+    registerJarvisStream(app);
+    vi.mocked(streamNemotronUltra).mockReset();
+    vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
+    vi.mocked(db.createJarvisConversation).mockResolvedValue({ id: 14 } as never);
+    vi.mocked(db.listJarvisMessages).mockResolvedValue([] as never);
+    vi.mocked(db.listJarvisMemories).mockResolvedValue([] as never);
+    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ personality: "balanced", model: "gpt-5" } as never);
+    vi.mocked(db.createJarvisMessage).mockResolvedValue(undefined);
+    vi.mocked(streamLLM).mockResolvedValue(new Response(
+      'data: {"choices":[{"delta":{"content":"Selected model response"}}]}\n\ndata: [DONE]\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    const res = responseRecorder();
+
+    await handler!({ body: { content: "Use my selected response model", agent: "general" } } as Request, res as unknown as Response);
+
+    expect(streamLLM).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-5" }));
+    expect(streamNemotronUltra).not.toHaveBeenCalled();
+    expect(res.writes.join("")).toContain('"model":"gpt-5"');
+  });
+
+  it("persists a research summary and only valid unique HTTPS sources for the signed-in user", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
+    registerJarvisStream(app);
+    vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
+    vi.mocked(db.createJarvisConversation).mockResolvedValue({ id: 18 } as never);
+    vi.mocked(db.listJarvisMessages).mockResolvedValue([] as never);
+    vi.mocked(db.listJarvisMemories).mockResolvedValue([] as never);
+    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ personality: "balanced" } as never);
+    vi.mocked(db.createJarvisMessage).mockResolvedValue(undefined);
+    vi.mocked(db.createJarvisResearchRecord).mockResolvedValue(undefined);
+    vi.mocked(streamNemotronUltra).mockResolvedValue(new Response(
+      'data: {"choices":[{"delta":{"content":"Research summary"}}]}\n\ndata: [DONE]\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    const res = responseRecorder();
+
+    await handler!({ body: { content: "Research secure sources https://example.com/a https://example.com/a http://unsafe.example", agent: "research" } } as Request, res as unknown as Response);
+
+    expect(db.createJarvisResearchRecord).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+      conversationId: 18,
+      summary: "Research summary",
+      sourceLedger: JSON.stringify(["https://example.com/a"]),
+    }));
   });
 });

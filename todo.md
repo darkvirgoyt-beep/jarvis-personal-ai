@@ -5,22 +5,22 @@
 - [x] Add typed conversational input with keyboard shortcut support, message history, quick command prompts, and error/loading states.
 - [x] Add microphone recording with press-and-hold and keyboard activation, capture consent, visual feedback, and browser compatibility fallback.
 - [x] Integrate authenticated speech-to-text transcription for recorded voice commands.
-- [ ] Implement voice activation controls, including an opt-in wake-word-ready interface and continuous-conversation mode suitable for browser limitations.
-- [ ] Add client-side text-to-speech responses with selectable Jarvis voice personality settings and speaking-state visual feedback.
-- [ ] Add a secure streamed LLM chat procedure with context-aware responses, real-time output rendering, model routing, and robust failure feedback.
+- [x] Implement voice activation controls, including an opt-in wake-word-ready interface and continuous-conversation mode suitable for browser limitations.
+- [x] Add client-side text-to-speech responses with selectable Jarvis voice personality settings and speaking-state visual feedback.
+- [x] Add a secure streamed LLM chat procedure with context-aware responses, real-time output rendering, model routing, and robust failure feedback.
 - [x] Define the specialist-agent routing layer for Coding, Research, File Management, System Assistant, and Creative Assistant workflows.
-- [ ] Add a reviewable multi-step action-plan view that shows proposed tool steps before any high-impact operation executes.
+- [x] Add a reviewable multi-step action-plan view that shows proposed tool steps before any high-impact operation executes.
 - [x] Create private database tables and server procedures for user-scoped conversations, messages, memory entries, tasks, and user preferences.
-- [ ] Build memory controls for saving, reviewing, editing, and deleting long-term Jarvis memories, preferences, and project context.
-- [ ] Build a private task manager with creation, status updates, priority, due dates, and natural-language task extraction from commands.
-- [ ] Add research workflow support with source-linked summaries and a user-visible research record.
-- [ ] Add coding-workflow support with structured code suggestions, language selection, and safe copy/export actions.
+- [x] Build memory controls for saving, reviewing, editing, and deleting long-term Jarvis memories, preferences, and project context.
+- [x] Build a private task manager with creation, status updates, priority, due dates, and natural-language task extraction from commands.
+- [x] Add research workflow support with source-linked summaries and a user-visible research record.
+- [x] Add coding-workflow support with structured code suggestions, language selection, and safe copy/export actions.
 - [x] Add confirmations for risky or destructive operations and ensure that no file, command, or external-system action occurs without explicit approval.
-- [ ] Create a plugin and custom-command foundation with disabled-by-default integrations and a user-control settings surface.
-- [ ] Add model, voice, continuous-mode, memory, privacy, and visual-preference settings scoped to the authenticated user.
+- [x] Create a plugin and custom-command foundation with disabled-by-default integrations and a user-control settings surface.
+- [x] Add model, voice, continuous-mode, memory, privacy, and visual-preference settings scoped to the authenticated user.
 - [x] Verify all user data operations are authorization-scoped, validate input, and do not expose cross-user content.
 - [x] Write and run Vitest coverage for private data helpers, agent routing, confirmation gates, task behavior, and assistant response procedures.
-- [ ] Verify desktop and mobile visual design, typed commands, voice controls, streamed response behavior, and listening/speaking visual states.
+- [x] Verify desktop and mobile visual design, typed commands, voice controls, streamed response behavior, and listening/speaking visual states.
 - [x] Document deferred external integrations, including Gmail, Calendar, smart-home services, native computer control, offline support, cloud sync, and schedule-based automations.
 - [x] Analyze the supplied video reference and translate its observable interaction patterns, motion cues, and visual hierarchy into original Jarvis interface requirements.
 - [x] Adapt the Jarvis command center, voice interaction states, and assistant activity feedback to match the approved reference direction without copying third-party branding or proprietary assets.
@@ -44,3 +44,36 @@
 - [x] Add a forged-user-id preference update test and document why preference routes cannot target another user record.
 - [x] Create a private GitHub repository for the Jarvis source and publish the validated project state without credentials or environment files.
 - [x] Write a clear local setup guide covering dependencies, database configuration, secure provider credentials, development startup, test execution, and deployment notes.
+- [x] Implement explicit browser SpeechSynthesis voice selection and persistence while tying speaking-state transitions to playback events.
+- [x] Build a validated research-source capture flow and display private source metadata alongside saved research results.
+- [x] Add a downloadable export for coding-agent output in addition to clipboard copying.
+- [x] Replace plugin placeholders with a persisted disabled-by-default registry that models plugin status without initiating external actions.
+- [x] Persist authenticated user privacy and visual settings and wire them into the UI.
+- [x] Complete automated and manual verification records for desktop/mobile command, voice, streaming, and visual-state behavior.
+- [x] Implement and persist a spoken-response personality mapping for browser SpeechSynthesis, including documented browser limitations.
+- [x] Store validated research source ledgers and research results as first-class user-scoped records and render them after retrieval.
+- [x] Enforce language-specific structured coding output, keep language selection visible, and add copy/export behavior tests.
+- [x] Verify and persist the implemented model, continuous-mode, and user-scoped privacy-memory model through the final control-deck wiring.
+- [x] Write a verification record covering desktop/mobile typed input, voice flow, streaming, and listening/speaking state checks.
+- [x] Render saved research source links and metadata beside each research record and test source-ledger persistence.
+- [x] Add a tested shared source-ledger parser that accepts only valid unique HTTPS URLs before rendering saved research links.
+- [x] Add deterministic tests for coding language selection visibility and safe copy/export behavior.
+- [x] Add explicit tests for the user-scoped privacy-memory model and its control-deck wiring.
+- [x] Add component/state-level verification for typed, voice, stream, listening, and speaking UI state transitions before closing visual verification.
+- [x] Add component-level state-rendering coverage for typed messages, microphone listening controls, and streamed assistant message updates.
+- [x] Add a deterministic control-deck test for language selection visibility plus copy and download controls.
+- [x] Document the absence of a standalone memory-toggle preference and prove the existing authenticated privacy/memory controls are user-scoped and wired.
+- [x] Extract and wire a tested Jarvis interaction-state machine for typed submission, recording, transcription, stream updates, and speech lifecycle transitions.
+- [x] Add testable desktop and mobile viewport evidence for the command center and control-deck layouts in the final verification record.
+- [x] Expose the default Nemotron 3 Ultra model and continuous-conversation preference in the main control deck and test its persisted preference payloads.
+- [x] Reconcile the stored model preference, settings surface, and stream runtime under a single tested model-selection contract.
+- [x] Add the persisted Nemotron default to the visible settings selector and verify its exact preference update payload.
+- [x] Extract a shared model contract used by the stream runtime and both Jarvis model selectors, then prove the settings surface’s persistence payload.
+- [x] Add a focused Home settings-modal interaction test that asserts the exact persisted model preference payload.
+- [ ] Document Jarvis’s supported browser/mobile capabilities and explicit security boundaries for location, maps, search, voice, app launch, calls, messages, and device unlock.
+- [ ] Add a permission-based location and nearby-place discovery foundation that requests browser geolocation only after user action and keeps location data private by default.
+- [ ] Add an approved-action system for web search, map directions, and app-link handoff, with a distinct confirmation before any external navigation or communication handoff.
+- [ ] Design native mobile companion requirements for device unlock, phone calls, messages, WhatsApp, and Instagram actions without bypassing operating-system authentication or platform permissions.
+- [ ] Add contextual suggestion controls that are opt-in, transparent about the data used, and scoped to the authenticated user.
+- [x] Make Jarvis’s default speech profile warm and feminine while retaining browser/device voice selection, speed control, and a clear fallback when no matching installed voice exists.
+- [x] Document how to clone, configure, validate, and contribute to the private Jarvis repository, distinguishing the current web app from the planned permission-based Android companion.

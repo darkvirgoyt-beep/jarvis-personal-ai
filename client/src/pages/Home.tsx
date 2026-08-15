@@ -2,13 +2,19 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { HudPanel } from "@/components/HudPanel";
 import { JarvisCore, type JarvisCoreState } from "@/components/JarvisCore";
+import { JarvisExtensions } from "@/components/JarvisExtensions";
+import { JarvisModelSelector } from "@/components/JarvisModelSelector";
+import { WakeWordListener } from "@/components/WakeWordListener";
 import { startLogin } from "@/const";
 import { streamJarvisResponse, transcribeJarvisAudio } from "@/lib/jarvisApi";
+import { initialJarvisInteractionState, transitionJarvisInteraction, type JarvisInteractionEvent } from "@/lib/jarvisInteractionState";
+import { buildJarvisMarkdownExport, getLatestJarvisAssistantOutput } from "@/lib/jarvisOutput";
+import { getJarvisVoiceProfile, selectJarvisBrowserVoice } from "@/lib/jarvisVoice";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Activity, BellRing, BrainCircuit, Check, ChevronRight, CircleDot, Code2, Command, Cpu, Database, FileText, Layers3, LockKeyhole, Mic, Orbit, Plus, Search, Settings2, ShieldCheck, Sparkles, TerminalSquare, Volume2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type Agent = "General" | "Coding" | "Research" | "Files" | "System" | "Creative";
 
@@ -38,13 +44,21 @@ function StatusDot({ state }: { state: JarvisCoreState }) {
   return <span className={cn("status-dot", `status-dot--${state}`)} aria-hidden="true" />;
 }
 
+function formatActionPlan(payload: string) {
+  try {
+    const parsed = JSON.parse(payload) as { details?: unknown };
+    return typeof parsed.details === "string" ? parsed.details : "Jarvis prepared this action for your review.";
+  } catch {
+    return "Jarvis prepared this action for your review.";
+  }
+}
+
 export default function Home() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
   const [agent, setAgent] = useState<Agent>("General");
-  const [coreState, setCoreState] = useState<JarvisCoreState>("idle");
-  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing" | "unavailable">("idle");
-  const [isSending, setIsSending] = useState(false);
+  const [interaction, setInteraction] = useState(initialJarvisInteractionState);
+  const { coreState, voiceState, isSending } = interaction;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [continuousMode, setContinuousMode] = useState(false);
@@ -117,6 +131,9 @@ export default function Home() {
   }, [isSending, voiceState]);
 
   const addActivity = (entry: string) => setActivity((current) => [entry, ...current].slice(0, 5));
+  const transitionInteraction = (event: JarvisInteractionEvent) => {
+    setInteraction((current) => transitionJarvisInteraction(current, event));
+  };
 
   const saveMemory = async () => {
     const content = memoryDraft.trim();
@@ -150,30 +167,34 @@ export default function Home() {
 
   const speakResponse = (content: string) => {
     if (!voiceEnabled || !("speechSynthesis" in window)) {
-      setCoreState("idle");
+      transitionInteraction({ type: "speech_finished" });
       return;
     }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(content);
-    utterance.rate = (preferencesQuery.data?.speechRate ?? 100) / 100;
-    const preferredVoice = window.speechSynthesis.getVoices().find((voice) => /en/i.test(voice.lang) && /(google|microsoft|samantha|daniel)/i.test(voice.name));
+    const personality = preferencesQuery.data?.personality ?? "balanced";
+    const voiceProfile = getJarvisVoiceProfile(personality);
+    utterance.rate = Math.min(1.5, Math.max(0.6, ((preferencesQuery.data?.speechRate ?? 100) / 100) * voiceProfile.rate));
+    utterance.pitch = voiceProfile.pitch;
+    const selectedVoiceName = localStorage.getItem(`jarvisVoice:${user?.id ?? "anonymous"}`) ?? preferencesQuery.data?.voiceName;
+    const preferredVoice = selectJarvisBrowserVoice(window.speechSynthesis.getVoices(), selectedVoiceName);
     if (preferredVoice) utterance.voice = preferredVoice;
     utterance.onstart = () => {
-      setCoreState("speaking");
+      transitionInteraction({ type: "speech_started" });
       addActivity("Jarvis voice response active");
     };
     utterance.onend = () => {
-      setCoreState("idle");
+      transitionInteraction({ type: "speech_finished" });
       if (continuousMode) addActivity("Continuous mode is ready for your next command");
     };
-    utterance.onerror = () => setCoreState("idle");
+    utterance.onerror = () => transitionInteraction({ type: "speech_finished" });
     window.speechSynthesis.speak(utterance);
   };
 
   const handleVoiceStart = async () => {
     if (voiceState === "recording" || voiceState === "transcribing") return;
     if (!navigator.mediaDevices?.getUserMedia) {
-      setVoiceState("unavailable");
+      transitionInteraction({ type: "microphone_unavailable" });
       addActivity("Microphone access is not available in this browser");
       return;
     }
@@ -189,33 +210,28 @@ export default function Home() {
         mediaStream.getTracks().forEach((track) => track.stop());
         const recording = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         if (!recording.size) {
-          setVoiceState("idle");
-          setCoreState("idle");
+          transitionInteraction({ type: "recording_stopped" });
           addActivity("No audio command was captured");
           return;
         }
-        setVoiceState("transcribing");
-        setCoreState("thinking");
+        transitionInteraction({ type: "transcription_started" });
         addActivity("Transcribing your voice command");
         try {
           const transcript = await transcribeJarvisAudio(recording);
-          setVoiceState("idle");
+          transitionInteraction({ type: "transcription_completed" });
           addActivity("Voice command transcribed");
           handleSendMessage(transcript);
         } catch (error) {
-          setVoiceState("idle");
-          setCoreState("idle");
+          transitionInteraction({ type: "interaction_failed" });
           addActivity(error instanceof Error ? error.message : "Voice transcription could not be completed");
         }
       };
       recorderRef.current = recorder;
       recorder.start();
-      setVoiceState("recording");
-      setCoreState("listening");
+      transitionInteraction({ type: "recording_started" });
       addActivity("Listening for a Jarvis command");
     } catch {
-      setVoiceState("unavailable");
-      setCoreState("idle");
+      transitionInteraction({ type: "microphone_unavailable" });
       addActivity("Microphone permission was not granted");
     }
   };
@@ -246,19 +262,20 @@ export default function Home() {
     };
   }, [voiceState]);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, overrideAgent?: Agent) => {
     const command = content.trim();
     if (!command || isSending) return;
+    const activeAgent = overrideAgent ?? agent;
+    const activeAgentId = activeAgent.toLowerCase() as "general" | "coding" | "research" | "files" | "system" | "creative";
     window.speechSynthesis?.cancel();
     setMessages((current) => [...current, { role: "user", content: command }, { role: "assistant", content: "" }]);
-    setIsSending(true);
-    setCoreState("thinking");
-    addActivity(`${selectedAgent.name} agent received a command`);
+    transitionInteraction({ type: "typed_submitted" });
+    addActivity(`${activeAgent} agent received a command`);
     let responseText = "";
     try {
       await streamJarvisResponse({
         content: command,
-        agent: agentId,
+        agent: activeAgentId,
         conversationId: activeConversationId,
         onEvent: (event, data) => {
           if (event === "meta" && typeof data.conversationId === "number") {
@@ -266,7 +283,7 @@ export default function Home() {
           }
           if (event === "delta" && typeof data.text === "string") {
             responseText += data.text;
-            setCoreState("speaking");
+            transitionInteraction({ type: "stream_delta" });
             setMessages((current) => {
               const index = current.length - 1;
               const last = current[index];
@@ -290,15 +307,15 @@ export default function Home() {
         addActivity("Jarvis response complete");
         speakResponse(responseText);
       } else {
-        setCoreState("idle");
+        transitionInteraction({ type: "speech_finished" });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Jarvis could not start the response stream.";
       setMessages((current) => current.map((message, index) => index === current.length - 1 && message.role === "assistant" ? { ...message, content: errorMessage } : message));
-      setCoreState("idle");
+      transitionInteraction({ type: "interaction_failed" });
       addActivity(errorMessage);
     } finally {
-      setIsSending(false);
+      transitionInteraction({ type: "stream_finished" });
       void Promise.all([
         utils.jarvis.conversations.list.invalidate(),
         activeConversationId ? utils.jarvis.conversations.messages.invalidate({ conversationId: activeConversationId }) : Promise.resolve(),
@@ -378,7 +395,7 @@ export default function Home() {
           <HudPanel className="p-4">
             <div className="flex items-center justify-between"><p className="hud-label">SYSTEM STATUS</p><span className="flex items-center gap-1.5 text-[10px] text-cyan-100"><StatusDot state={coreState} />ONLINE</span></div>
             <div className="mt-4 space-y-3">
-              {[{ icon: Cpu, label: "Brain", value: "Fast mode" }, { icon: Database, label: "Memory", value: "Private" }, { icon: LockKeyhole, label: "Actions", value: "Confirm" }].map((item) => { const Icon = item.icon; return <div className="flex items-center justify-between" key={item.label}><div className="flex items-center gap-2 text-xs text-slate-400"><Icon className="size-3.5 text-cyan-200" />{item.label}</div><span className="font-mono text-[10px] text-slate-300">{item.value}</span></div>; })}
+              {[{ icon: Cpu, label: "Brain", value: "Nemotron Ultra" }, { icon: Database, label: "Memory", value: "Private" }, { icon: LockKeyhole, label: "Actions", value: "Confirm" }].map((item) => { const Icon = item.icon; return <div className="flex items-center justify-between" key={item.label}><div className="flex items-center gap-2 text-xs text-slate-400"><Icon className="size-3.5 text-cyan-200" />{item.label}</div><span className="font-mono text-[10px] text-slate-300">{item.value}</span></div>; })}
             </div>
           </HudPanel>
           <HudPanel className="p-4">
@@ -396,12 +413,15 @@ export default function Home() {
         </aside>
       </div>
 
+      <JarvisExtensions voiceStorageKey={`jarvisVoice:${user?.id ?? "anonymous"}`} onRun={(command, commandAgent) => { setAgent(commandAgent); void handleSendMessage(command, commandAgent); }} onCopyLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to copy yet"); return; } void navigator.clipboard.writeText(latest).then(() => addActivity("Latest Jarvis response copied to clipboard")).catch(() => addActivity("Clipboard access was not available in this browser")); }} onExportLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to export yet"); return; } const exportData = buildJarvisMarkdownExport(latest); const file = new Blob([exportData.text], { type: exportData.mimeType }); const url = URL.createObjectURL(file); const link = document.createElement("a"); link.href = url; link.download = exportData.filename; link.click(); URL.revokeObjectURL(url); addActivity("Latest Jarvis response downloaded as Markdown"); }} />
+      <WakeWordListener enabled={continuousMode && voiceEnabled && voiceState === "idle" && !isSending} onWakeWord={() => { addActivity("Wake word detected — opening voice link"); void handleVoiceStart(); }} onUnsupported={() => addActivity("Wake word needs Chrome or another supported browser")} />
+
       <AnimatePresence>
         {workspaceOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm"><motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} transition={{ duration: 0.2 }} className="hud-panel mx-auto my-6 w-full max-w-4xl p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="hud-label">JARVIS // PRIVATE WORKSPACE</p><h2 className="mt-2 text-xl font-semibold text-white">Your memories, tasks, and approvals</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Everything shown here is scoped to your signed-in Jarvis workspace. Approving an action only records consent; Jarvis will not execute an external action unless a connected capability is later presented for review.</p></div><button aria-label="Close private workspace" onClick={() => setWorkspaceOpen(false)} className="flex size-8 shrink-0 items-center justify-center text-slate-400 transition hover:text-white"><X className="size-4" /></button></div><div className="mt-6 grid gap-4 lg:grid-cols-2"><section className="rounded-sm border border-cyan-300/15 bg-cyan-300/[0.025] p-4"><div className="flex items-center gap-2"><BrainCircuit className="size-4 text-cyan-200" /><p className="hud-label">LONG-TERM MEMORY</p></div><textarea value={memoryDraft} onChange={(event) => setMemoryDraft(event.target.value)} placeholder="Save a preference, fact, or project note…" className="mt-4 min-h-24 w-full resize-none rounded-sm border border-white/10 bg-black/35 p-3 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-cyan-300/35" /><button disabled={!memoryDraft.trim() || createMemory.isPending} onClick={() => void saveMemory()} className="mt-2 w-full rounded-sm border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-40">SAVE MEMORY</button><div className="mt-4 space-y-2">{(memoriesQuery.data ?? []).slice(0, 5).map((memory) => <div key={memory.id} className="flex items-start gap-2 rounded-sm border border-white/[0.07] bg-black/20 p-2.5"><p className="min-w-0 flex-1 text-xs leading-5 text-slate-400">{memory.content}</p><button aria-label="Delete memory" disabled={deleteMemory.isPending} onClick={() => { void deleteMemory.mutateAsync({ id: memory.id }).then(() => utils.jarvis.memory.list.invalidate()); }} className="text-slate-600 transition hover:text-fuchsia-200"><X className="size-3.5" /></button></div>)}{!memoriesQuery.data?.length && <p className="py-4 text-center text-xs text-slate-600">No saved memories yet.</p>}</div></section><section className="rounded-sm border border-fuchsia-400/15 bg-fuchsia-400/[0.02] p-4"><div className="flex items-center gap-2"><Check className="size-4 text-fuchsia-200" /><p className="hud-label">PRIVATE TASKS</p></div><input value={taskDraft} onChange={(event) => setTaskDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void saveTask(); }} placeholder="Add a task for Jarvis to track…" className="mt-4 w-full rounded-sm border border-white/10 bg-black/35 px-3 py-3 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-fuchsia-400/35" /><button disabled={!taskDraft.trim() || createTask.isPending} onClick={() => void saveTask()} className="mt-2 w-full rounded-sm border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-2 text-xs font-semibold text-fuchsia-50 transition hover:bg-fuchsia-400/20 disabled:cursor-not-allowed disabled:opacity-40">ADD TASK</button><div className="mt-4 space-y-2">{(tasksQuery.data ?? []).slice(0, 5).map((task) => <button key={task.id} onClick={() => void setTaskStatus(task.id, task.status === "done" ? "todo" : "done")} className="flex w-full items-start gap-2 rounded-sm border border-white/[0.07] bg-black/20 p-2.5 text-left transition hover:border-fuchsia-400/20"><span className={cn("mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border", task.status === "done" ? "border-cyan-300/45 bg-cyan-300/15 text-cyan-100" : "border-slate-600 text-transparent")}><Check className="size-2.5" /></span><span className={cn("text-xs leading-5", task.status === "done" ? "text-slate-600 line-through" : "text-slate-300")}>{task.title}</span></button>)}{!tasksQuery.data?.length && <p className="py-4 text-center text-xs text-slate-600">No tasks yet.</p>}</div></section></div><section className="mt-4 rounded-sm border border-amber-300/15 bg-amber-300/[0.025] p-4"><div className="flex items-center gap-2"><ShieldCheck className="size-4 text-amber-200" /><p className="hud-label">ACTION APPROVAL GATES</p></div><div className="mt-3 space-y-2">{pendingConfirmations.map((item) => <div key={item.id} className="flex flex-col gap-3 rounded-sm border border-white/[0.07] bg-black/20 p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm text-slate-200">{item.action}</p><p className="mt-1 text-xs text-slate-600">Risk level: {item.riskLevel}. Jarvis has not executed this action.</p></div><div className="flex gap-2"><button disabled={resolveConfirmation.isPending} onClick={() => void resolveAction(item.id, "rejected")} className="rounded-sm border border-white/10 px-3 py-2 text-[10px] font-semibold text-slate-400 transition hover:text-white">REJECT</button><button disabled={resolveConfirmation.isPending} onClick={() => void resolveAction(item.id, "approved")} className="rounded-sm border border-amber-300/35 bg-amber-300/10 px-3 py-2 text-[10px] font-semibold text-amber-100 transition hover:bg-amber-300/20">APPROVE</button></div></div>)}{!pendingConfirmations.length && <p className="py-3 text-center text-xs text-slate-600">No action approvals are waiting.</p>}</div></section></motion.div></motion.div>}
       </AnimatePresence>
 
       <AnimatePresence>
-        {settingsOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"><motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} transition={{ duration: 0.2 }} className="hud-panel w-full max-w-lg p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="hud-label">JARVIS SETTINGS</p><h2 className="mt-2 text-xl font-semibold text-white">Personal control panel</h2></div><button onClick={() => setSettingsOpen(false)} className="flex size-8 items-center justify-center text-slate-400 transition hover:text-white"><X className="size-4" /></button></div><div className="mt-6 space-y-3"><label className="block rounded-sm border border-white/10 bg-white/[0.02] p-3"><span className="flex gap-3"><Cpu className="mt-0.5 size-4 text-fuchsia-200" /><span><span className="block text-sm text-slate-200">Jarvis brain</span><span className="mt-1 block text-xs text-slate-500">Select the model used for new responses.</span></span></span><select value={preferencesQuery.data?.model ?? "gpt-5-mini"} onChange={(event) => { void updatePreferences.mutateAsync({ model: event.target.value as "gpt-5-mini" | "gpt-5" | "claude-sonnet-4-6" | "gemini-3-flash-preview" }).then(() => utils.jarvis.preferences.get.invalidate()); }} className="mt-3 w-full rounded-sm border border-white/10 bg-black/35 px-3 py-2 text-xs text-slate-200 outline-none focus:border-fuchsia-400/35"><option value="gpt-5-mini">Fast — GPT-5 mini</option><option value="gpt-5">Deep reasoning — GPT-5</option><option value="claude-sonnet-4-6">Coding & analysis — Claude Sonnet</option><option value="gemini-3-flash-preview">Long context — Gemini Flash</option></select></label><div className="flex items-center justify-between rounded-sm border border-white/10 bg-white/[0.02] p-3"><div className="flex gap-3"><Volume2 className="mt-0.5 size-4 text-cyan-200" /><div><p className="text-sm text-slate-200">Spoken responses</p><p className="mt-1 text-xs text-slate-500">Jarvis reads eligible answers aloud.</p></div></div><button onClick={() => { const next = !voiceEnabled; setVoiceEnabled(next); void updatePreferences.mutateAsync({ voiceEnabled: next }); }} className={cn("rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider", voiceEnabled ? "bg-cyan-300/15 text-cyan-100" : "bg-white/5 text-slate-500")}>{voiceEnabled ? "ON" : "OFF"}</button></div><div className="flex items-center justify-between rounded-sm border border-white/10 bg-white/[0.02] p-3"><div className="flex gap-3"><BellRing className="mt-0.5 size-4 text-fuchsia-200" /><div><p className="text-sm text-slate-200">Continuous conversation</p><p className="mt-1 text-xs text-slate-500">Keeps Jarvis ready between replies while this tab is open.</p></div></div><button onClick={() => { const next = !continuousMode; setContinuousMode(next); void updatePreferences.mutateAsync({ continuousMode: next }); }} className={cn("rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider", continuousMode ? "bg-fuchsia-400/15 text-fuchsia-100" : "bg-white/5 text-slate-500")}>{continuousMode ? "ON" : "OFF"}</button></div><div className="rounded-sm border border-cyan-300/15 bg-cyan-300/[0.035] p-3 text-xs leading-5 text-slate-400"><Check className="mr-2 inline size-3.5 text-cyan-200" />Microphone access always requires your browser permission. External tools remain disabled until you connect and approve them.</div></div></motion.div></motion.div>}
+        {settingsOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"><motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} transition={{ duration: 0.2 }} className="hud-panel w-full max-w-lg p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="hud-label">JARVIS SETTINGS</p><h2 className="mt-2 text-xl font-semibold text-white">Personal control panel</h2></div><button onClick={() => setSettingsOpen(false)} className="flex size-8 items-center justify-center text-slate-400 transition hover:text-white"><X className="size-4" /></button></div><div className="mt-6 space-y-3"><div className="rounded-sm border border-white/10 bg-white/[0.02] p-3"><span className="flex gap-3"><Cpu className="mt-0.5 size-4 text-fuchsia-200" /><span><span className="block text-sm text-slate-200">Jarvis brain</span><span className="mt-1 block text-xs text-slate-500">Select the model used for new responses.</span></span></span><JarvisModelSelector label="Response model" className="mt-3 block text-xs text-slate-400" model={preferencesQuery.data?.model} onChange={(model) => { void updatePreferences.mutateAsync({ model }).then(() => utils.jarvis.preferences.get.invalidate()); }} /></div><div className="flex items-center justify-between rounded-sm border border-white/10 bg-white/[0.02] p-3"><div className="flex gap-3"><Volume2 className="mt-0.5 size-4 text-cyan-200" /><div><p className="text-sm text-slate-200">Spoken responses</p><p className="mt-1 text-xs text-slate-500">Jarvis reads eligible answers aloud.</p></div></div><button onClick={() => { const next = !voiceEnabled; setVoiceEnabled(next); void updatePreferences.mutateAsync({ voiceEnabled: next }); }} className={cn("rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider", voiceEnabled ? "bg-cyan-300/15 text-cyan-100" : "bg-white/5 text-slate-500")}>{voiceEnabled ? "ON" : "OFF"}</button></div><div className="flex items-center justify-between rounded-sm border border-white/10 bg-white/[0.02] p-3"><div className="flex gap-3"><BellRing className="mt-0.5 size-4 text-fuchsia-200" /><div><p className="text-sm text-slate-200">Continuous conversation</p><p className="mt-1 text-xs text-slate-500">Keeps Jarvis ready between replies while this tab is open.</p></div></div><button onClick={() => { const next = !continuousMode; setContinuousMode(next); void updatePreferences.mutateAsync({ continuousMode: next }); }} className={cn("rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider", continuousMode ? "bg-fuchsia-400/15 text-fuchsia-100" : "bg-white/5 text-slate-500")}>{continuousMode ? "ON" : "OFF"}</button></div><div className="rounded-sm border border-cyan-300/15 bg-cyan-300/[0.035] p-3 text-xs leading-5 text-slate-400"><Check className="mr-2 inline size-3.5 text-cyan-200" />Microphone access always requires your browser permission. External tools remain disabled until you connect and approve them.</div></div></motion.div></motion.div>}
       </AnimatePresence>
     </main>
   );

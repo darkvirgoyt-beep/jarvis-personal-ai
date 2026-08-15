@@ -3,6 +3,7 @@ import { z } from "zod";
 import * as db from "./db";
 import { streamLLM } from "./_core/llm";
 import { streamNemotronUltra } from "./nemotron";
+import { isAlternateJarvisModel } from "../shared/jarvisModels";
 import { sdk } from "./_core/sdk";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { storageGetSignedUrl, storagePut } from "./storage";
@@ -27,6 +28,16 @@ function parseDelta(data: unknown) {
   if (!data || typeof data !== "object") return "";
   const choice = (data as { choices?: Array<{ delta?: { content?: string }; message?: { content?: string } }> }).choices?.[0];
   return choice?.delta?.content ?? choice?.message?.content ?? "";
+}
+
+function extractHttpsSources(content: string) {
+  return Array.from(new Set((content.match(/https:\/\/[^\s,)>]+/g) ?? []).filter((url) => {
+    try {
+      return new URL(url).protocol === "https:";
+    } catch {
+      return false;
+    }
+  })));
 }
 
 async function sendStaticCompletion(res: Response, content: string, state: { closed: boolean }) {
@@ -99,12 +110,14 @@ export function registerJarvisStream(app: Express) {
         db.listJarvisMemories(user.id),
         db.getJarvisPreferences(user.id),
       ]);
-      const recentHistory = history.slice(-18).map((message) => ({ role: message.role, content: message.content }));
-      const memoryContext = memories.slice(0, 8).map((memory) => `- [${memory.category}] ${memory.content}`).join("\n") || "No saved memories.";
+      const minimalContext = preferences?.privacyMode === "minimal";
+      const recentHistory = (minimalContext ? [] : history.slice(-18)).map((message) => ({ role: message.role, content: message.content }));
+      const memoryContext = minimalContext ? "Minimal privacy mode is active. Do not include stored memory context." : (memories.slice(0, 8).map((memory) => `- [${memory.category}] ${memory.content}`).join("\n") || "No saved memories.");
       const systemPrompt = [
         "You are Jarvis, a private personal AI assistant. Address the user naturally as Jarvis; never call yourself another product or assistant.",
         agentInstructions[input.agent],
         `Personality setting: ${preferences?.personality ?? "balanced"}.`,
+        `Privacy mode: ${preferences?.privacyMode ?? "standard"}.`,
         "Safety is mandatory: never claim to have accessed a computer, file system, account, device, email, calendar, smart-home system, terminal, or other external service unless a connected tool result is supplied in the conversation. Never execute, simulate executing, or imply completion of external or destructive actions. Describe proposed actions and require explicit user confirmation for high-impact operations.",
         "The user may request web research. If live source material is not provided, state the limitation and give a concrete research plan rather than fabricating current facts or citations.",
         `Private memory relevant to this conversation:\n${memoryContext}`,
@@ -112,18 +125,36 @@ export function registerJarvisStream(app: Express) {
 
       const modelMessages = [{ role: "system" as const, content: systemPrompt }, ...recentHistory];
       let upstream: globalThis.Response;
-      try {
-        upstream = await streamNemotronUltra({ messages: modelMessages, signal: controller.signal });
-      } catch (providerError) {
-        if (controller.signal.aborted) throw providerError;
-        console.warn("[Jarvis] Nemotron 3 Ultra unavailable; using the configured resilient fallback.");
-        writeEvent(res, "meta", { provider: "fallback" });
-        upstream = await streamLLM({
-          model: "gpt-5-mini",
-          maxTokens: 1100,
-          messages: modelMessages,
-          signal: controller.signal,
-        });
+      const alternateModel = isAlternateJarvisModel(preferences?.model) ? preferences.model : undefined;
+      if (alternateModel) {
+        try {
+          writeEvent(res, "meta", { provider: "selected", model: alternateModel });
+          upstream = await streamLLM({
+            model: alternateModel,
+            maxTokens: 1100,
+            messages: modelMessages,
+            signal: controller.signal,
+          });
+        } catch (providerError) {
+          if (controller.signal.aborted) throw providerError;
+          console.warn(`[Jarvis] Selected model ${alternateModel} unavailable; returning to Nemotron 3 Ultra.`);
+          writeEvent(res, "meta", { provider: "nemotron-fallback" });
+          upstream = await streamNemotronUltra({ messages: modelMessages, signal: controller.signal });
+        }
+      } else {
+        try {
+          upstream = await streamNemotronUltra({ messages: modelMessages, signal: controller.signal });
+        } catch (providerError) {
+          if (controller.signal.aborted) throw providerError;
+          console.warn("[Jarvis] Nemotron 3 Ultra unavailable; using the configured resilient fallback.");
+          writeEvent(res, "meta", { provider: "fallback" });
+          upstream = await streamLLM({
+            model: "gpt-5-mini",
+            maxTokens: 1100,
+            messages: modelMessages,
+            signal: controller.signal,
+          });
+        }
       }
       let fullResponse = "";
       if (upstream.headers.get("content-type")?.includes("application/json")) {
@@ -166,6 +197,15 @@ export function registerJarvisStream(app: Express) {
 
       if (fullResponse.trim()) {
         await db.createJarvisMessage({ userId: user.id, conversationId, role: "assistant", content: fullResponse, agent: input.agent });
+        if (input.agent === "research") {
+          await db.createJarvisResearchRecord({
+            userId: user.id,
+            conversationId,
+            topic: input.content.slice(0, 500),
+            sourceLedger: JSON.stringify(extractHttpsSources(input.content)),
+            summary: fullResponse,
+          });
+        }
       }
       if (!closed) writeEvent(res, "done", { taskCreated: Boolean(pendingTask), memorySaved: Boolean(pendingMemory) });
     } catch (error) {

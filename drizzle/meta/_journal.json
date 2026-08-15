@@ -22,6 +22,20 @@
       "when": 1786760296348,
       "tag": "0002_curved_maximus",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786761647213,
+      "tag": "0003_faulty_the_twelve",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786761964343,
+      "tag": "0004_worthless_shriek",
+      "breakpoints": true
     }
   ]
 }

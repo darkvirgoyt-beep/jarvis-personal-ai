@@ -91,7 +91,13 @@ describe("Jarvis private router", () => {
     await caller.jarvis.tasks.create({ title: "Private task", priority: "high", dueAt });
     await caller.jarvis.tasks.update({ id: 2, status: "done" });
     await caller.jarvis.preferences.get();
-    await caller.jarvis.preferences.update({ continuousMode: true });
+    await caller.jarvis.preferences.update({
+      continuousMode: true,
+      privacyMode: "minimal",
+      voiceName: "Jarvis Browser Voice",
+      visualMode: "reduced_motion",
+      pluginSettings: "{\"research\":true}",
+    });
     await caller.jarvis.confirmations.list();
     await caller.jarvis.confirmations.propose({ action: "Review private action", details: "No execution" });
 
@@ -105,7 +111,14 @@ describe("Jarvis private router", () => {
     expect(db.createJarvisTask).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, title: "Private task", priority: "high", dueAt }));
     expect(db.updateJarvisTask).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, id: 2, status: "done" }));
     expect(db.getJarvisPreferences).toHaveBeenCalledWith(42);
-    expect(db.updateJarvisPreferences).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, continuousMode: 1 }));
+    expect(db.updateJarvisPreferences).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+      continuousMode: 1,
+      privacyMode: "minimal",
+      voiceName: "Jarvis Browser Voice",
+      visualMode: "reduced_motion",
+      pluginSettings: "{\"research\":true}",
+    }));
     expect(db.listJarvisConfirmations).toHaveBeenCalledWith(42);
     expect(db.createJarvisConfirmation).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, action: "Review private action" }));
   });
@@ -142,6 +155,28 @@ describe("Jarvis private router", () => {
     expect(db.getJarvisPreferences).toHaveBeenCalledWith(7);
     expect(db.updateJarvisPreferences).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, model: "nemotron-3-ultra" }));
     expect(db.updateJarvisPreferences).not.toHaveBeenCalledWith(expect.objectContaining({ userId: 42 }));
+  });
+
+  it("persists the privacy-memory model only on the authenticated profile while memory mutations retain the same scope", async () => {
+    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ userId: 7, privacyMode: "standard", continuousMode: 0 } as never);
+    vi.mocked(db.updateJarvisPreferences).mockResolvedValue({ userId: 7, privacyMode: "minimal", continuousMode: 1 } as never);
+    vi.mocked(db.createJarvisMemory).mockResolvedValue(undefined as never);
+    vi.mocked(db.updateJarvisMemory).mockResolvedValue(1);
+    vi.mocked(db.deleteJarvisMemory).mockResolvedValue(1);
+    const caller = appRouter.createCaller(privateContext(7));
+
+    await caller.jarvis.preferences.get();
+    await caller.jarvis.preferences.update({ privacyMode: "minimal", continuousMode: true, userId: 42 } as never);
+    await caller.jarvis.memory.create({ content: "Keep project notes private", category: "project" });
+    await caller.jarvis.memory.update({ id: 31, content: "Keep project notes private and concise", category: "project" });
+    await caller.jarvis.memory.delete({ id: 31 });
+
+    expect(db.getJarvisPreferences).toHaveBeenCalledWith(7);
+    expect(db.updateJarvisPreferences).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, privacyMode: "minimal", continuousMode: 1 }));
+    expect(db.updateJarvisPreferences).not.toHaveBeenCalledWith(expect.objectContaining({ userId: 42 }));
+    expect(db.createJarvisMemory).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, content: "Keep project notes private" }));
+    expect(db.updateJarvisMemory).toHaveBeenCalledWith(7, 31, "Keep project notes private and concise", "project");
+    expect(db.deleteJarvisMemory).toHaveBeenCalledWith(7, 31);
   });
 
   it("denies cross-user memory, task, and confirmation mutations when no user-scoped record is changed", async () => {
