@@ -77,3 +77,4 @@
 - [x] Add contextual suggestion controls that are opt-in, transparent about the data used, and scoped to the authenticated user.
 - [x] Make Jarvis’s default speech profile warm and feminine while retaining browser/device voice selection, speed control, and a clear fallback when no matching installed voice exists.
 - [x] Document how to clone, configure, validate, and contribute to the private Jarvis repository, distinguishing the current web app from the planned permission-based Android companion.
+- [x] Provide a safe environment-variable inventory and setup template for local development, GitHub documentation, and deployed Jarvis configuration without exposing credentials.
