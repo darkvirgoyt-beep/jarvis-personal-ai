@@ -1,0 +1,29 @@
+{
+  "name": "jarvis-android-companion",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "expo": "~54.0.0",
+    "expo-crypto": "~14.1.5",
+    "expo-haptics": "~14.1.4",
+    "expo-linking": "~7.1.7",
+    "expo-location": "~19.0.7",
+    "expo-router": "~6.0.0",
+    "expo-secure-store": "~14.2.3",
+    "expo-speech": "~13.1.7",
+    "expo-speech-recognition": "sdk-54",
+    "expo-status-bar": "~3.0.8",
+    "expo-web-browser": "~14.2.0",
+    "react": "19.1.0",
+    "react-native": "0.81.4"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}

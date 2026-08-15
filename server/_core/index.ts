@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { registerJarvisStream, registerJarvisVoice } from "../jarvisStream";
+import { registerJarvisMobilePairing } from "../jarvisMobile";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
@@ -39,6 +40,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerJarvisStream(app);
   registerJarvisVoice(app);
+  registerJarvisMobilePairing(app);
   // tRPC API
   app.use(
     "/api/trpc",

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
@@ -6,6 +6,7 @@ import {
   jarvisConversations,
   jarvisMemories,
   jarvisMessages,
+  jarvisMobilePairings,
   jarvisPreferences,
   jarvisResearchRecords,
   jarvisTasks,
@@ -106,6 +107,39 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createJarvisMobilePairing(input: {
+  codeHash: string;
+  verifierHash: string;
+  userOpenId: string;
+  expiresAt: Date;
+}) {
+  const db = await requireDb();
+  await db.insert(jarvisMobilePairings).values(input);
+}
+
+/** Returns the linked user only when a pairing can be consumed exactly once. */
+export async function consumeJarvisMobilePairing(input: {
+  codeHash: string;
+  verifierHash: string;
+}) {
+  const db = await requireDb();
+  const now = new Date();
+  const rows = await db.select().from(jarvisMobilePairings)
+    .where(and(
+      eq(jarvisMobilePairings.codeHash, input.codeHash),
+      eq(jarvisMobilePairings.verifierHash, input.verifierHash),
+      isNull(jarvisMobilePairings.exchangedAt),
+      gt(jarvisMobilePairings.expiresAt, now),
+    )).limit(1);
+  const pairing = rows[0];
+  if (!pairing) return undefined;
+
+  const result = await db.update(jarvisMobilePairings).set({ exchangedAt: now })
+    .where(and(eq(jarvisMobilePairings.id, pairing.id), isNull(jarvisMobilePairings.exchangedAt)));
+  if (Number(result[0].affectedRows ?? 0) !== 1) return undefined;
+  return pairing.userOpenId;
 }
 
 async function requireDb() {

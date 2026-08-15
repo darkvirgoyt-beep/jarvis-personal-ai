@@ -98,3 +98,12 @@
 - [x] Add deterministic tests, responsive visual verification, and documentation for the new builder workflow and fallback behavior.
 - [x] Route missing or unauthorized OpenRouter credentials to the explicit local basic-response mode instead of a managed-provider retry.
 - [x] Surface a distinct provider-auth/key-unavailable status in the Jarvis UI and add stream coverage for that safe fallback path.
+- [x] Add a clearly labelled GitHub connection entry in Jarvis Builder that explains repository access and keeps GitHub credentials out of the browser and source code.
+- [x] Add an approval-gated GitHub repository handoff proposal for Builder plans, with explicit repository URL validation and no silent repository creation, commits, pushes, or deployment.
+- [x] Add deterministic tests and documentation for GitHub handoff validation, confirmation, and security boundaries.
+- [x] Create an Android-first Jarvis companion source foundation that authenticates to the existing cloud backend without embedding provider, database, or session secrets.
+- [x] Add a mobile voice-command screen with typed fallback, streaming-ready request state, and a clear permission boundary for microphone use.
+- [x] Add confirmation-gated Android intent proposals for web search, maps, calling, SMS, WhatsApp, Instagram, and nearby-location handoffs without silent calls, messages, or device unlock behavior.
+- [x] Add phone-first setup and release handoff documentation that does not require the user to compile an APK locally, while honestly separating source readiness from signed-store-binary delivery.
+- [x] Add deterministic mobile contract tests and validate the companion foundation before checkpointing.
+- [x] Replace direct bearer delivery through the custom Android URI with an opaque one-time pairing code and verifier-bound token exchange.

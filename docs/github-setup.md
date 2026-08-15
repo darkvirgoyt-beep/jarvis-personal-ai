@@ -97,6 +97,12 @@ git push -u origin feature/your-change
 
 Before committing, use `git status` and confirm that `.env`, credentials, databases, logs, and build output are not staged. The included `.gitignore` already excludes these files.
 
+### Jarvis Builder GitHub Connection
+
+The in-app **Builder** includes a **GitHub connection** entry for an explicit browser handoff. Enter `sign in` to open GitHub’s sign-in/new-repository page, or enter a plain `https://github.com/owner/repository` address to open that repository. Jarvis first records a user-scoped approval; it opens GitHub in a new tab only after that approval. GitHub authentication occurs on `github.com`: Jarvis does **not** request, receive, persist, or expose a GitHub password, personal access token, OAuth callback, repository credential, commit, push, or deployment permission.
+
+> **Boundary:** The Builder’s GitHub connection is a safe repository handoff, not unattended source-control automation. Creating repositories, committing files, pushing code, or publishing deployments remains an explicit user action in GitHub or an approved, separately connected development workflow.
+
 ## Mobile Companion Roadmap
 
 The repository currently contains the deployed **web command center**. The Android-first Jarvis companion is a planned next module; it is not represented as a complete Android app in the current source tree. When added, it should live in a dedicated `mobile/` workspace and reuse the same authenticated server APIs rather than copy provider keys, database credentials, or business logic into a mobile client.

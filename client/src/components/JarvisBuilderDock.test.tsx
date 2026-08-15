@@ -8,12 +8,14 @@ describe("JarvisBuilderDock", () => {
   it("separates project planning, backend capability selection, and approval-gated blueprint staging", () => {
     const onGenerate = vi.fn();
     const onPropose = vi.fn().mockResolvedValue({ id: 9 });
-    render(<JarvisBuilderDock onGenerate={onGenerate} onPropose={onPropose} onOpenWorkspace={vi.fn()} onActivity={vi.fn()} />);
+    render(<JarvisBuilderDock onGenerate={onGenerate} onPropose={onPropose} onOpenWorkspace={vi.fn()} onActivity={vi.fn()} onProposeGitHub={vi.fn().mockResolvedValue({ id: 12 })} onResolveGitHub={vi.fn()} />);
 
     expect(screen.getByRole("region", { name: "Jarvis Builder" })).toBeTruthy();
     expect(screen.getByText("COMPILE READINESS")).toBeTruthy();
     expect(screen.getByRole("button", { name: /server api/i })).toBeTruthy();
     expect(screen.getByText(/never runs generated code/i)).toBeTruthy();
+    expect(screen.getByText(/GitHub connection/i)).toBeTruthy();
+    expect(screen.getByLabelText("GitHub repository destination")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("What should it do?"), { target: { value: "A focused project workspace for teams." } });
     fireEvent.click(screen.getByRole("button", { name: /generate with jarvis/i }));

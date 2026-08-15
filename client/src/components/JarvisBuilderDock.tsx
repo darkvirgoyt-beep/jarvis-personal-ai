@@ -1,9 +1,11 @@
-import { Braces, CheckCircle2, CircleDashed, Cloud, Database, FileCode2, FolderTree, Globe2, LockKeyhole, Server, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
+import { Braces, CheckCircle2, CircleDashed, Cloud, Database, ExternalLink, FileCode2, FolderTree, Github, Globe2, LockKeyhole, Server, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { createJarvisBuilderPlan, type JarvisBuilderCapability, type JarvisBuilderProjectType } from "@shared/jarvisBuilder";
+import { buildJarvisGitHubHandoff, type JarvisGitHubHandoff } from "@shared/jarvisGitHub";
 import { cn } from "@/lib/utils";
 
 type BuilderProposalInput = { operation: "code"; path: string; content: string };
+type ApprovalRecord = { id: number };
 
 const capabilityCards: { id: JarvisBuilderCapability; title: string; description: string; icon: typeof Server }[] = [
   { id: "api", title: "Server API", description: "Validated private routes", icon: Server },
@@ -12,11 +14,13 @@ const capabilityCards: { id: JarvisBuilderCapability; title: string; description
   { id: "storage", title: "Storage", description: "Private file references", icon: Cloud },
 ];
 
-export function JarvisBuilderDock({ onGenerate, onPropose, onOpenWorkspace, onActivity }: {
+export function JarvisBuilderDock({ onGenerate, onPropose, onOpenWorkspace, onActivity, onProposeGitHub, onResolveGitHub }: {
   onGenerate: (prompt: string) => void;
   onPropose: (input: BuilderProposalInput) => Promise<unknown>;
   onOpenWorkspace: () => void;
   onActivity: (entry: string) => void;
+  onProposeGitHub: (input: { action: string; riskLevel: "medium"; details: string }) => Promise<ApprovalRecord>;
+  onResolveGitHub: (input: { id: number; decision: "approved" | "rejected" }) => Promise<unknown>;
 }) {
   const [name, setName] = useState("My next project");
   const [brief, setBrief] = useState("");
@@ -25,6 +29,9 @@ export function JarvisBuilderDock({ onGenerate, onPropose, onOpenWorkspace, onAc
   const [isStaging, setIsStaging] = useState(false);
   const [blueprintStaged, setBlueprintStaged] = useState(false);
   const [stageError, setStageError] = useState("");
+  const [githubDestination, setGithubDestination] = useState("sign in");
+  const [githubProposal, setGithubProposal] = useState<{ id: number; action: JarvisGitHubHandoff; approved: boolean }>();
+  const [githubError, setGithubError] = useState("");
   const plan = useMemo(() => createJarvisBuilderPlan({ name, brief, projectType, capabilities }), [name, brief, projectType, capabilities]);
   const canGenerate = name.trim().length > 1 && brief.trim().length > 8;
 
@@ -44,6 +51,48 @@ export function JarvisBuilderDock({ onGenerate, onPropose, onOpenWorkspace, onAc
       setStageError(error instanceof Error ? error.message : "Jarvis could not stage this private blueprint.");
     } finally {
       setIsStaging(false);
+    }
+  };
+
+  const prepareGitHub = async () => {
+    try {
+      const action = buildJarvisGitHubHandoff(githubDestination);
+      const approval = await onProposeGitHub({
+        action: action.label,
+        riskLevel: action.riskLevel,
+        details: `Jarvis will open ${action.destination} in a new browser tab after your approval. GitHub authentication happens on github.com; Jarvis does not receive or store your GitHub password, token, or OAuth callback.`,
+      });
+      setGithubProposal({ id: approval.id, action, approved: false });
+      setGithubError("");
+      onActivity(`${action.label} prepared — explicit approval required before opening`);
+    } catch (error) {
+      setGithubError(error instanceof Error ? error.message : "Jarvis could not prepare the GitHub handoff.");
+    }
+  };
+
+  const resolveGitHub = async (decision: "approved" | "rejected") => {
+    if (!githubProposal) return;
+    if (decision === "rejected") {
+      await onResolveGitHub({ id: githubProposal.id, decision });
+      setGithubProposal(undefined);
+      onActivity("GitHub handoff rejected — nothing was opened");
+      return;
+    }
+    const destinationWindow = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      await onResolveGitHub({ id: githubProposal.id, decision });
+      if (!destinationWindow) {
+        setGithubProposal((current) => current ? { ...current, approved: true } : current);
+        onActivity("GitHub handoff approved — your browser blocked the new tab, so use the safe open link");
+        return;
+      }
+      destinationWindow.opener = null;
+      destinationWindow.location.href = githubProposal.action.url;
+      setGithubProposal(undefined);
+      onActivity(`${githubProposal.action.label} opened after explicit approval`);
+    } catch (error) {
+      destinationWindow?.close();
+      setGithubError(error instanceof Error ? error.message : "Jarvis could not record that GitHub approval.");
     }
   };
 
@@ -72,6 +121,7 @@ export function JarvisBuilderDock({ onGenerate, onPropose, onOpenWorkspace, onAc
             <div className="mt-5 rounded-sm border border-cyan-300/15 bg-cyan-300/[0.025] p-4"><p className="text-sm font-medium text-white">{plan.name}</p><p className="mt-1 text-xs text-slate-500">{plan.projectType === "website" ? "Responsive website" : "Full-stack web application"} · <span className="font-mono text-slate-400">/{plan.slug}</span></p><div className="mt-4 space-y-2">{plan.readinessChecks.map((check) => <div className="flex gap-2" key={check}><CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-cyan-200" /><p className="text-xs leading-5 text-slate-400">{check}</p></div>)}</div></div>
             <div className="mt-4"><div className="flex items-center justify-between"><p className="text-xs font-medium text-slate-300">Proposed file map</p><FolderTree className="size-3.5 text-slate-500" /></div><div className="mt-2 grid gap-1.5">{plan.recommendedFiles.map((file) => <code className="truncate rounded-sm border border-white/[0.07] bg-black/25 px-2.5 py-2 font-mono text-[11px] text-slate-400" key={file}>{file}</code>)}</div></div>
             <div className="mt-5 rounded-sm border border-amber-300/15 bg-amber-300/[0.035] p-3 text-xs leading-5 text-slate-400"><ShieldCheck className="mr-2 inline size-3.5 text-amber-200" />This is a readiness review, not a code compiler. Generated plans and code require your review; workspace writes remain approval-gated.</div>
+            <div className="mt-4 rounded-sm border border-white/[0.09] bg-black/20 p-3"><div className="flex items-start gap-2.5"><span className="flex size-7 shrink-0 items-center justify-center rounded-sm border border-cyan-300/25 bg-cyan-300/[0.06] text-cyan-100"><Github className="size-3.5" /></span><div><p className="text-xs font-medium text-slate-200">GitHub connection</p><p className="mt-1 text-[11px] leading-5 text-slate-500">Open GitHub sign in or a repository after explicit approval. Authentication occurs only on GitHub; Jarvis never requests or stores GitHub passwords, tokens, or OAuth callbacks.</p></div></div><div className="mt-3 flex flex-col gap-2 sm:flex-row"><input aria-label="GitHub repository destination" value={githubDestination} onChange={(event) => setGithubDestination(event.target.value)} placeholder="sign in or github.com/owner/repository" className="min-w-0 flex-1 rounded-sm border border-white/10 bg-black/35 px-2.5 py-2 text-xs text-slate-200 outline-none placeholder:text-slate-600 focus:border-cyan-300/35" /><button type="button" onClick={() => void prepareGitHub()} className="shrink-0 rounded-sm border border-cyan-300/30 bg-cyan-300/[0.08] px-3 py-2 text-[10px] font-semibold text-cyan-50 transition hover:bg-cyan-300/15"><Github className="mr-1 inline size-3.5" />PREPARE GITHUB</button></div>{githubError && <p role="alert" className="mt-2 text-[11px] text-rose-300">{githubError}</p>}{githubProposal && <div className="mt-3 rounded-sm border border-amber-300/25 bg-amber-300/[0.04] p-2.5"><p className="text-[11px] leading-5 text-slate-400">{githubProposal.action.label}: <span className="text-slate-200">{githubProposal.action.destination}</span></p><div className="mt-2 flex flex-wrap gap-2">{!githubProposal.approved ? <><button type="button" onClick={() => void resolveGitHub("rejected")} className="rounded-sm border border-white/10 px-2.5 py-1.5 text-[10px] text-slate-400 hover:text-white">REJECT</button><button type="button" onClick={() => void resolveGitHub("approved")} className="rounded-sm border border-amber-300/35 bg-amber-300/10 px-2.5 py-1.5 text-[10px] font-semibold text-amber-100 hover:bg-amber-300/20">APPROVE &amp; OPEN</button></> : <a href={githubProposal.action.url} target="_blank" rel="noreferrer" onClick={() => onActivity(`${githubProposal.action.label} opened after explicit approval`)} className="rounded-sm border border-cyan-300/35 bg-cyan-300/10 px-2.5 py-1.5 text-[10px] font-semibold text-cyan-50"><ExternalLink className="mr-1 inline size-3.5" />OPEN APPROVED GITHUB</a>}</div></div>}</div>
             {stageError && <p role="alert" className="mt-3 text-xs text-fuchsia-200">{stageError}</p>}
             <div className="mt-5 grid gap-2 sm:grid-cols-2"><button type="button" disabled={!canGenerate || isStaging} onClick={() => void stageBlueprint()} className="rounded-sm border border-white/15 bg-white/[0.035] px-3 py-3 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/35 hover:text-cyan-50 disabled:cursor-not-allowed disabled:opacity-40">{isStaging ? "STAGING…" : blueprintStaged ? "BLUEPRINT STAGED" : "STAGE BLUEPRINT"}</button><button type="button" disabled={!canGenerate} onClick={() => { onGenerate(plan.generationPrompt); onActivity("Builder brief sent to the Coding agent for a reviewable plan"); }} className="rounded-sm border border-fuchsia-400/35 bg-fuchsia-400/10 px-3 py-3 text-xs font-semibold text-fuchsia-50 transition hover:bg-fuchsia-400/20 disabled:cursor-not-allowed disabled:opacity-40"><Sparkles className="mr-2 inline size-3.5" />GENERATE WITH JARVIS</button></div>
             {blueprintStaged && <button type="button" onClick={onOpenWorkspace} className="mt-3 w-full text-center text-xs text-cyan-100 transition hover:text-white">Review approval in Private Workspace →</button>}

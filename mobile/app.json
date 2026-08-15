@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Jarvis Companion",
+    "slug": "jarvis-companion",
+    "scheme": "jarvis",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.jarvispersonalai.companion",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Jarvis to use your location only while you request nearby places or directions."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Jarvis to hear a push-to-talk command.",
+          "speechRecognitionPermission": "Allow Jarvis to transcribe a push-to-talk command."
+        }
+      ]
+    ]
+  }
+}

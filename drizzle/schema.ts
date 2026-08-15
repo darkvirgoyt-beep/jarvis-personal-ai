@@ -120,6 +120,18 @@ export const jarvisWorkspaceItems = mysqlTable("jarvisWorkspaceItems", {
   index("jarvisWorkspaceUserUpdatedIdx").on(table.userId, table.updatedAt),
 ]);
 
+export const jarvisMobilePairings = mysqlTable("jarvisMobilePairings", {
+  id: int("id").autoincrement().primaryKey(),
+  codeHash: varchar("codeHash", { length: 128 }).notNull().unique(),
+  verifierHash: varchar("verifierHash", { length: 128 }).notNull(),
+  userOpenId: varchar("userOpenId", { length: 64 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  exchangedAt: timestamp("exchangedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("jarvisMobilePairingExpiryIdx").on(table.expiresAt),
+]);
+
 export type JarvisConversation = typeof jarvisConversations.$inferSelect;
 export type JarvisMessage = typeof jarvisMessages.$inferSelect;
 export type JarvisMemory = typeof jarvisMemories.$inferSelect;
@@ -128,3 +140,4 @@ export type JarvisResearchRecord = typeof jarvisResearchRecords.$inferSelect;
 export type JarvisPreference = typeof jarvisPreferences.$inferSelect;
 export type JarvisConfirmation = typeof jarvisConfirmations.$inferSelect;
 export type JarvisWorkspaceItem = typeof jarvisWorkspaceItems.$inferSelect;
+export type JarvisMobilePairing = typeof jarvisMobilePairings.$inferSelect;

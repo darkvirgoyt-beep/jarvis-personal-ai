@@ -8,9 +8,10 @@ This record summarizes the final validation performed for the authenticated Jarv
 
 | Check | Result | Evidence |
 |---|---|---|
-| Deterministic unit and contract tests | Passed | `pnpm vitest run`: **27 test files and 65 tests passed**, including private scope, model contracts, interaction lifecycle, warm-voice fallback, sanitized external handoffs, contextual-suggestion opt-in, approval-gated UI behavior, private virtual-workspace writes, Builder planning, provider-auth basic-response fallback, and five-mode navigation. |
+| Deterministic unit and contract tests | Passed | `pnpm vitest run`: **30 test files and 72 tests passed**, including private scope, model contracts, interaction lifecycle, warm-voice fallback, sanitized external handoffs, contextual-suggestion opt-in, approval-gated UI behavior, private virtual-workspace writes, Builder planning, GitHub handoff validation, one-time mobile pairing, provider-auth basic-response fallback, and five-mode navigation. |
 | Live OpenRouter credential check | Blocked externally | The latest `pnpm test` run returned HTTP 403 from OpenRouter for the model catalog and Nemotron stream checks. This does not affect the deterministic suite or the tested in-app fallback path, but live Nemotron access requires a currently authorized provider key. |
 | Type safety | Passed | `pnpm check` completed without TypeScript errors. |
+| Android companion type safety | Passed | `pnpm --dir mobile typecheck` completed successfully against the isolated Expo/React Native source foundation. |
 | Nemotron request and stream contract | Passed | Provider contract, keep-alive handling, incremental delta, and fallback behavior are covered by the server tests. |
 | Private-data scope and denials | Passed | Router and database-scope tests cover authenticated ownership constraints and explicit cross-user mutation denial behavior. |
 | Model selection contract | Passed | `shared/jarvisModels.ts` is the single source for accepted values, the Nemotron default, and selector labels. It is consumed by both client selectors, router validation, and stream routing. `jarvisModels.test.ts` validates the default and alternate boundary, while `jarvisStream.test.ts` proves a persisted `gpt-5` preference reaches the selected runtime provider rather than silently drifting to Nemotron. |
@@ -47,6 +48,12 @@ Browser wake-word and speech playback require user permission and browser suppor
 
 Location is requested only from an explicit **Use current location** control and remains transient in the action workspace. Web search, map, call, SMS, WhatsApp, and Instagram destinations are prepared as sanitized external handoffs. The action dock records the user’s approval in private confirmation history and then opens the safe destination in a new tab; when a browser blocks that tab, the reviewed fallback link is shown instead. Calls and messages remain subject to the device and destination app’s own controls. The browser build cannot unlock a phone, access private content in another app, or silently place calls or send messages. The Android companion design and platform-boundary details are recorded in [`mobile-capabilities.md`](./mobile-capabilities.md).
 
+## Android companion boundary
+
+The repository now includes an isolated Android-first Expo companion source under `mobile/`. It uses visible push-to-talk with runtime permission, typed fallback, streaming-ready private Jarvis requests, local device speech, foreground location only when the user requests a map proposal, and approval-gated Android handoffs for search, maps, directions, calls, SMS, WhatsApp, and Instagram. The companion does not ship a signed APK, use background recording, unlock a phone, read private app data, send a message, place a call, or open a destination without an explicit user approval.
+
+Mobile pairing uses only the fixed `jarvis://auth` callback. The server stores a hash of a five-minute opaque code and a verifier challenge in the additive `jarvisMobilePairings` table; the app must exchange that code with its original verifier before receiving a short-lived bearer stored in secure device storage. The bearer is never placed in the custom URI, and a pairing record can be consumed only once. This is a phone-session bridge rather than a method of bypassing Android authentication or operating-system controls.
+
 **Contextual suggestions are disabled by default.** When a signed-in user opts in, Jarvis persists that preference on the authenticated profile and may use only the current action type, current destination text, and a temporary location that the user has actively requested. The workflow does not save coordinates; the test suite verifies both the authenticated persistence payload and the default-off control behavior.
 
 ## Virtual workspace boundary
@@ -56,3 +63,7 @@ The **Private files, folders, and code** dock is a user-scoped managed workspace
 ## Builder boundary
 
 The **Builder** workspace is a private planning and code-generation handoff surface, rather than an unrestricted compiler or deployment environment. Users define the project name, brief, delivery shape, and backend capabilities; Jarvis produces a deterministic file map and compile-readiness checklist before sending the approved brief to the Coding agent. A Builder blueprint can be staged only as an approval-gated private workspace proposal. Builder does not execute generated code, create project files without approval, apply database migrations, store secrets, connect integrations, or deploy an application. Those steps remain explicit, reviewable development work in the relevant project environment.
+
+### GitHub handoff boundary
+
+Builder provides a clearly labelled **GitHub connection** entry for either GitHub sign-in/new-repository handoff or a canonical repository destination. It accepts only the GitHub sign-in phrase or a plain `https://github.com/owner/repository` URL, rejects tokens, query strings, callbacks, and third-party hosts, and stores a user-scoped approval record before opening the destination in a new browser tab. Authentication remains on GitHub; Jarvis neither receives nor stores GitHub credentials. The handoff does not create repositories, write source code, commit, push, deploy, or grant background repository access.

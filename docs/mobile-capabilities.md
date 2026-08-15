@@ -6,12 +6,12 @@ Jarvis is a private assistant that can propose and prepare user-requested action
 
 | Capability | Browser command center | Planned Android companion | Jarvis safety boundary |
 |---|---|---|---|
-| Voice commands | Push-to-talk and opt-in wake-word-ready interface | Native microphone with runtime permission | The microphone is activated only by a visible user action or enabled opt-in control. |
+| Voice commands | Push-to-talk and opt-in wake-word-ready interface | Included companion source: native push-to-talk with runtime permission | The microphone is activated only by a visible user action; no background wake word is enabled in the companion. |
 | Spoken replies | Local browser speech synthesis | Device text-to-speech | A warm feminine installed voice is preferred locally; users can select a different voice or turn speech off. |
-| Current location | Browser geolocation after a user click | Runtime location permission | Location is requested only on demand, not continuously tracked, and is not persisted unless a user explicitly saves it. |
+| Current location | Browser geolocation after a user click | Included companion source: foreground location permission | Location is requested only on demand for a map proposal, not continuously tracked, and is not persisted. |
 | Nearby places and maps | Location can prepare a map-search or directions link | Native map intent or installed maps app | Jarvis shows the destination first and requires approval before opening the external map. |
 | Web search | Jarvis prepares a search link | Native browser or custom tab handoff | Jarvis requires approval before external navigation. |
-| Calls and messages | A browser can prepare, but not silently place, a handoff | Android intent/deep-link handoff subject to OS and app rules | Jarvis displays the target and requires approval. The operating system and destination app remain responsible for final sending or dialing. |
+| Calls and messages | A browser can prepare, but not silently place, a handoff | Included companion source: confirmation-gated `tel:` and `sms:` handoffs subject to OS and app rules | Jarvis displays the target and requires approval. The operating system and destination app remain responsible for final sending or dialing. |
 | WhatsApp and Instagram | Link handoff only where the destination supports it | Intent/deep-link handoff only where the destination supports it | Jarvis does not read private app content, automate protected UI, or silently transmit content. |
 | Device unlocking | Not available | Not available for Jarvis bypass | Lock-screen and biometric/device authentication always remain under the operating system’s control. |
 
@@ -23,7 +23,7 @@ Location is treated as transient command context. Jarvis requests it through the
 
 ## Android-First Companion Contract
 
-The future Android module will be a signed mobile client that authenticates to the existing Jarvis backend. It will never embed `OPENROUTER_API_KEY`, database credentials, or session-signing secrets. Native capabilities must be behind runtime permissions, confirmation sheets, and Android’s intent resolver. Android documents common implicit intents for maps, phone, web search, and text messaging; Jarvis will use those user-visible handoffs rather than direct, unattended execution. Before issuing an implicit intent, the companion should verify that a compatible application is available and otherwise show an actionable, non-destructive error. [2]
+The repository includes an Android-first Expo companion source under `mobile/`. It authenticates to the existing Jarvis backend using an opaque, one-time, verifier-bound pairing code and retains the exchanged short-lived session only in secure device storage. It never embeds `OPENROUTER_API_KEY`, database credentials, session-signing secrets, or GitHub credentials. Native capabilities remain behind runtime permissions, confirmation sheets, and Android’s intent resolver. Android documents common implicit intents for maps, phone, web search, and text messaging; Jarvis uses those user-visible handoffs rather than direct, unattended execution. [2] The source is release-ready for a connected managed Android build service, but it is not itself a signed APK, a published store app, or a device-unlock capability. See [`android-companion.md`](./android-companion.md) for the handoff and pairing protocol.
 
 ## Optional Isolated Virtual Computer
 
