@@ -1,0 +1,9 @@
+# Copy these lines into a local .env file. Do not commit that file.
+
+OPENROUTER_API_KEY=replace_with_your_openrouter_key
+DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/DATABASE
+JWT_SECRET=replace_with_a_long_random_secret
+VITE_APP_ID=your_manus_app_id
+OAUTH_SERVER_URL=https://api.manus.im
+VITE_OAUTH_PORTAL_URL=https://oauth.manus.im
+VITE_APP_TITLE=Jarvis Personal AI
