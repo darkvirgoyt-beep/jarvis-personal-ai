@@ -139,4 +139,5 @@
 - [ ] Document the public-hosting branding boundary and avoid representing GitHub Pages or the current managed host as capable of hiding provider-enforced branding or replacing a server-backed architecture.
 - [ ] Prepare and deploy the full server-backed Jarvis application on an owner-authorized Vercel project, with all database, OAuth, and model credentials retained as server-only environment configuration.
 - [ ] Verify the public Vercel deployment preserves Jarvis branding without adding platform branding to the Jarvis interface, while accurately disclosing any provider-owned domain in the URL.
-- [ ] Correct the Vercel serverless function bundle so the API handler’s application module is included and `/api/*` routes do not fail with `ERR_MODULE_NOT_FOUND`.
+- [x] Correct the Vercel serverless function bundle so the API handler’s application module is included and `/api/*` routes do not fail with `ERR_MODULE_NOT_FOUND`.
+- [ ] Replace managed-platform-only runtime dependencies with owner-approved Vercel-compatible authentication, database, object storage, voice transcription, and model-provider services before representing the Vercel site as a fully independent Jarvis deployment.

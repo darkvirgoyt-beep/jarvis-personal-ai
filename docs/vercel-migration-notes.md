@@ -8,9 +8,25 @@ GitHub Pages currently provides a public static Jarvis launch page only. The com
 
 The Vercel account connection has an available team named `darkvirgoyt-6238's projects` (`team_IF0dQufUcoq8E5zkCHUMWuQ3`). No existing Jarvis project was found. Vercel supports routing requests to serverless functions and custom route configuration through `vercel.json`; the next implementation step is to extract the current Express application construction from its local port-listening entry point into a request handler that Vercel can invoke.
 
-## Current account prerequisite
+## Completed import and function repair
 
-On 2026-08-17, Vercel rejected the Git-linked project creation request with the following actionable response: **“Failed to link `darkvirgoyt-beep/jarvis-personal-ai`. You need to add a Login Connection to your GitHub account first.”** The Vercel GitHub Login Connection must be added in the account before Vercel can import this GitHub repository. This is an account authorization step; it cannot be completed by modifying repository source files.
+The owner authorized the Vercel GitHub Login Connection and Vercel imported the public `darkvirgoyt-beep/jarvis-personal-ai` repository as the `scrimly` project. The public Vercel deployment is available at `https://scrimly-seven.vercel.app`.
+
+The first deployment returned `ERR_MODULE_NOT_FOUND` because the catch-all serverless entry imported local application modules that were not included in the function bundle. The deployment adapter now builds a standalone server artifact, including its ESM-only authentication dependency. The verified production API now reaches the Jarvis Express application: an unknown `/api/test` route returns the application-level `Cannot GET /api/test`, and `/api/trpc` returns the expected tRPC `No procedure found on path` response. Those responses prove routing and application loading rather than a Vercel function import failure.
+
+## Remaining independent runtime prerequisites
+
+The Vercel deployment is a verified public client and serverless-route shell, but it is **not yet an independent full Jarvis runtime**. The current source still relies on managed-platform services that are not automatically available to a Vercel function. Before real authentication, private storage, voice transcription, and AI responses are enabled on the Vercel domain, the owner must approve and configure independent equivalents.
+
+| Capability | Required Vercel-compatible configuration | Current state |
+| --- | --- | --- |
+| User authentication | An independent OAuth/OIDC provider plus Vercel callback URL | Not configured; the current Manus OAuth callback cannot be assumed to cover the Vercel domain. |
+| Private database | Owner Supabase PostgreSQL connection and an approved migration/cutover | Schema is staged with RLS; credentials and data-cutover approval are pending. |
+| Object storage | S3-compatible bucket credentials and a server-side storage adapter | Not configured; current storage proxy is managed-platform-only. |
+| Voice transcription | Independent Whisper-compatible provider key and server-side endpoint | Not configured; current transcription helper is managed-platform-only. |
+| AI responses | A valid server-only `OPENROUTER_API_KEY` (the present key was rejected by the provider) | Requires a replacement key. |
+
+No database URLs, service-role keys, storage secrets, or provider keys are committed to the public repository. They must be entered in the Vercel project environment settings only after the owner selects the providers and approves the credentials.
 
 The production migration must retain the following values as server-only Vercel environment configuration: database connection, OAuth configuration, JWT secret, storage configuration, and the OpenRouter credential. No credentials may be committed to the public GitHub repository.
 
