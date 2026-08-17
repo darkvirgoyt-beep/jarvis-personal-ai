@@ -1,0 +1,1 @@
+ALTER TABLE `jarvisConversations` ADD `starredAt` timestamp;

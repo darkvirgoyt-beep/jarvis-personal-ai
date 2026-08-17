@@ -42,7 +42,7 @@ vi.mock("@/lib/trpc", () => ({
         get: { useQuery: () => ({ data: { model: "nemotron-3-ultra", voiceEnabled: 1, continuousMode: 0, personality: "balanced" } }) },
         update: { useMutation: () => ({ mutateAsync: updatePreferences, isPending: false }) },
       },
-      conversations: { list: { useQuery: () => queryResult }, messages: { useQuery: () => queryResult } },
+      conversations: { list: { useQuery: () => queryResult }, messages: { useQuery: () => queryResult }, star: { useMutation: () => mutationResult } },
     },
   },
 }));

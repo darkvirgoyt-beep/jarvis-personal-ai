@@ -8,7 +8,7 @@ This record summarizes the final validation performed for the authenticated Jarv
 
 | Check | Result | Evidence |
 |---|---|---|
-| Deterministic unit and contract tests | Passed | `pnpm vitest run`: **30 test files and 72 tests passed**, including private scope, model contracts, interaction lifecycle, warm-voice fallback, sanitized external handoffs, contextual-suggestion opt-in, approval-gated UI behavior, private virtual-workspace writes, Builder planning, GitHub handoff validation, one-time mobile pairing, provider-auth basic-response fallback, and five-mode navigation. |
+| Deterministic unit and contract tests | Passed | `pnpm vitest run --exclude server/openrouterCredential.test.ts`: **31 test files and 73 tests passed**, including private scope, model contracts, interaction lifecycle, warm-voice fallback, sanitized external handoffs, contextual-suggestion opt-in, approval-gated UI behavior, private virtual-workspace writes, Builder planning, GitHub handoff validation, one-time mobile pairing, provider-auth basic-response fallback, public entry, private chat search, persisted conversation stars, and private workspace navigation. |
 | Live OpenRouter credential check | Blocked externally | The latest `pnpm test` run returned HTTP 403 from OpenRouter for the model catalog and Nemotron stream checks. This does not affect the deterministic suite or the tested in-app fallback path, but live Nemotron access requires a currently authorized provider key. |
 | Type safety | Passed | `pnpm check` completed without TypeScript errors. |
 | Android companion type safety | Passed | `pnpm --dir mobile typecheck` completed successfully against the isolated Expo/React Native source foundation. |
@@ -23,9 +23,9 @@ This record summarizes the final validation performed for the authenticated Jarv
 
 | Surface | Result | Observation |
 |---|---|---|
-| Desktop command center | Captured and reviewed | Full-page authenticated preview captured at **1440 × 1100**. The three-column desktop layout kept the agent rail, neural visualizer, conversation feed, system HUD, private workspace, and safety protocol visible without collisions. |
+| Public entry and authenticated desktop workspace | Captured and reviewed | The redesigned desktop preview at **1280 × 900** shows an original persistent private-workspace rail with **Chats**, **Memory**, **Projects**, **Builder**, **Integrations**, and **Settings**. At this standard desktop width, the conversation feed and neural presence take priority; telemetry rails are deliberately reserved for wider displays to avoid collisions. |
 | Desktop control deck | Captured and reviewed | The final 1440 × 1100 capture showed distinct voice, task, plugin, research, coding, and memory panels, including the visible Nemotron primary-engine status plus continuous-conversation, privacy, and visual-motion controls. |
-| Mobile command center | Captured and reviewed | Full-page authenticated preview captured at **390 × 844**. The layout stacked into a single column with no horizontal overflow; the command feed, microphone/send controls, status panels, and control-deck inputs, including model, privacy, and continuous-conversation controls, remained visible and reachable. |
+| Mobile workspace rail and Chats layout | Captured and reviewed | The latest **375 × 812** phone capture confirms the authenticated page now switches to a full-width, single-column Chats layout without horizontal overflow or compressed desktop panels. The mobile trigger opens the same full-height private workspace rail contract, preserving access to Chats, Memory, Projects, Builder, Integrations, and Settings. |
 | Approved action dock — desktop | Captured and reviewed | Full-page authenticated preview captured at **1280 × 900**. The new action dock cleanly presents an action selector, destination field, on-demand location request, and a visible **Confirm first** state below the command center. |
 | Approved action dock — mobile | Captured and reviewed | Full-page authenticated preview captured at **390 × 844**. The action dock stacks safely with the rest of the command center; its location and approval controls remain reachable in the narrow layout. |
 | Contextual-suggestion consent | Captured and reviewed | At **1280 × 900**, the action dock shows an unchecked opt-in with a clear data-use explanation. The **390 × 844** capture confirms this consent control remains visible and reachable in the narrow layout. |
@@ -35,6 +35,10 @@ This record summarizes the final validation performed for the authenticated Jarv
 | Builder workspace | Captured and reviewed | The Builder mode introduces a dedicated project-input and compile-readiness surface. It separates a responsive website from a full-stack web application and exposes server API, database, authentication, and storage planning controls before a Coding-agent handoff. |
 | Voice visual states | Passed | The deterministic reducer verifies `idle → listening → transcribing → thinking → speaking → idle` lifecycle states. `JarvisCore` tests verify separate core-state rendering, while `AIChatBox` tests verify recording and transcribing microphone controls. |
 | Streamed response UI | Passed | The interaction reducer verifies stream-delivery state, the chat component renders partial assistant output with loading feedback, and authenticated stream endpoint tests cover incremental event handling and fallback behavior. |
+
+## Public and private workspace boundary
+
+The published landing page is deliberately public, but it contains only static product explanation and a workspace preview. It does not query, display, or preload private data. Chat history, memory, projects, Builder proposals, confirmation records, workspace files, and integration controls render only after sign-in; server procedures retain authenticated user scoping. The new workspace architecture and publishing checklist are recorded in [`public-workspace.md`](./public-workspace.md).
 
 ## Memory and privacy boundary
 

@@ -1,20 +1,21 @@
-import { Command, FolderCode, MessageSquareText, SlidersHorizontal, WandSparkles } from "lucide-react";
+import { type LucideIcon, Blocks, BrainCircuit, FolderKanban, Link2, MessageSquareText, Settings2, WandSparkles } from "lucide-react";
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export type JarvisWorkspaceMode = "command" | "conversations" | "builder" | "workspace" | "settings";
+export type JarvisWorkspaceMode = "chats" | "memory" | "projects" | "builder" | "integrations" | "settings";
 
-const modes: { id: JarvisWorkspaceMode; label: string; shortcut: string; icon: typeof Command }[] = [
-  { id: "command", label: "Command Center", shortcut: "1", icon: Command },
-  { id: "conversations", label: "Conversations", shortcut: "2", icon: MessageSquareText },
-  { id: "builder", label: "Builder", shortcut: "3", icon: WandSparkles },
-  { id: "workspace", label: "Private Workspace", shortcut: "4", icon: FolderCode },
-  { id: "settings", label: "Settings", shortcut: "5", icon: SlidersHorizontal },
+const modes: { id: JarvisWorkspaceMode; label: string; shortcut: string; icon: LucideIcon }[] = [
+  { id: "chats", label: "Chats", shortcut: "1", icon: MessageSquareText },
+  { id: "memory", label: "Memory", shortcut: "2", icon: BrainCircuit },
+  { id: "projects", label: "Projects", shortcut: "3", icon: FolderKanban },
+  { id: "builder", label: "Builder", shortcut: "4", icon: WandSparkles },
+  { id: "integrations", label: "Integrations", shortcut: "5", icon: Link2 },
+  { id: "settings", label: "Settings", shortcut: "6", icon: Settings2 },
 ];
 
-export function JarvisModeNav({ activeMode, onModeChange, pendingApprovals = 0 }: { activeMode: JarvisWorkspaceMode; onModeChange: (mode: JarvisWorkspaceMode) => void; pendingApprovals?: number }) {
+export function JarvisModeNav({ activeMode, onModeChange, pendingApprovals = 0, variant = "strip" }: { activeMode: JarvisWorkspaceMode; onModeChange: (mode: JarvisWorkspaceMode) => void; pendingApprovals?: number; variant?: "strip" | "rail" }) {
   return (
-    <nav aria-label="Jarvis workspace modes" className="jarvis-mode-nav">
+    <nav aria-label="Jarvis workspace modes" className={cn("jarvis-mode-nav", variant === "rail" && "jarvis-mode-nav--rail")}>
       {modes.map((mode) => {
         const Icon = mode.icon;
         const selected = mode.id === activeMode;
@@ -29,7 +30,7 @@ export function JarvisModeNav({ activeMode, onModeChange, pendingApprovals = 0 }
           >
             <Icon className="size-3.5" />
             <span>{mode.label}</span>
-            {mode.id === "workspace" && pendingApprovals > 0 && <span aria-label={`${pendingApprovals} approvals waiting`} className="jarvis-mode-nav__count">{pendingApprovals}</span>}
+            {mode.id === "integrations" && pendingApprovals > 0 && <span aria-label={`${pendingApprovals} approvals waiting`} className="jarvis-mode-nav__count">{pendingApprovals}</span>}
             <kbd>{mode.shortcut}</kbd>
           </button>
         );

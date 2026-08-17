@@ -40,6 +40,14 @@ export const jarvisRouter = router({
         await requireConversation(ctx.user.id, input.conversationId);
         return db.listJarvisMessages(ctx.user.id, input.conversationId);
       }),
+    star: protectedProcedure.input(z.object({
+      conversationId: z.number().int().positive(),
+      starred: z.boolean(),
+    })).mutation(async ({ ctx, input }) => {
+      const updated = await db.setJarvisConversationStar(ctx.user.id, input.conversationId, input.starred);
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Jarvis conversation not found" });
+      return { success: true } as const;
+    }),
   }),
 
   memory: router({

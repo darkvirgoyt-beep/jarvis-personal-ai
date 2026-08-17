@@ -12,6 +12,7 @@ vi.mock("drizzle-orm/mysql2", () => ({ drizzle: vi.fn() }));
 import {
   deleteJarvisMemory,
   resolveJarvisConfirmation,
+  setJarvisConversationStar,
   setJarvisDbForTests,
   updateJarvisMemory,
   updateJarvisTask,
@@ -44,5 +45,16 @@ describe("Jarvis private database scopes", () => {
     expect(ownerPredicates).toHaveLength(4);
     expect(recordPredicates).toHaveLength(4);
     expect(and).toHaveBeenCalledTimes(4);
+  });
+
+  it("scopes a persisted conversation star to the authenticated owner", async () => {
+    const { db } = fakeDb(1);
+    setJarvisDbForTests(db as never);
+
+    await expect(setJarvisConversationStar(7, 99, true)).resolves.toBe(true);
+
+    expect(eq).toHaveBeenCalledWith(expect.anything(), 99);
+    expect(eq).toHaveBeenCalledWith(expect.anything(), 7);
+    expect(and).toHaveBeenCalledTimes(1);
   });
 });

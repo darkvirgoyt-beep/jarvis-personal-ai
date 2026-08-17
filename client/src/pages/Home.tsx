@@ -8,6 +8,8 @@ import { JarvisCore, type JarvisCoreState } from "@/components/JarvisCore";
 import { JarvisExtensions } from "@/components/JarvisExtensions";
 import { JarvisModelSelector } from "@/components/JarvisModelSelector";
 import { JarvisModeNav, type JarvisWorkspaceMode } from "@/components/JarvisModeNav";
+import { JarvisPublicLanding } from "@/components/JarvisPublicLanding";
+import { JarvisMobileWorkspaceTrigger, JarvisWorkspaceRail } from "@/components/JarvisWorkspaceRail";
 import { WakeWordListener } from "@/components/WakeWordListener";
 import { startLogin } from "@/const";
 import { streamJarvisResponse, transcribeJarvisAudio } from "@/lib/jarvisApi";
@@ -63,7 +65,9 @@ export default function Home() {
   const [agent, setAgent] = useState<Agent>("General");
   const [interaction, setInteraction] = useState(initialJarvisInteractionState);
   const { coreState, voiceState, isSending } = interaction;
-  const [activeMode, setActiveMode] = useState<JarvisWorkspaceMode>("command");
+  const [activeMode, setActiveMode] = useState<JarvisWorkspaceMode>("chats");
+  const [railOpen, setRailOpen] = useState(false);
+  const [isNewChat, setIsNewChat] = useState(false);
   const [responseMode, setResponseMode] = useState<"primary" | "managed" | "basic" | "provider-auth">("primary");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
@@ -92,6 +96,7 @@ export default function Home() {
   const proposeWorkspace = trpc.jarvis.workspace.propose.useMutation();
   const executeWorkspace = trpc.jarvis.workspace.execute.useMutation();
   const conversationsQuery = trpc.jarvis.conversations.list.useQuery(undefined, { enabled: Boolean(user) });
+  const updateConversationStar = trpc.jarvis.conversations.star.useMutation();
   const historyQuery = trpc.jarvis.conversations.messages.useQuery(
     { conversationId: activeConversationId ?? 0 },
     { enabled: Boolean(user && activeConversationId) },
@@ -103,7 +108,7 @@ export default function Home() {
   const pendingConfirmations = (confirmationsQuery.data ?? []).filter((item) => item.status === "pending");
 
   useEffect(() => {
-    if (!activeConversationId && conversationsQuery.data?.[0]) {
+    if (!activeConversationId && !isNewChat && conversationsQuery.data?.[0]) {
       setActiveConversationId(conversationsQuery.data[0].id);
     }
   }, [activeConversationId, conversationsQuery.data]);
@@ -146,7 +151,7 @@ export default function Home() {
     const handleModeShortcut = (event: KeyboardEvent) => {
       const target = event.target;
       if (!event.altKey || !(target instanceof HTMLElement) || target.closest("input, textarea, select, button")) return;
-      const nextMode: Record<string, JarvisWorkspaceMode> = { "1": "command", "2": "conversations", "3": "builder", "4": "workspace", "5": "settings" };
+      const nextMode: Record<string, JarvisWorkspaceMode> = { "1": "chats", "2": "memory", "3": "projects", "4": "builder", "5": "integrations", "6": "settings" };
       const mode = nextMode[event.key];
       if (!mode) return;
       event.preventDefault();
@@ -159,6 +164,14 @@ export default function Home() {
   const addActivity = (entry: string) => setActivity((current) => [entry, ...current].slice(0, 5));
   const transitionInteraction = (event: JarvisInteractionEvent) => {
     setInteraction((current) => transitionJarvisInteraction(current, event));
+  };
+
+  const startNewChat = () => {
+    setMessages([]);
+    setActiveConversationId(undefined);
+    setIsNewChat(true);
+    setActiveMode("chats");
+    addActivity("New private conversation ready");
   };
 
   const saveMemory = async () => {
@@ -307,6 +320,7 @@ export default function Home() {
         onEvent: (event, data) => {
           if (event === "meta" && typeof data.conversationId === "number") {
             setActiveConversationId(data.conversationId);
+            setIsNewChat(false);
           }
           if (event === "meta" && data.provider === "managed-fallback") {
             setResponseMode("managed");
@@ -362,29 +376,20 @@ export default function Home() {
     }
   };
 
-  if (!user) {
-    return (
-      <main className="jarvis-grid flex min-h-screen items-center justify-center p-6">
-        <HudPanel className="w-full max-w-md p-8 text-center">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-cyan-300/35 bg-cyan-300/10 text-cyan-100"><Orbit className="size-7" /></div>
-          <p className="mt-6 font-mono text-xs tracking-[0.3em] text-cyan-200">JARVIS // PRIVATE CORE</p>
-          <h1 className="mt-3 text-3xl font-semibold text-white">Initialize your assistant</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-400">Sign in to protect your conversations, tasks, memories, and Jarvis settings inside your private workspace.</p>
-          <button onClick={() => startLogin()} className="mt-7 w-full rounded-sm border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-sm font-semibold text-cyan-50 transition-all hover:bg-cyan-300/20 active:scale-[0.98]">Secure sign in</button>
-        </HudPanel>
-      </main>
-    );
-  }
+  if (!user) return <JarvisPublicLanding onStart={startLogin} />;
 
   return (
     <main className="jarvis-grid min-h-screen overflow-x-hidden px-3 py-3 text-slate-100 sm:px-5 sm:py-5">
-      <div className="mx-auto mb-3 flex w-full max-w-[1540px] flex-col gap-3 rounded-sm border border-cyan-300/15 bg-slate-950/45 px-3 py-3 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-4">
-        <div className="flex items-center gap-3"><div className="flex size-8 items-center justify-center rounded-sm border border-cyan-300/30 bg-cyan-300/10 text-cyan-100"><Layers3 className="size-4" /></div><div><p className="hud-label">JARVIS WORKSPACE</p><p className="mt-1 text-xs text-slate-500">Command, conversations, builder, private workspace, and settings</p></div></div>
-        <JarvisModeNav activeMode={activeMode} onModeChange={setActiveMode} pendingApprovals={pendingConfirmations.length} />
-      </div>
+      <div className="jarvis-workspace-shell mx-auto flex w-full max-w-[1680px] flex-col gap-3 md:flex-row">
+        <JarvisWorkspaceRail activeMode={activeMode} conversations={conversationsQuery.data ?? []} mobileOpen={railOpen} onCloseMobile={() => setRailOpen(false)} onModeChange={setActiveMode} onNewChat={startNewChat} onSelectConversation={(id) => { setIsNewChat(false); setActiveConversationId(id); }} onToggleStar={(conversationId, starred) => { void updateConversationStar.mutateAsync({ conversationId, starred }).then(() => utils.jarvis.conversations.list.invalidate()); }} pendingApprovals={pendingConfirmations.length} userName={user.name} />
+        <div className="jarvis-workspace-content min-w-0 flex-1">
+          <header className="mb-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/55 px-3 py-2.5 backdrop-blur-xl sm:px-4">
+            <div className="flex min-w-0 items-center gap-3"><JarvisMobileWorkspaceTrigger onOpen={() => setRailOpen(true)} /><div className="hidden size-8 items-center justify-center rounded-lg border border-cyan-300/30 bg-cyan-300/10 text-cyan-100 sm:flex"><Layers3 className="size-4" /></div><div className="min-w-0"><p className="hud-label">JARVIS WORKSPACE</p><p className="mt-1 truncate text-xs text-slate-500">{activeMode === "chats" ? "Private conversations and voice commands" : activeMode === "memory" ? "Long-term memory, on your terms" : activeMode === "projects" ? "Private files and project workspaces" : activeMode === "builder" ? "Plan websites and applications" : activeMode === "integrations" ? "Reviewable external handoffs" : "Personal assistant controls"}</p></div></div>
+            <div className="flex items-center gap-2"><div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 sm:flex"><StatusDot state={coreState} /><span className="text-[11px] text-slate-400">{statusCopy[coreState]}</span></div><button onClick={startNewChat} className="hidden items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-xs font-medium text-cyan-100 transition hover:bg-cyan-300/15 sm:flex"><Plus className="size-3.5" /> New chat</button></div>
+          </header>
 
-      <div aria-label="Command Center" className={cn("mx-auto grid w-full max-w-[1540px] grid-cols-1 gap-3 xl:grid-cols-[245px_minmax(0,1fr)_285px]", activeMode !== "command" && "hidden")}>
-        <aside className="hidden xl:flex xl:flex-col xl:gap-3">
+      <div aria-label="Chats" className={cn("jarvis-chat-cockpit grid w-full grid-cols-1 gap-3 2xl:grid-cols-[245px_minmax(0,1fr)_285px]", activeMode !== "chats" && "hidden")}>
+        <aside className="hidden 2xl:flex 2xl:flex-col 2xl:gap-3">
           <HudPanel className="p-4">
             <div className="flex items-center gap-3">
               <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full border border-cyan-300/35 bg-cyan-300/10 text-cyan-100"><Orbit className="size-5" /><span className="absolute inset-1 rounded-full border border-fuchsia-400/25" /></div>
@@ -411,11 +416,11 @@ export default function Home() {
 
         <section className="flex min-w-0 flex-col gap-3">
           <HudPanel className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
-            <div className="flex items-center gap-3"><div className="xl:hidden"><Orbit className="size-5 text-cyan-200" /></div><div><p className="hud-label">JARVIS COMMAND CENTER</p><p className="mt-1 text-sm text-slate-200">{selectedAgent.name} Agent <span className="text-slate-600">/</span> {selectedAgent.description}</p></div></div>
+            <div className="flex items-center gap-3"><div className="2xl:hidden"><Orbit className="size-5 text-cyan-200" /></div><div><p className="hud-label">PRIVATE CHAT</p><p className="mt-1 text-sm text-slate-200">{selectedAgent.name} Agent <span className="text-slate-600">/</span> {selectedAgent.description}</p></div></div>
             <div className="flex items-center gap-2"><div className="hidden items-center gap-2 rounded-sm border border-white/10 bg-black/20 px-3 py-2 sm:flex"><StatusDot state={coreState} /><span className="text-[11px] text-slate-400">{statusCopy[coreState]}</span></div><button aria-label="Open private workspace" onClick={() => setWorkspaceOpen(true)} className="flex size-9 items-center justify-center rounded-sm border border-fuchsia-400/20 bg-fuchsia-400/5 text-fuchsia-100 transition-all hover:border-fuchsia-400/45 hover:bg-fuchsia-400/10 active:scale-[0.97]"><Database className="size-4" /></button><button aria-label="Open Jarvis settings" onClick={() => setSettingsOpen(true)} className="flex size-9 items-center justify-center rounded-sm border border-cyan-300/20 bg-cyan-300/5 text-cyan-100 transition-all hover:border-cyan-300/45 hover:bg-cyan-300/10 active:scale-[0.97]"><Settings2 className="size-4" /></button></div>
           </HudPanel>
 
-          <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(300px,0.85fr)_minmax(360px,1.15fr)]">
+          <div className="jarvis-chat-stage grid min-w-0 gap-3 lg:grid-cols-[minmax(300px,0.85fr)_minmax(360px,1.15fr)]">
             <HudPanel className="relative overflow-hidden px-4 py-5 sm:px-7">
               <div className="absolute left-5 top-4 flex items-center gap-2"><span className="hud-label">NEURAL PRESENCE</span></div>
               <JarvisCore state={coreState} />
@@ -432,7 +437,7 @@ export default function Home() {
           </div>
         </section>
 
-        <aside className="flex flex-col gap-3">
+        <aside className="hidden 2xl:flex 2xl:flex-col 2xl:gap-3">
           <HudPanel className="p-4">
             <div className="flex items-center justify-between"><p className="hud-label">SYSTEM STATUS</p><span className="flex items-center gap-1.5 text-[10px] text-cyan-100"><StatusDot state={coreState} />ONLINE</span></div>
             <div className="mt-4 space-y-3">
@@ -455,10 +460,11 @@ export default function Home() {
       </div>
 
       <AnimatePresence mode="wait">
-        {activeMode === "conversations" && <motion.section aria-label="Conversations" key="conversations" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="hud-panel mx-auto flex min-h-[calc(100vh-180px)] w-full max-w-[1540px] flex-col overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-300/15 px-5 py-4"><div><p className="hud-label">CONVERSATIONS</p><h1 className="mt-1 text-lg font-semibold text-white">Conversations with {selectedAgent.name}</h1></div><span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 font-mono text-[10px] text-cyan-100">{messages.length} MESSAGES</span></div><AIChatBox messages={messages} onSendMessage={handleSendMessage} isLoading={isSending} voiceState={voiceState} onVoiceStart={handleVoiceStart} onVoiceStop={handleVoiceStop} placeholder="Ask Jarvis anything, or hold the mic to speak…" emptyStateMessage="This private conversation is ready for your next command." suggestedPrompts={quickCommands} height="100%" className="flex-1 border-0 shadow-none" /></motion.section>}
-        {activeMode === "builder" && <motion.div key="builder" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}><JarvisBuilderDock onGenerate={(prompt) => { setAgent("Coding"); setActiveMode("conversations"); void handleSendMessage(prompt, "Coding"); }} onPropose={(input) => proposeWorkspace.mutateAsync(input)} onOpenWorkspace={() => setActiveMode("workspace")} onActivity={addActivity} onProposeGitHub={(input) => proposeConfirmation.mutateAsync(input)} onResolveGitHub={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} /></motion.div>}
-        {activeMode === "workspace" && <motion.section aria-label="Private Workspace" key="workspace" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="mx-auto grid w-full max-w-[1540px] gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]"><JarvisWorkspaceDock items={workspaceItemsQuery.data ?? []} onPropose={(input) => proposeWorkspace.mutateAsync(input)} onExecute={async (input) => { const item = await executeWorkspace.mutateAsync(input); await Promise.all([utils.jarvis.workspace.list.invalidate(), utils.jarvis.confirmations.list.invalidate()]); return item; }} onReject={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} onActivity={addActivity} /><JarvisActionDock onPropose={(input) => proposeConfirmation.mutateAsync(input)} onResolve={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} onActivity={addActivity} suggestionsEnabled={contextualSuggestions} onSuggestionsChange={async (enabled) => { await updatePreferences.mutateAsync({ contextualSuggestions: enabled }); setContextualSuggestions(enabled); await utils.jarvis.preferences.get.invalidate(); addActivity(`Contextual suggestions ${enabled ? "enabled" : "disabled"} for this private workspace`); }} /></motion.section>}
-        {activeMode === "settings" && <motion.section aria-label="Settings" key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="mx-auto w-full max-w-[1540px]"><JarvisExtensions voiceStorageKey={`jarvisVoice:${user?.id ?? "anonymous"}`} onRun={(command, commandAgent) => { setAgent(commandAgent); setActiveMode("conversations"); void handleSendMessage(command, commandAgent); }} onCopyLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to copy yet"); return; } void navigator.clipboard.writeText(latest).then(() => addActivity("Latest Jarvis response copied to clipboard")).catch(() => addActivity("Clipboard access was not available in this browser")); }} onExportLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to export yet"); return; } const exportData = buildJarvisMarkdownExport(latest); const file = new Blob([exportData.text], { type: exportData.mimeType }); const url = URL.createObjectURL(file); const link = document.createElement("a"); link.href = url; link.download = exportData.filename; link.click(); URL.revokeObjectURL(url); addActivity("Latest Jarvis response downloaded as Markdown"); }} /></motion.section>}
+        {activeMode === "memory" && <motion.section aria-label="Memory" key="memory" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="grid w-full gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"><HudPanel className="p-5 sm:p-6"><p className="hud-label">MEMORY</p><h1 className="mt-2 text-2xl font-semibold text-white">Remember with intention.</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Only records in your signed-in Jarvis workspace appear here.</p><div className="mt-6 space-y-2">{(memoriesQuery.data ?? []).map((memory) => <div key={memory.id} className="flex items-start justify-between gap-4 rounded-lg border border-white/8 bg-black/15 p-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200">{memory.category}</p><p className="mt-2 text-sm leading-6 text-slate-300">{memory.content}</p></div><button onClick={() => void deleteMemory.mutateAsync({ id: memory.id }).then(() => utils.jarvis.memory.list.invalidate())} className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 transition hover:text-rose-200">Remove</button></div>)}{(memoriesQuery.data ?? []).length === 0 && <p className="rounded-lg border border-dashed border-white/10 p-5 text-sm text-slate-600">No saved memory yet. Add only what you want Jarvis to retain.</p>}</div></HudPanel><HudPanel className="h-fit p-5"><p className="hud-label">ADD MEMORY</p><textarea value={memoryDraft} onChange={(event) => setMemoryDraft(event.target.value)} placeholder="For example: I prefer concise project updates." className="mt-4 min-h-28 w-full resize-none rounded-lg border border-white/10 bg-black/25 p-3 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-cyan-300/35" /><button onClick={() => void saveMemory()} className="mt-3 w-full rounded-lg bg-cyan-200 px-3 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-100 active:scale-[0.97]">Save privately</button></HudPanel></motion.section>}
+        {activeMode === "builder" && <motion.div key="builder" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}><JarvisBuilderDock onGenerate={(prompt) => { setAgent("Coding"); setActiveMode("chats"); void handleSendMessage(prompt, "Coding"); }} onPropose={(input) => proposeWorkspace.mutateAsync(input)} onOpenWorkspace={() => setActiveMode("projects")} onActivity={addActivity} onProposeGitHub={(input) => proposeConfirmation.mutateAsync(input)} onResolveGitHub={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} /></motion.div>}
+        {activeMode === "projects" && <motion.section aria-label="Projects" key="projects" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="grid w-full gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]"><JarvisWorkspaceDock items={workspaceItemsQuery.data ?? []} onPropose={(input) => proposeWorkspace.mutateAsync(input)} onExecute={async (input) => { const item = await executeWorkspace.mutateAsync(input); await Promise.all([utils.jarvis.workspace.list.invalidate(), utils.jarvis.confirmations.list.invalidate()]); return item; }} onReject={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} onActivity={addActivity} /><HudPanel className="h-fit p-5"><p className="hud-label">PROJECT HUB</p><h1 className="mt-2 text-xl font-semibold text-white">Private work, one project surface.</h1><p className="mt-3 text-sm leading-6 text-slate-500">Builder blueprints, approved workspace items, and reviewable GitHub preparation meet here. Jarvis never creates a repository or publishes work without your explicit approval.</p><div className="mt-5 grid grid-cols-2 gap-2">{[{ label: "Workspace items", value: workspaceItemsQuery.data?.length ?? 0 }, { label: "Build plans", value: (workspaceItemsQuery.data ?? []).filter((item) => item.path.endsWith("BUILD_PLAN.md")).length }].map((item) => <div key={item.label} className="rounded-lg border border-white/8 bg-black/15 p-3"><p className="text-[10px] uppercase tracking-[0.14em] text-slate-600">{item.label}</p><p className="mt-1 font-mono text-lg text-cyan-100">{item.value}</p></div>)}</div><div className="mt-5 space-y-2"><button onClick={() => setActiveMode("builder")} className="w-full rounded-lg border border-fuchsia-300/25 bg-fuchsia-300/10 px-3 py-2.5 text-xs font-semibold text-fuchsia-100 transition hover:bg-fuchsia-300/15">Open Builder & GitHub handoff</button><button onClick={() => setWorkspaceOpen(true)} className="w-full rounded-lg border border-white/10 bg-white/[0.025] px-3 py-2.5 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.06]">Review private approvals</button></div></HudPanel></motion.section>}
+        {activeMode === "integrations" && <motion.section aria-label="Integrations" key="integrations" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="grid w-full gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]"><JarvisActionDock onPropose={(input) => proposeConfirmation.mutateAsync(input)} onResolve={(input) => resolveConfirmation.mutateAsync(input).then(() => utils.jarvis.confirmations.list.invalidate())} onActivity={addActivity} suggestionsEnabled={contextualSuggestions} onSuggestionsChange={async (enabled) => { await updatePreferences.mutateAsync({ contextualSuggestions: enabled }); setContextualSuggestions(enabled); await utils.jarvis.preferences.get.invalidate(); addActivity(`Contextual suggestions ${enabled ? "enabled" : "disabled"} for this private workspace`); }} /><HudPanel className="h-fit p-5"><p className="hud-label">CONNECTIONS</p><h1 className="mt-2 text-xl font-semibold text-white">Useful, never invisible.</h1><div className="mt-4 space-y-2">{[{ name: "GitHub", status: "Ready for approved browser handoff", tone: "text-cyan-100" }, { name: "Maps & location", status: "Available on request; location stays on demand", tone: "text-cyan-100" }, { name: "Messages & apps", status: "Approval required before any handoff", tone: "text-amber-100" }, { name: "Future OAuth services", status: "Not connected — credentials are never shown here", tone: "text-slate-500" }].map((item) => <div key={item.name} className="rounded-lg border border-white/8 bg-black/15 p-3"><p className="text-sm font-medium text-slate-200">{item.name}</p><p className={cn("mt-1 text-xs", item.tone)}>{item.status}</p></div>)}</div><p className="mt-4 text-xs leading-5 text-slate-600">This page reports capability states, not tokens or account secrets. Every external destination still requires your visible approval.</p></HudPanel></motion.section>}
+        {activeMode === "settings" && <motion.section aria-label="Settings" key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="w-full"><JarvisExtensions voiceStorageKey={`jarvisVoice:${user?.id ?? "anonymous"}`} onRun={(command, commandAgent) => { setAgent(commandAgent); setActiveMode("chats"); void handleSendMessage(command, commandAgent); }} onCopyLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to copy yet"); return; } void navigator.clipboard.writeText(latest).then(() => addActivity("Latest Jarvis response copied to clipboard")).catch(() => addActivity("Clipboard access was not available in this browser")); }} onExportLatest={() => { const latest = getLatestJarvisAssistantOutput(messages); if (!latest) { addActivity("No Jarvis response is available to export yet"); return; } const exportData = buildJarvisMarkdownExport(latest); const file = new Blob([exportData.text], { type: exportData.mimeType }); const url = URL.createObjectURL(file); const link = document.createElement("a"); link.href = url; link.download = exportData.filename; link.click(); URL.revokeObjectURL(url); addActivity("Latest Jarvis response downloaded as Markdown"); }} /></motion.section>}
       </AnimatePresence>
       <WakeWordListener enabled={continuousMode && voiceEnabled && voiceState === "idle" && !isSending} onWakeWord={() => { addActivity("Wake word detected — opening voice link"); void handleVoiceStart(); }} onUnsupported={() => addActivity("Wake word needs Chrome or another supported browser")} />
 
@@ -469,6 +475,8 @@ export default function Home() {
       <AnimatePresence>
         {settingsOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"><motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} transition={{ duration: 0.2 }} className="hud-panel w-full max-w-lg p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="hud-label">JARVIS SETTINGS</p><h2 className="mt-2 text-xl font-semibold text-white">Personal control panel</h2></div><button onClick={() => setSettingsOpen(false)} className="flex size-8 items-center justify-center text-slate-400 transition hover:text-white"><X className="size-4" /></button></div><div className="mt-6 space-y-3"><div className="rounded-sm border border-white/10 bg-white/[0.02] p-3"><span className="flex gap-3"><Cpu className="mt-0.5 size-4 text-fuchsia-200" /><span><span className="block text-sm text-slate-200">Jarvis brain</span><span className="mt-1 block text-xs text-slate-500">Select the model used for new responses.</span></span></span><JarvisModelSelector label="Response model" className="mt-3 block text-xs text-slate-400" model={preferencesQuery.data?.model} onChange={(model) => { void updatePreferences.mutateAsync({ model }).then(() => utils.jarvis.preferences.get.invalidate()); }} /></div><div className="flex items-center justify-between rounded-sm border border-white/10 bg-white/[0.02] p-3"><div className="flex gap-3"><Volume2 className="mt-0.5 size-4 text-cyan-200" /><div><p className="text-sm text-slate-200">Spoken responses</p><p className="mt-1 text-xs text-slate-500">Jarvis reads eligible answers aloud.</p></div></div><button onClick={() => { const next = !voiceEnabled; setVoiceEnabled(next); void updatePreferences.mutateAsync({ voiceEnabled: next }); }} className={cn("rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider", voiceEnabled ? "bg-cyan-300/15 text-cyan-100" : "bg-white/5 text-slate-500")}>{voiceEnabled ? "ON" : "OFF"}</button></div><div className="flex items-center justify-between rounded-sm border border-white/10 bg-white/[0.02] p-3"><div className="flex gap-3"><BellRing className="mt-0.5 size-4 text-fuchsia-200" /><div><p className="text-sm text-slate-200">Continuous conversation</p><p className="mt-1 text-xs text-slate-500">Keeps Jarvis ready between replies while this tab is open.</p></div></div><button onClick={() => { const next = !continuousMode; setContinuousMode(next); void updatePreferences.mutateAsync({ continuousMode: next }); }} className={cn("rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider", continuousMode ? "bg-fuchsia-400/15 text-fuchsia-100" : "bg-white/5 text-slate-500")}>{continuousMode ? "ON" : "OFF"}</button></div><div className="rounded-sm border border-cyan-300/15 bg-cyan-300/[0.035] p-3 text-xs leading-5 text-slate-400"><Check className="mr-2 inline size-3.5 text-cyan-200" />Microphone access always requires your browser permission. External tools remain disabled until you connect and approve them.</div></div></motion.div></motion.div>}
       </AnimatePresence>
+        </div>
+      </div>
     </main>
   );
 }

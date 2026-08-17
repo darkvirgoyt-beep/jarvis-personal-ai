@@ -30,6 +30,7 @@ export const jarvisConversations = mysqlTable("jarvisConversations", {
   userId: int("userId").notNull(),
   title: varchar("title", { length: 180 }).notNull().default("New Jarvis conversation"),
   activeAgent: mysqlEnum("activeAgent", ["general", "coding", "research", "files", "system", "creative"]).notNull().default("general"),
+  starredAt: timestamp("starredAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [index("jarvisConversationUserUpdatedIdx").on(table.userId, table.updatedAt)]);

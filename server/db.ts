@@ -171,6 +171,15 @@ export async function getJarvisConversation(userId: number, conversationId: numb
   return records[0];
 }
 
+/** Persist a conversation star only after checking the conversation belongs to the signed-in user. */
+export async function setJarvisConversationStar(userId: number, conversationId: number, starred: boolean) {
+  const db = await requireDb();
+  const result = await db.update(jarvisConversations)
+    .set({ starredAt: starred ? new Date() : null })
+    .where(and(eq(jarvisConversations.id, conversationId), eq(jarvisConversations.userId, userId)));
+  return Number(result[0].affectedRows ?? 0) > 0;
+}
+
 export async function listJarvisMessages(userId: number, conversationId: number) {
   const db = await requireDb();
   return db.select().from(jarvisMessages)

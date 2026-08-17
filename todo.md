@@ -107,3 +107,14 @@
 - [x] Add phone-first setup and release handoff documentation that does not require the user to compile an APK locally, while honestly separating source readiness from signed-store-binary delivery.
 - [x] Add deterministic mobile contract tests and validate the companion foundation before checkpointing.
 - [x] Replace direct bearer delivery through the custom Android URI with an opaque one-time pairing code and verifier-bound token exchange.
+- [x] Add an original public-facing Jarvis landing and sign-in entry so anyone can discover the service, while conversations, memory, projects, and connections remain private after authentication.
+- [x] Redesign the authenticated navigation into distinct Chats, Memory, Projects, Builder, Integrations, and Settings workspaces inspired by modern agent-tool usability without copying third-party branding or layouts.
+- [x] Add chat history search, clear new-chat actions, starred conversation controls, and a dedicated memory hub that exposes only the signed-in user’s records.
+- [x] Add a project hub that unifies private workspace files, Builder blueprints, and GitHub handoff preparation without silently creating repositories or publishing generated work.
+- [x] Add a visible integrations area that distinguishes enabled safe handoffs from future OAuth-connected services and does not expose credentials or invent connections.
+- [x] Refine the mobile drawer, desktop sidebar, composer, and workspace panels for a clear original visual hierarchy and responsive public entry flow.
+- [x] Add unit tests, desktop and phone verification, and public-privacy documentation for the redesigned workspace before publishing the update.
+- [x] Implement and test chat-history search plus starred conversation controls in the Chats rail/workspace, then document the behavior.
+- [x] Implement and verify a true Projects hub that visibly combines private workspace files, Builder blueprints, and GitHub handoff preparation in one user-facing surface.
+- [x] Implement and document the Integrations workspace contents so it clearly separates currently enabled safe handoffs from future OAuth-based connections without exposing credentials.
+- [x] Fix the authenticated phone layout so it switches from the desktop cockpit to a readable single-column workspace with the rail behind the mobile drawer rather than compressing every panel into a narrow viewport.
