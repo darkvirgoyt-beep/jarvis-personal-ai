@@ -1,0 +1,37 @@
+name: Publish Jarvis launch gateway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/github-pages/**"
+      - ".github/workflows/jarvis-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "jarvis-pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload public launch gateway
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/github-pages
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
