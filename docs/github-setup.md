@@ -24,7 +24,7 @@ cd jarvis-personal-ai
 pnpm install
 ```
 
-Create a local `.env` file using the template in [environment-template.txt](./environment-template.txt), then replace every placeholder with your own value. `OPENROUTER_API_KEY` is required for the primary **Nemotron 3 Ultra** stream. Set `DATABASE_URL` and `JWT_SECRET` before using authenticated workspace features. See the full [environment configuration guide](./environment-setup.md) for local, GitHub, managed-project, and future mobile-companion boundaries.
+Create a local `.env` file using the template in [environment-template.txt](./environment-template.txt), then replace every placeholder with your own value. `OPENROUTER_API_KEY` is required for the primary **Nemotron 3 Ultra** stream. Set `DATABASE_URL` and `JWT_SECRET` before using authenticated workspace features. See the full [environment configuration guide](./environment-setup.md) for local, GitHub, managed-project, and future mobile-companion boundaries, and use [the cross-platform local-run guide](./local-run.md) for Termux, macOS, Linux, and Windows commands.
 
 | Environment variable | Required | Description |
 |---|---|---|

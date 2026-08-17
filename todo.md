@@ -130,5 +130,8 @@
 - [x] Remove the duplicate mobile-pairing database-helper exports, restart the server, and confirm the runtime bundle starts without the TransformError.
 - [ ] Investigate and correct the reported public Jarvis deployment failure, including verification that the public URL loads successfully.
 - [ ] Evaluate and, where technically compatible with the full-stack authenticated Jarvis runtime, provide a GitHub Pages public entry URL without falsely presenting Pages as a replacement for the server-backed assistant.
+- [ ] Enable GitHub Pages for the private repository or grant the GitHub integration Pages write permission; the committed launch-gateway workflow currently fails only because the GitHub API rejects Pages-site creation with HTTP 403.
+- [ ] Change the GitHub repository visibility to public after the owner’s explicit authorization and verify that no runtime secret or private user data is committed.
+- [x] Add a tested local-run guide for Termux, macOS, Linux, and Windows, including prerequisites, environment variables, database boundaries, development commands, and voice/browser limitations.
 - [x] Remove the misleading no-environment fallback language so Jarvis accurately explains its available private workspace, Builder, and approval-gated file capabilities when the primary model is unavailable.
 - [x] Make the active browser-based private workspace and Builder access clear, and label the optional persistent Cloud Computer as unconnected until an owner-approved provider is configured.
