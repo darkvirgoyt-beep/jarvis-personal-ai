@@ -6,6 +6,7 @@
 dist/
 build/
 *.dist
+api/_jarvis-app.cjs
 
 # Environment variables
 .env

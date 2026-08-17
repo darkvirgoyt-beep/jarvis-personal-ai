@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "pnpm run build:vercel",
-  "outputDirectory": "dist/public"
+  "outputDirectory": "dist/public",
+  "functions": {
+    "api/[...path].ts": {
+      "includeFiles": "api/_jarvis-app.cjs",
+      "maxDuration": 60
+    }
+  }
 }

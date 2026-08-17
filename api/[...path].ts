@@ -1,5 +1,8 @@
 import "dotenv/config";
-import { createJarvisApp } from "../server/app";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { createJarvisApp } = require("./_jarvis-app.cjs") as typeof import("../server/app");
 
 /**
  * Vercel Node Function entry point for all authenticated Jarvis API routes.
