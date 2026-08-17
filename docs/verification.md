@@ -8,9 +8,9 @@ This record summarizes the final validation performed for the authenticated Jarv
 
 | Check | Result | Evidence |
 |---|---|---|
-| Deterministic unit and contract tests | Passed | `pnpm vitest run --exclude server/openrouterCredential.test.ts`: **31 test files and 73 tests passed**, including private scope, model contracts, interaction lifecycle, warm-voice fallback, sanitized external handoffs, contextual-suggestion opt-in, approval-gated UI behavior, private virtual-workspace writes, Builder planning, GitHub handoff validation, one-time mobile pairing, provider-auth basic-response fallback, public entry, private chat search, persisted conversation stars, and private workspace navigation. |
+| Deterministic unit and contract tests | Passed | `pnpm vitest run --exclude server/openrouterCredential.test.ts`: **32 test files and 76 tests passed**, including private scope, model contracts, interaction lifecycle, warm-voice fallback, sanitized external handoffs, contextual-suggestion opt-in, approval-gated UI behavior, private virtual-workspace writes, Builder planning, GitHub handoff validation, one-time mobile pairing, provider-auth basic-response fallback, public entry, private chat search, persisted conversation stars, Supabase readiness, and private workspace navigation. |
 | Live OpenRouter credential check | Blocked externally | The latest `pnpm test` run returned HTTP 403 from OpenRouter for the model catalog and Nemotron stream checks. This does not affect the deterministic suite or the tested in-app fallback path, but live Nemotron access requires a currently authorized provider key. |
-| Type safety | Passed | `pnpm check` completed without TypeScript errors. |
+| Type safety | Passed | `pnpm exec tsc --noEmit` completed without TypeScript errors after the mobile-pairing export repair. |
 | Android companion type safety | Passed | `pnpm --dir mobile typecheck` completed successfully against the isolated Expo/React Native source foundation. |
 | Nemotron request and stream contract | Passed | Provider contract, keep-alive handling, incremental delta, and fallback behavior are covered by the server tests. |
 | Private-data scope and denials | Passed | Router and database-scope tests cover authenticated ownership constraints and explicit cross-user mutation denial behavior. |
@@ -24,6 +24,7 @@ This record summarizes the final validation performed for the authenticated Jarv
 | Surface | Result | Observation |
 |---|---|---|
 | Public entry and authenticated desktop workspace | Captured and reviewed | The redesigned desktop preview at **1280 × 900** shows an original persistent private-workspace rail with **Chats**, **Memory**, **Projects**, **Builder**, **Integrations**, and **Settings**. At this standard desktop width, the conversation feed and neural presence take priority; telemetry rails are deliberately reserved for wider displays to avoid collisions. |
+| Cloud-workspace interface status | Captured and reviewed | The latest **1280 × 900** desktop capture confirms the private Chats rail, New chat control, user-scoped recent-chat area, neural presence, and focused conversation composer remain clear after the cloud-workspace readiness additions. At a native **375 × 812** phone viewport, the layout shows the mobile drawer trigger, a readable private-chat header, one-column neural presence, and a full-width conversation feed with no compressed desktop rail. |
 | Desktop control deck | Captured and reviewed | The final 1440 × 1100 capture showed distinct voice, task, plugin, research, coding, and memory panels, including the visible Nemotron primary-engine status plus continuous-conversation, privacy, and visual-motion controls. |
 | Mobile workspace rail and Chats layout | Captured and reviewed | The latest **375 × 812** phone capture confirms the authenticated page now switches to a full-width, single-column Chats layout without horizontal overflow or compressed desktop panels. The mobile trigger opens the same full-height private workspace rail contract, preserving access to Chats, Memory, Projects, Builder, Integrations, and Settings. |
 | Approved action dock — desktop | Captured and reviewed | Full-page authenticated preview captured at **1280 × 900**. The new action dock cleanly presents an action selector, destination field, on-demand location request, and a visible **Confirm first** state below the command center. |
@@ -39,6 +40,10 @@ This record summarizes the final validation performed for the authenticated Jarv
 ## Public and private workspace boundary
 
 The published landing page is deliberately public, but it contains only static product explanation and a workspace preview. It does not query, display, or preload private data. Chat history, memory, projects, Builder proposals, confirmation records, workspace files, and integration controls render only after sign-in; server procedures retain authenticated user scoping. The new workspace architecture and publishing checklist are recorded in [`public-workspace.md`](./public-workspace.md).
+
+## Cloud workspace boundary
+
+The public service runs at [jarvisai-tyjkhyjq.manus.space](https://jarvisai-tyjkhyjq.manus.space); the private GitHub repository is the source-control destination. The owner-connected Supabase project now contains a staged Jarvis PostgreSQL schema with row-level security, explicit deny-by-default policies for direct anon/authenticated API access, and no remaining Supabase security-advisor findings. The current managed database remains active: no runtime Supabase credentials or private records have been migrated, so the visible integration state is correctly labelled **schema staged**, not connected. The user-controlled computer workflow never collects passwords, bypasses MFA/CAPTCHAs, evades bot detection, or runs executables without explicit review and approval. The detailed migration and hosting plan is in [`cloud-workspace.md`](./cloud-workspace.md).
 
 ## Memory and privacy boundary
 

@@ -103,9 +103,13 @@ The in-app **Builder** includes a **GitHub connection** entry for an explicit br
 
 > **Boundary:** The Builder’s GitHub connection is a safe repository handoff, not unattended source-control automation. Creating repositories, committing files, pushing code, or publishing deployments remains an explicit user action in GitHub or an approved, separately connected development workflow.
 
-## Mobile Companion Roadmap
+## Hosting Boundary
 
-The repository currently contains the deployed **web command center**. The Android-first Jarvis companion is a planned next module; it is not represented as a complete Android app in the current source tree. When added, it should live in a dedicated `mobile/` workspace and reuse the same authenticated server APIs rather than copy provider keys, database credentials, or business logic into a mobile client.
+The private repository holds Jarvis source, while the full-stack web service is publicly hosted at [jarvisai-tyjkhyjq.manus.space](https://jarvisai-tyjkhyjq.manus.space). GitHub Pages is for static content and cannot run Jarvis’s authenticated Express API, Server-Sent Events, private database procedures, OAuth flow, or server-side model credentials. Do not place `OPENROUTER_API_KEY`, Supabase service credentials, database URLs, or session secrets in GitHub Actions, static client files, or commits. The Supabase migration plan and managed-computer boundary are documented in [`cloud-workspace.md`](./cloud-workspace.md).
+
+## Mobile Companion
+
+The repository contains the deployed **web command center** and an isolated Android-first Expo companion source under `mobile/`. It reuses authenticated server APIs through a one-time pairing flow and never copies provider keys, database credentials, or business logic into the phone app. It is release-ready source, not a signed APK or Play Store listing.
 
 | Capability | Current web command center | Android companion direction |
 |---|---|---|
@@ -117,11 +121,10 @@ The repository currently contains the deployed **web command center**. The Andro
 
 ### Recommended Android Module Setup
 
-After the mobile companion is introduced, create a feature branch and add an Expo/React Native workspace. Keep server secrets only in the backend deployment environment. The mobile app should authenticate to Jarvis and request each operating-system permission only immediately before the user-triggered feature needs it.
+The mobile app should authenticate to Jarvis and request each operating-system permission only immediately before the user-triggered feature needs it. Keep server secrets only in the backend deployment environment.
 
 ```bash
-git checkout -b feature/android-companion
-# Add the mobile workspace only after the app architecture is approved.
+git checkout -b feature/android-release
 # Never copy OPENROUTER_API_KEY, DATABASE_URL, or JWT_SECRET into mobile source or app configuration.
 pnpm test
 pnpm check

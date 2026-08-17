@@ -118,3 +118,13 @@
 - [x] Implement and verify a true Projects hub that visibly combines private workspace files, Builder blueprints, and GitHub handoff preparation in one user-facing surface.
 - [x] Implement and document the Integrations workspace contents so it clearly separates currently enabled safe handoffs from future OAuth-based connections without exposing credentials.
 - [x] Fix the authenticated phone layout so it switches from the desktop cockpit to a readable single-column workspace with the rail behind the mobile drawer rather than compressing every panel into a narrow viewport.
+- [x] Assess and document a safe migration path from the existing managed database to Supabase without exposing user data, breaking user scoping, or silently moving production records.
+- [x] Confirm and synchronize the complete current source to the private GitHub repository, including deployment and setup instructions.
+- [x] Refine Jarvis with intentionally distinct desktop and phone interaction layouts that share the same private data model but use appropriate workspace navigation and controls for each device class.
+- [x] Add a user-approved cloud-computer and browser-workflow entry that explains visible session control, secure account handoff, downloads, and executable-risk boundaries without storing passwords, bypassing security, or evading bot detection.
+- [x] Document token-efficient planning and minimal-change debugging principles without compromising correctness, traceability, or user review.
+- [x] Validate the public hosting URL, responsive layouts, privacy controls, and repository synchronization before delivery.
+- [x] Restore the missing durable mobile-pairing database helper export so the authenticated server starts cleanly and the Android pairing route remains available.
+- [x] Add explicit deny-by-default RLS policies for anon and authenticated Supabase API roles, and revoke public execution of the unrelated RLS helper before treating the cloud schema as security-hardened.
+- [ ] Switch the live Jarvis runtime from the managed database to Supabase and migrate private records only after the owner supplies server-only Supabase credentials and explicitly approves the cutover plan.
+- [x] Remove the duplicate mobile-pairing database-helper exports, restart the server, and confirm the runtime bundle starts without the TransformError.

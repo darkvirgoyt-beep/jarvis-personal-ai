@@ -1,4 +1,4 @@
-import { Code2, FilePlus2, FolderPlus, HardDrive, LockKeyhole, Play, ShieldCheck } from "lucide-react";
+import { Code2, FilePlus2, FolderPlus, HardDrive, LockKeyhole, MonitorSmartphone, Play, ShieldCheck } from "lucide-react";
 import React, { useState } from "react";
 import { buildJarvisWorkspaceProposal, type JarvisWorkspaceOperation } from "../../../shared/jarvisWorkspace";
 
@@ -69,6 +69,10 @@ export function JarvisWorkspaceDock({
         <label className="block text-xs text-slate-400">Operation<select aria-label="Workspace operation" value={operation} onChange={(event) => { const nextOperation = event.target.value as JarvisWorkspaceOperation; setOperation(nextOperation); if (nextOperation === "folder") setContent(""); }} className="mt-1.5 w-full rounded-sm border border-white/10 bg-black/35 px-2.5 py-2 text-xs text-slate-200 outline-none focus:border-cyan-300/35"><option value="folder">Create folder</option><option value="file">Create text file</option><option value="code">Write code file</option></select></label>
         <label className="block text-xs text-slate-400">Workspace path<input aria-label="Workspace path" value={path} onChange={(event) => setPath(event.target.value)} placeholder="projects/jarvis/README.md" className="mt-1.5 w-full rounded-sm border border-white/10 bg-black/35 px-2.5 py-2 text-xs text-slate-200 outline-none placeholder:text-slate-600 focus:border-cyan-300/35" /></label>
         <button onClick={() => void prepare()} disabled={!path.trim() || isWorking} className="self-end rounded-sm border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-2 text-xs font-semibold text-fuchsia-100 transition hover:bg-fuchsia-400/20 disabled:cursor-not-allowed disabled:opacity-40"><FilePlus2 className="mr-1 inline size-3.5" />PREPARE WRITE</button>
+      </div>
+      <div className="mt-3 rounded-sm border border-cyan-300/15 bg-cyan-300/[0.025] p-3">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div className="flex gap-2"><MonitorSmartphone className="mt-0.5 size-4 shrink-0 text-cyan-200" /><div><p className="hud-label">CLOUD COMPUTER</p><p className="mt-1 text-xs leading-5 text-slate-400">No persistent computer is attached to this workspace yet. When you attach your own managed computer, Jarvis can prepare reviewable browser and file tasks in a visible session.</p></div></div><span className="rounded-sm border border-amber-300/25 bg-amber-300/[0.06] px-2 py-1 text-[10px] font-semibold text-amber-100">NOT ATTACHED</span></div>
+        <p className="mt-2 border-t border-white/[0.06] pt-2 text-[11px] leading-5 text-slate-600">Passwords are never stored here. Website sign-in remains user-controlled, and Jarvis will not evade bot checks, bypass security prompts, download or run executables without review, or operate a browser invisibly.</p>
       </div>
       {operation !== "folder" && <label className="mt-3 block text-xs text-slate-400">File content<textarea aria-label="Workspace file content" value={content} onChange={(event) => setContent(event.target.value)} className="mt-1.5 min-h-24 w-full resize-y rounded-sm border border-white/10 bg-black/35 p-2.5 font-mono text-xs leading-5 text-slate-200 outline-none focus:border-cyan-300/35" /></label>}
       {error && <p role="alert" className="mt-3 text-xs text-rose-300">{error}</p>}
