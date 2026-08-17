@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { describeJarvisAuthError, validateJarvisCredentials, validateJarvisEmail, type JarvisEmailAuthMode } from "@/lib/jarvisAuthFeedback";
-import { beginJarvisOAuthSignIn, type JarvisOAuthProvider } from "@/lib/jarvisOAuth";
+import { beginJarvisOAuthSignIn, getJarvisAuthReturnUrl, type JarvisOAuthProvider } from "@/lib/jarvisOAuth";
 import { beginJarvisPasswordReset } from "@/lib/jarvisRecovery";
 import { hasSupabaseAuthConfiguration, requireSupabaseClient } from "@/lib/supabaseClient";
 import { Github, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
@@ -99,7 +99,7 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
         const { data, error } = await client.auth.signUp({
           email: email.trim(),
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: getJarvisAuthReturnUrl(window.location.origin) },
         });
         if (error) throw error;
         if (data.session) {

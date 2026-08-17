@@ -6,7 +6,7 @@ import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
-import { startLogin } from "./const";
+import { hasManagedOAuthConfiguration, JARVIS_OPEN_AUTH_EVENT, startLogin } from "./const";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -19,7 +19,13 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  startLogin();
+  // Vercel uses Supabase sessions. A transient refresh 401 must open the
+  // in-app Jarvis sign-in dialog—not begin the managed-host OAuth flow.
+  if (hasManagedOAuthConfiguration()) {
+    startLogin();
+  } else {
+    window.dispatchEvent(new CustomEvent(JARVIS_OPEN_AUTH_EVENT));
+  }
 };
 
 queryClient.getQueryCache().subscribe(event => {

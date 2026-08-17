@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const updatePreferences = vi.fn().mockResolvedValue(undefined);
 const invalidatePreferences = vi.fn();
+const invalidateAuth = vi.fn();
 const queryResult = { data: [] as never[] };
 const mutationResult = { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false };
 
@@ -24,6 +25,7 @@ vi.mock("framer-motion", () => ({
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({
+      auth: { me: { invalidate: invalidateAuth } },
       jarvis: {
         preferences: { get: { invalidate: invalidatePreferences } },
         memory: { list: { invalidate: vi.fn() } },
@@ -53,6 +55,8 @@ describe("Home settings model preference", () => {
   afterEach(() => {
     updatePreferences.mockClear();
     invalidatePreferences.mockClear();
+    invalidateAuth.mockClear();
+    window.history.replaceState({}, "", "/");
   });
 
   it("opens settings and persists the exact selected shared-contract model", async () => {
@@ -62,5 +66,13 @@ describe("Home settings model preference", () => {
 
     await waitFor(() => expect(updatePreferences).toHaveBeenCalledWith({ model: "gpt-5" }));
     await waitFor(() => expect(invalidatePreferences).toHaveBeenCalled());
+  });
+
+  it("refreshes the authenticated identity and removes the Supabase completion marker", async () => {
+    window.history.replaceState({}, "", "/?auth=complete");
+    render(<Home />);
+
+    await waitFor(() => expect(invalidateAuth).toHaveBeenCalled());
+    expect(window.location.search).toBe("");
   });
 });

@@ -2,11 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { hasSupabaseAuthConfiguration, requireSupabaseClient } from "@/lib/supabaseClient";
+import { trpc } from "@/lib/trpc";
 import { ArrowLeft, CheckCircle2, KeyRound, LoaderCircle, ShieldCheck } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { Link } from "wouter";
 
 export default function ResetPassword() {
+  const utils = trpc.useUtils();
   const [ready, setReady] = useState(false);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
   const [password, setPassword] = useState("");
@@ -57,7 +59,11 @@ export default function ResetPassword() {
       if (error) throw error;
       setPassword("");
       setConfirmPassword("");
-      setStatus({ tone: "success", message: "Password updated. Return to Jarvis and sign in with your new password." });
+      await utils.auth.me.invalidate();
+      // Recovery URLs can contain temporary access material in their fragment.
+      // Replace the document URL after the identity cache is fresh so the user
+      // reaches the private workspace without leaving sensitive callback data.
+      window.location.replace("/");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Jarvis could not update the password. Request a fresh recovery email and try again.";
       setStatus({ tone: "error", message });

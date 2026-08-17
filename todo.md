@@ -156,3 +156,9 @@
 - [ ] Diagnose and fix the Vercel post-confirmation session handoff so a verified Supabase user opens their private Jarvis workspace rather than returning to the sign-in dialog.
 - [ ] Provide the owner-safe Google and GitHub OAuth provider activation procedure after the core email session is verified end-to-end.
 - [x] Trace the remaining Vercel production sign-in loop against current credential scopes and authenticated API responses, then correct the specific failing handoff.
+- [ ] Audit the live landing, sign-in, recovery, workspace, and API health journeys on desktop and phone layouts; record only reproducible defects.
+- [ ] Improve mobile authentication usability, loading feedback, and actionable error states without disclosing private account information.
+- [x] Document the supported assistant capabilities and the safety boundaries for browser actions, credentials, external actions, and virtual-computer claims.
+- [x] Synchronize an existing Supabase session on application startup and after confirmation/recovery callbacks so the workspace does not remain cached as unauthenticated.
+- [x] Use one production-safe `auth=complete` callback contract for email signup, OAuth, and password recovery, then remove callback tokens from the visible URL after use.
+- [x] Prevent the Vercel Supabase flow from being redirected into managed-host OAuth when a protected request is transiently unauthenticated.

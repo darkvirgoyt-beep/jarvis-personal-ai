@@ -123,6 +123,19 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("auth") !== "complete") return;
+
+    // All successful Supabase return paths include this marker. Refresh the
+    // cached identity immediately, close the sign-in dialog, then leave a
+    // clean shareable workspace URL behind.
+    setAuthDialogOpen(false);
+    void utils.auth.me.invalidate();
+    url.searchParams.delete("auth");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [utils]);
+
+  useEffect(() => {
     if (historyQuery.data && !isSending) {
       setMessages(historyQuery.data.map((message) => ({ role: message.role, content: message.content })));
     }

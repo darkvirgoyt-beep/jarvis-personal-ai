@@ -21,6 +21,12 @@ describe("Jarvis OAuth return handling", () => {
     });
   });
 
+  it("uses the same hardened return URL for an email-confirmation redirect", () => {
+    expect(getJarvisAuthReturnUrl("https://scrimly-seven.vercel.app")).toBe(
+      "https://scrimly-seven.vercel.app/?auth=complete",
+    );
+  });
+
   it("surfaces a provider error instead of pretending the user signed in", async () => {
     const providerError = new Error("Google is not enabled");
     const client = {

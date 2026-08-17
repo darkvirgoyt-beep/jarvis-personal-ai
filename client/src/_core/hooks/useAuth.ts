@@ -1,4 +1,4 @@
-import { startLogin } from "@/const";
+import { hasManagedOAuthConfiguration, JARVIS_OPEN_AUTH_EVENT, startLogin } from "@/const";
 import { supabase } from "@/lib/supabaseClient";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
@@ -58,6 +58,19 @@ export function useAuth(options?: UseAuthOptions) {
 
   useEffect(() => {
     if (!supabase) return;
+    let cancelled = false;
+
+    // A confirmation or recovery callback may finish before React subscribes to
+    // Supabase events. Read local session storage once on mount so the cached
+    // anonymous `auth.me` query always converges with the established session.
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled && data.session) {
+        void utils.auth.me.invalidate();
+      }
+    }).catch(() => {
+      // A missing or expired local session is handled by the normal signed-out state.
+    });
+
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         void utils.auth.me.invalidate();
@@ -65,8 +78,11 @@ export function useAuth(options?: UseAuthOptions) {
         utils.auth.me.setData(undefined, null);
       }
     });
-    return () => subscription.subscription.unsubscribe();
-  }, [utils]);
+    return () => {
+      cancelled = true;
+      subscription.subscription.unsubscribe();
+    };
+  }, [utils, supabase]);
 
   const state = useMemo(() => {
     localStorage.setItem(
@@ -97,8 +113,10 @@ export function useAuth(options?: UseAuthOptions) {
     // Navigate at this moment only. startLogin() mints the nonce + cookie itself.
     if (redirectPath) {
       window.location.href = redirectPath;
-    } else {
+    } else if (hasManagedOAuthConfiguration()) {
       startLogin();
+    } else {
+      window.dispatchEvent(new CustomEvent(JARVIS_OPEN_AUTH_EVENT));
     }
   }, [
     redirectOnUnauthenticated,

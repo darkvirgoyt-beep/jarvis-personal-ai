@@ -44,6 +44,18 @@ The owner then authorized the scope correction. The Vercel environment screen no
 
 If a confirmed session still returns to the Jarvis sign-in dialog after a hard reload of the stable production domain, the next investigation target is the authenticated request itself (client access-token delivery and server profile mapping), not the Vercel environment scope.
 
+## API-first routing repair
+
+The remaining sign-in loop was traced to the production `vercel.json` rewrite order. Authenticated `/api/*` requests were reaching the static client fallback instead of the bundled serverless catch-all, producing a `404` before Supabase identity verification could run. The route configuration now sends `/api/:path*` to `api/[...path].ts` before applying the static fallback.
+
+The deployment generated from commit `0776caa` is live and the deployed `auth.me` tRPC query now reaches the serverless handler with HTTP `200` and a JSON response for an unauthenticated request. A signed-in browser must still be checked with the owner’s session to verify the complete Supabase token-to-workspace handoff.
+
+## Post-confirmation session recovery repair
+
+The follow-up code repair makes all Supabase return paths converge on the same browser state. On application startup, Jarvis now reads any existing local Supabase session before relying on the event subscription, so a confirmation or recovery event that completed before React mounted cannot leave `auth.me` cached as anonymous. The email sign-up flow now uses the same `/?auth=complete` Vercel-safe callback contract as provider OAuth and recovery. That callback closes the dialog, refreshes the user query, and removes the marker from the address bar.
+
+The global API error handler now sends an unauthenticated Vercel visitor to the in-app Jarvis dialog rather than initiating managed-host OAuth. Password reset refreshes the authenticated query and replaces the recovery URL with `/` after a successful password update. TypeScript, 95 deterministic tests, and the Vercel production build pass for this repair. The only remaining end-to-end verification is an owner-controlled sign-in/confirmation run on the new Vercel deployment; no user credential or confirmation link is fabricated for testing.
+
 ## References
 
 - [Vercel project configuration and custom routes](https://vercel.com/docs/project-configuration/vercel-json)
