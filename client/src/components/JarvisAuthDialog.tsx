@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { beginJarvisOAuthSignIn, type JarvisOAuthProvider } from "@/lib/jarvisOAuth";
 import { hasSupabaseAuthConfiguration, requireSupabaseClient } from "@/lib/supabaseClient";
-import { LoaderCircle, LockKeyhole, Mail } from "lucide-react";
+import { Github, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
 
 type JarvisAuthDialogProps = {
@@ -27,6 +28,23 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resetStatus = () => setStatus(null);
+
+  const onOAuthSignIn = async (provider: JarvisOAuthProvider) => {
+    if (!hasSupabaseAuthConfiguration) {
+      setStatus("Jarvis sign-in is not configured for this deployment yet.");
+      return;
+    }
+
+    setStatus(null);
+    setIsSubmitting(true);
+    try {
+      await beginJarvisOAuthSignIn(requireSupabaseClient(), provider, window.location.origin);
+      setStatus(`Redirecting securely to ${provider === "google" ? "Google" : "GitHub"}…`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Jarvis could not begin provider sign-in.");
+      setIsSubmitting(false);
+    }
+  };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -84,6 +102,34 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
               : "Create a private Jarvis workspace. You may be asked to verify your email first."}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            className="border-white/10 bg-white/[0.035] text-slate-100 hover:bg-white/[0.08] hover:text-white"
+            onClick={() => void onOAuthSignIn("google")}
+          >
+            <span aria-hidden className="mr-2 font-semibold text-cyan-100">G</span>
+            Google
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            className="border-white/10 bg-white/[0.035] text-slate-100 hover:bg-white/[0.08] hover:text-white"
+            onClick={() => void onOAuthSignIn("github")}
+          >
+            <Github className="mr-2 size-4" aria-hidden />
+            GitHub
+          </Button>
+        </div>
+        <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.18em] text-slate-500" aria-hidden>
+          <span className="h-px flex-1 bg-white/10" />
+          OR EMAIL
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
 
         <form className="grid gap-4" onSubmit={onSubmit}>
           <div className="grid gap-2">

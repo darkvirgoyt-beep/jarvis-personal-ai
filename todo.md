@@ -149,3 +149,5 @@
 - [x] Add a Vercel-safe Supabase browser client, email authentication dialog, and authenticated tRPC Bearer-token transport while retaining managed OAuth when its runtime configuration is available.
 - [x] Verify Supabase access tokens server-side, map verified UUID identities to local numeric user records, and keep all protected Jarvis procedures user-scoped.
 - [x] Add deterministic regression tests for host-aware login selection, Supabase token transport, and verified-user mapping before publishing the Vercel authentication repair.
+- [ ] Set and verify the Supabase Auth production redirect so email confirmations return to `https://scrimly-seven.vercel.app` instead of the local `localhost:3000` development URL.
+- [x] Add Supabase Google and GitHub OAuth sign-in controls, with tested production redirect handling and documented provider credentials configured only in the owner’s Supabase dashboard.
