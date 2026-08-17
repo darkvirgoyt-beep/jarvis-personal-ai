@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { JarvisActionDock } from "@/components/JarvisActionDock";
+import { JarvisAuthDialog } from "@/components/JarvisAuthDialog";
 import { JarvisBuilderDock } from "@/components/JarvisBuilderDock";
 import { JarvisWorkspaceDock } from "@/components/JarvisWorkspaceDock";
 import { HudPanel } from "@/components/HudPanel";
@@ -11,7 +12,7 @@ import { JarvisModeNav, type JarvisWorkspaceMode } from "@/components/JarvisMode
 import { JarvisPublicLanding } from "@/components/JarvisPublicLanding";
 import { JarvisMobileWorkspaceTrigger, JarvisWorkspaceRail } from "@/components/JarvisWorkspaceRail";
 import { WakeWordListener } from "@/components/WakeWordListener";
-import { startLogin } from "@/const";
+import { JARVIS_OPEN_AUTH_EVENT, startLogin } from "@/const";
 import { streamJarvisResponse, transcribeJarvisAudio } from "@/lib/jarvisApi";
 import { initialJarvisInteractionState, transitionJarvisInteraction, type JarvisInteractionEvent } from "@/lib/jarvisInteractionState";
 import { buildJarvisMarkdownExport, getLatestJarvisAssistantOutput } from "@/lib/jarvisOutput";
@@ -71,6 +72,7 @@ export default function Home() {
   const [isNewChat, setIsNewChat] = useState(false);
   const [responseMode, setResponseMode] = useState<"primary" | "managed" | "basic" | "provider-auth">("primary");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [continuousMode, setContinuousMode] = useState(false);
   const [contextualSuggestions, setContextualSuggestions] = useState(false);
@@ -113,6 +115,12 @@ export default function Home() {
       setActiveConversationId(conversationsQuery.data[0].id);
     }
   }, [activeConversationId, conversationsQuery.data]);
+
+  useEffect(() => {
+    const openAuthentication = () => setAuthDialogOpen(true);
+    window.addEventListener(JARVIS_OPEN_AUTH_EVENT, openAuthentication);
+    return () => window.removeEventListener(JARVIS_OPEN_AUTH_EVENT, openAuthentication);
+  }, []);
 
   useEffect(() => {
     if (historyQuery.data && !isSending) {
@@ -377,7 +385,18 @@ export default function Home() {
     }
   };
 
-  if (!user) return <JarvisPublicLanding onStart={startLogin} />;
+  if (!user) {
+    return (
+      <>
+        <JarvisPublicLanding onStart={startLogin} />
+        <JarvisAuthDialog
+          open={authDialogOpen}
+          onOpenChange={setAuthDialogOpen}
+          onAuthenticated={() => { void utils.auth.me.invalidate(); }}
+        />
+      </>
+    );
+  }
 
   return (
     <main className="jarvis-grid min-h-screen overflow-x-hidden px-3 py-3 text-slate-100 sm:px-5 sm:py-5">

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createHash, randomBytes } from "node:crypto";
 import { createJarvisMobilePairing, consumeJarvisMobilePairing } from "./db";
+import { authenticateJarvisRequest } from "./_core/authentication";
 import { sdk } from "./_core/sdk";
 
 export const JARVIS_MOBILE_CALLBACK_URI = "jarvis://auth";
@@ -38,7 +39,7 @@ export function registerJarvisMobilePairing(app: Express) {
     }
 
     try {
-      const user = await sdk.authenticateRequest(req);
+      const user = await authenticateJarvisRequest(req);
       const pairingCode = randomBytes(32).toString("base64url");
       await createJarvisMobilePairing({
         codeHash: sha256(pairingCode),

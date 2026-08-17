@@ -9,7 +9,7 @@ const queryResult = { data: [] as never[] };
 const mutationResult = { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false };
 
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: 1, name: "Jarvis owner" } }) }));
-vi.mock("@/const", () => ({ startLogin: vi.fn() }));
+vi.mock("@/const", () => ({ startLogin: vi.fn(), JARVIS_OPEN_AUTH_EVENT: "jarvis:open-auth" }));
 vi.mock("@/lib/jarvisApi", () => ({ streamJarvisResponse: vi.fn(), transcribeJarvisAudio: vi.fn() }));
 vi.mock("@/lib/jarvisOutput", () => ({ buildJarvisMarkdownExport: vi.fn(), getLatestJarvisAssistantOutput: vi.fn() }));
 vi.mock("@/components/AIChatBox", () => ({ AIChatBox: () => <div /> }));

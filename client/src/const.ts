@@ -1,6 +1,16 @@
 import { OAUTH_STATE_COOKIE, encodeOAuthState } from "@shared/const";
+import { getJarvisLoginMode } from "@/lib/jarvisLoginMode";
 
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+
+export const JARVIS_OPEN_AUTH_EVENT = "jarvis:open-auth";
+
+export function hasManagedOAuthConfiguration() {
+  return getJarvisLoginMode({
+    oauthPortalUrl: import.meta.env.VITE_OAUTH_PORTAL_URL,
+    appId: import.meta.env.VITE_APP_ID,
+  }) === "managed-oauth";
+}
 
 // Start the Manus OAuth login. Call this from an event handler or effect at the
 // moment you want to navigate, e.g. `onClick={() => startLogin()}`.
@@ -13,6 +23,11 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 // with "invalid oauth state". It returns void by design, so there is no URL to
 // stash across renders.
 export const startLogin = () => {
+  if (!hasManagedOAuthConfiguration()) {
+    window.dispatchEvent(new CustomEvent(JARVIS_OPEN_AUTH_EVENT));
+    return;
+  }
+
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
   const redirectUri = `${window.location.origin}/api/oauth/callback`;

@@ -20,6 +20,10 @@ The first deployment returned `ERR_MODULE_NOT_FOUND` because the catch-all serve
 
 The Vercel deployment is a verified public client and serverless-route shell, but it is **not yet an independent full Jarvis runtime**. The current source still relies on managed-platform services that are not automatically available to a Vercel function. Before real authentication, private storage, voice transcription, and AI responses are enabled on the Vercel domain, the owner must approve and configure independent equivalents.
 
+The approved Supabase target is the active `darkvirgoyt-beep's Project` (`ytqacgefcvjrahyyfmaw`) in `ap-southeast-2`, with public API URL `https://ytqacgefcvjrahyyfmaw.supabase.co`. The previously staged Jarvis schema and deny-by-default RLS policies belong to this owner project. Its database password, service-role key, and any other private credentials are intentionally not recorded in this repository.
+
+The connected project confirms three applied Jarvis migrations: `jarvis_private_cloud_schema`, `jarvis_server_only_rls_hardening`, and `jarvis_revoke_public_rls_helper`. This establishes the private table layout and server-only RLS boundary; it does not move records from the managed database or authorize a Vercel service-role connection by itself.
+
 | Capability | Required Vercel-compatible configuration | Current state |
 | --- | --- | --- |
 | User authentication | An independent OAuth/OIDC provider plus Vercel callback URL | Not configured; the current Manus OAuth callback cannot be assumed to cover the Vercel domain. |

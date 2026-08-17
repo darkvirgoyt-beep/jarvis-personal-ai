@@ -1,4 +1,5 @@
 import { startLogin } from "@/const";
+import { supabase } from "@/lib/supabaseClient";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
@@ -45,10 +46,27 @@ export function useAuth(options?: UseAuthOptions) {
       try {
         sessionStorage.removeItem("manus-cookie");
       } catch {}
+      try {
+        await supabase?.auth.signOut({ scope: "local" });
+      } catch {
+        // The local browser session has already been cleared from the UI state.
+      }
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
   }, [logoutMutation, utils]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        void utils.auth.me.invalidate();
+      } else {
+        utils.auth.me.setData(undefined, null);
+      }
+    });
+    return () => subscription.subscription.unsubscribe();
+  }, [utils]);
 
   const state = useMemo(() => {
     localStorage.setItem(

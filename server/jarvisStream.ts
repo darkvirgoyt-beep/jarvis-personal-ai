@@ -4,7 +4,7 @@ import * as db from "./db";
 import { streamLLM } from "./_core/llm";
 import { isNemotronCredentialUnavailable, streamNemotronUltra } from "./nemotron";
 import { isAlternateJarvisModel } from "../shared/jarvisModels";
-import { sdk } from "./_core/sdk";
+import { authenticateJarvisRequest } from "./_core/authentication";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { storageGetSignedUrl, storagePut } from "./storage";
 import { agentInstructions, extractMemoryCommand, extractTaskCommand, requiresExplicitConfirmation } from "./jarvisPolicies";
@@ -63,7 +63,7 @@ export function registerJarvisStream(app: Express) {
     });
 
     try {
-      const user = await sdk.authenticateRequest(req);
+      const user = await authenticateJarvisRequest(req);
       const input = streamInputSchema.parse(req.body);
       let conversationId = input.conversationId;
       if (conversationId) {
@@ -260,9 +260,9 @@ function extensionForMimeType(mimeType: string) {
 }
 
 export function registerJarvisVoice(app: Express) {
-  app.post("/api/jarvis/transcribe", express.raw({ type: "audio/*", limit: "16mb" }), async (req: Request, res: Response) => {
+  app.post("/api/jarvis/transcribe", async (req: Request, res: Response) => {
     try {
-      const user = await sdk.authenticateRequest(req);
+      const user = await authenticateJarvisRequest(req);
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
         return res.status(400).json({ error: "Jarvis received no audio data." });
       }

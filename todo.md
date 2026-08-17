@@ -141,5 +141,11 @@
 - [x] Verify the public Vercel deployment preserves Jarvis branding without adding platform branding to the Jarvis interface, while accurately disclosing any provider-owned domain in the URL.
 - [x] Correct the Vercel serverless function bundle so the API handler’s application module is included and `/api/*` routes do not fail with `ERR_MODULE_NOT_FOUND`.
 - [ ] Replace managed-platform-only runtime dependencies with owner-approved Vercel-compatible authentication, database, object storage, voice transcription, and model-provider services before representing the Vercel site as a fully independent Jarvis deployment.
+- [ ] Configure Supabase Auth, PostgreSQL, and private Storage for the Vercel Jarvis domain using server-only Supabase credentials and an owner-approved private-data cutover.
+- [ ] Configure a valid server-only OpenRouter credential and independent Whisper-compatible transcription credential in Vercel before enabling real Jarvis AI and voice responses on the Vercel domain.
 - [x] Disable or appropriately scope Vercel SSO deployment protection after the owner explicitly approves unauthenticated public access to the Vercel URL.
 - [x] Update the stale stream fallback assertion to match the corrected workspace-assistance wording and restore the full deterministic test suite.
+- [x] Diagnose and replace the managed-host-only sign-in path so Vercel visitors can authenticate through the approved Supabase Auth flow.
+- [x] Add a Vercel-safe Supabase browser client, email authentication dialog, and authenticated tRPC Bearer-token transport while retaining managed OAuth when its runtime configuration is available.
+- [x] Verify Supabase access tokens server-side, map verified UUID identities to local numeric user records, and keep all protected Jarvis procedures user-scoped.
+- [x] Add deterministic regression tests for host-aware login selection, Supabase token transport, and verified-user mapping before publishing the Vercel authentication repair.

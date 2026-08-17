@@ -1,16 +1,9 @@
-import { COOKIE_NAME } from "@shared/const";
+import { getJarvisAuthorizationHeader } from "./authToken";
 
-function authHeaders() {
+async function authHeaders() {
   const headers = new Headers();
-  try {
-    const raw = sessionStorage.getItem("manus-cookie");
-    const prefix = `${COOKIE_NAME}=`;
-    const pair = raw?.split(";").find((item) => item.trim().startsWith(prefix));
-    const token = pair?.trim().slice(prefix.length);
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-  } catch {
-    // sessionStorage may be unavailable; browser cookies remain usable.
-  }
+  const authorization = await getJarvisAuthorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
   return headers;
 }
 
@@ -20,7 +13,7 @@ export async function streamJarvisResponse(input: {
   conversationId?: number;
   onEvent: (event: string, data: Record<string, unknown>) => void;
 }) {
-  const headers = authHeaders();
+  const headers = await authHeaders();
   headers.set("Content-Type", "application/json");
   const response = await fetch("/api/jarvis/stream", {
     method: "POST",
@@ -53,7 +46,7 @@ export async function streamJarvisResponse(input: {
 }
 
 export async function transcribeJarvisAudio(audio: Blob) {
-  const headers = authHeaders();
+  const headers = await authHeaders();
   headers.set("Content-Type", audio.type.split(";")[0] || "audio/webm");
   const response = await fetch("/api/jarvis/transcribe", {
     method: "POST",
