@@ -128,3 +128,7 @@
 - [x] Add explicit deny-by-default RLS policies for anon and authenticated Supabase API roles, and revoke public execution of the unrelated RLS helper before treating the cloud schema as security-hardened.
 - [ ] Switch the live Jarvis runtime from the managed database to Supabase and migrate private records only after the owner supplies server-only Supabase credentials and explicitly approves the cutover plan.
 - [x] Remove the duplicate mobile-pairing database-helper exports, restart the server, and confirm the runtime bundle starts without the TransformError.
+- [ ] Investigate and correct the reported public Jarvis deployment failure, including verification that the public URL loads successfully.
+- [ ] Evaluate and, where technically compatible with the full-stack authenticated Jarvis runtime, provide a GitHub Pages public entry URL without falsely presenting Pages as a replacement for the server-backed assistant.
+- [x] Remove the misleading no-environment fallback language so Jarvis accurately explains its available private workspace, Builder, and approval-gated file capabilities when the primary model is unavailable.
+- [x] Make the active browser-based private workspace and Builder access clear, and label the optional persistent Cloud Computer as unconnected until an owner-approved provider is configured.

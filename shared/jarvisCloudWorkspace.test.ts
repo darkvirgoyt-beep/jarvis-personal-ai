@@ -6,6 +6,11 @@ describe("Jarvis cloud workspace contract", () => {
     expect(jarvisCloudWorkspaceStates.find((item) => item.name === "Supabase backend")?.status).toContain("no private records moved");
   });
 
+  it("identifies the active approval-gated browser workspace separately from a persistent computer", () => {
+    expect(jarvisCloudWorkspaceStates.find((item) => item.name === "Browser workspace")?.status).toContain("Active");
+    expect(jarvisCloudWorkspaceStates.find((item) => item.name === "Browser workspace")?.status).toContain("explicit approval");
+  });
+
   it("keeps managed-computer access user controlled and disallows stealth automation", () => {
     expect(jarvisCloudWorkspaceStates.find((item) => item.name === "Managed computer")?.status).toContain("user-controlled");
     expect(isStealthAutomationAllowed()).toBe(false);

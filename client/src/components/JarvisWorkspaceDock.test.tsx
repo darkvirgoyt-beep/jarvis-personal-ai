@@ -7,12 +7,14 @@ import { JarvisWorkspaceDock } from "./JarvisWorkspaceDock";
 afterEach(cleanup);
 
 describe("JarvisWorkspaceDock", () => {
-  it("labels itself as a managed isolated workspace and exposes folder, file, and code operations", () => {
+  it("labels the active browser workspace and optional persistent-computer boundary while exposing folder, file, and code operations", () => {
     render(<JarvisWorkspaceDock items={[]} onPropose={vi.fn()} onExecute={vi.fn()} onReject={vi.fn()} onActivity={vi.fn()} />);
 
     expect(screen.getByText("Private files, folders, and code")).toBeTruthy();
-    expect(screen.getByText(/not your phone or computer/i)).toBeTruthy();
-    expect(screen.getByText("ISOLATED")).toBeTruthy();
+    expect(screen.getByText(/isolated from your phone or computer/i)).toBeTruthy();
+    expect(screen.getByText("BROWSER WORKSPACE")).toBeTruthy();
+    expect(screen.getByText("OPTIONAL CLOUD COMPUTER")).toBeTruthy();
+    expect(screen.getByText(/run and compile software/i)).toBeTruthy();
     expect(screen.getByRole("option", { name: "Create folder" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "Create text file" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "Write code file" })).toBeTruthy();
