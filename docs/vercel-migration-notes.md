@@ -36,6 +36,14 @@ No database URLs, service-role keys, storage secrets, or provider keys are commi
 
 The production migration must retain the following values as server-only Vercel environment configuration: database connection, OAuth configuration, JWT secret, storage configuration, and the OpenRouter credential. No credentials may be committed to the public GitHub repository.
 
+## Production Supabase scope correction and remaining session investigation
+
+On 17 August 2026, the linked Vercel environment screen initially showed the browser-safe `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` values scoped to **Production and Preview**, while `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` were incorrectly scoped to **Preview only**. That prevented the Vercel production server from verifying a browser Supabase access token or upserting the corresponding `jarvis_users` profile.
+
+The owner then authorized the scope correction. The Vercel environment screen now verifies all five required Supabase variables are scoped to **Production and Preview**, and a subsequent production redeployment completed successfully. Values remain private Vercel environment values and are not copied into source control.
+
+If a confirmed session still returns to the Jarvis sign-in dialog after a hard reload of the stable production domain, the next investigation target is the authenticated request itself (client access-token delivery and server profile mapping), not the Vercel environment scope.
+
 ## References
 
 - [Vercel project configuration and custom routes](https://vercel.com/docs/project-configuration/vercel-json)

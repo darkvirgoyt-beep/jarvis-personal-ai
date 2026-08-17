@@ -153,3 +153,6 @@
 - [x] Add Supabase Google and GitHub OAuth sign-in controls, with tested production redirect handling and documented provider credentials configured only in the owner’s Supabase dashboard.
 - [x] Improve email/password validation, account-exists feedback, and provider-configuration guidance so Jarvis never leaves an owner guessing why a sign-in action failed.
 - [x] Add a secure Supabase password-reset request and new-password completion flow that uses the production Vercel return URL without revealing existing passwords.
+- [ ] Diagnose and fix the Vercel post-confirmation session handoff so a verified Supabase user opens their private Jarvis workspace rather than returning to the sign-in dialog.
+- [ ] Provide the owner-safe Google and GitHub OAuth provider activation procedure after the core email session is verified end-to-end.
+- [x] Trace the remaining Vercel production sign-in loop against current credential scopes and authenticated API responses, then correct the specific failing handoff.
