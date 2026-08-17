@@ -2,11 +2,16 @@ export type JarvisEmailAuthMode = "sign-in" | "sign-up";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function validateJarvisCredentials(email: string, password: string, mode: JarvisEmailAuthMode) {
+export function validateJarvisEmail(email: string) {
   const normalizedEmail = email.trim();
-
   if (!normalizedEmail) return "Enter your email address to continue.";
   if (!emailPattern.test(normalizedEmail)) return "Enter a valid email address, such as you@example.com.";
+  return null;
+}
+
+export function validateJarvisCredentials(email: string, password: string, mode: JarvisEmailAuthMode) {
+  const emailError = validateJarvisEmail(email);
+  if (emailError) return emailError;
   if (!password) return "Enter your password to continue.";
   if (mode === "sign-up" && password.length < 6) return "Choose a password with at least 6 characters.";
 

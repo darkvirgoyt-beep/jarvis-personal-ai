@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { describeJarvisAuthError, validateJarvisCredentials, type JarvisEmailAuthMode } from "@/lib/jarvisAuthFeedback";
+import { describeJarvisAuthError, validateJarvisCredentials, validateJarvisEmail, type JarvisEmailAuthMode } from "@/lib/jarvisAuthFeedback";
 import { beginJarvisOAuthSignIn, type JarvisOAuthProvider } from "@/lib/jarvisOAuth";
+import { beginJarvisPasswordReset } from "@/lib/jarvisRecovery";
 import { hasSupabaseAuthConfiguration, requireSupabaseClient } from "@/lib/supabaseClient";
 import { Github, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
@@ -49,6 +50,30 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
       setStatus({ message: `Redirecting securely to ${provider === "google" ? "Google" : "GitHub"}…`, tone: "info" });
     } catch (error) {
       setStatus({ message: describeJarvisAuthError(error, provider), tone: "error" });
+      setIsSubmitting(false);
+    }
+  };
+
+  const onPasswordReset = async () => {
+    if (!hasSupabaseAuthConfiguration) {
+      setStatus({ message: "Jarvis sign-in is not configured for this deployment yet.", tone: "error" });
+      return;
+    }
+
+    const emailError = validateJarvisEmail(email);
+    if (emailError) {
+      setStatus({ message: emailError, tone: "error" });
+      return;
+    }
+
+    setStatus(null);
+    setIsSubmitting(true);
+    try {
+      await beginJarvisPasswordReset(requireSupabaseClient(), email, window.location.origin);
+      setStatus({ message: "If this email has a Jarvis account, a secure password-reset link is on its way. Open the newest email to choose a new password.", tone: "info" });
+    } catch (error) {
+      setStatus({ message: describeJarvisAuthError(error, "sign-in"), tone: "error" });
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -205,14 +230,28 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
             </p>
           )}
           <DialogFooter className="pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-slate-300 hover:bg-white/[0.06] hover:text-white"
-              onClick={() => changeMode(mode === "sign-in" ? "sign-up" : "sign-in")}
-            >
-              {mode === "sign-in" ? "Need an account? Create one" : "Already have an account? Sign in"}
-            </Button>
+            <div className="flex flex-wrap gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isSubmitting}
+                className="text-slate-300 hover:bg-white/[0.06] hover:text-white"
+                onClick={() => changeMode(mode === "sign-in" ? "sign-up" : "sign-in")}
+              >
+                {mode === "sign-in" ? "Need an account? Create one" : "Already have an account? Sign in"}
+              </Button>
+              {mode === "sign-in" && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={isSubmitting}
+                  className="text-cyan-100 hover:bg-cyan-300/10 hover:text-cyan-50"
+                  onClick={() => void onPasswordReset()}
+                >
+                  Forgot password?
+                </Button>
+              )}
+            </div>
             <Button type="submit" disabled={isSubmitting} className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
               {isSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />}
               {mode === "sign-in" ? "Sign in securely" : "Create private workspace"}

@@ -152,3 +152,4 @@
 - [ ] Set and verify the Supabase Auth production redirect so email confirmations return to `https://scrimly-seven.vercel.app` instead of the local `localhost:3000` development URL.
 - [x] Add Supabase Google and GitHub OAuth sign-in controls, with tested production redirect handling and documented provider credentials configured only in the owner’s Supabase dashboard.
 - [x] Improve email/password validation, account-exists feedback, and provider-configuration guidance so Jarvis never leaves an owner guessing why a sign-in action failed.
+- [x] Add a secure Supabase password-reset request and new-password completion flow that uses the production Vercel return URL without revealing existing passwords.
