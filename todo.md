@@ -135,9 +135,11 @@
 - [x] Add a tested local-run guide for Termux, macOS, Linux, and Windows, including prerequisites, environment variables, database boundaries, development commands, and voice/browser limitations.
 - [x] Remove the misleading no-environment fallback language so Jarvis accurately explains its available private workspace, Builder, and approval-gated file capabilities when the primary model is unavailable.
 - [x] Make the active browser-based private workspace and Builder access clear, and label the optional persistent Cloud Computer as unconnected until an owner-approved provider is configured.
-- [ ] Replace the GitHub Pages launch-only gateway with a GitHub-linked, server-capable deployment path for the complete Jarvis application, after the owner chooses and authorizes an external backend host.
-- [ ] Document the public-hosting branding boundary and avoid representing GitHub Pages or the current managed host as capable of hiding provider-enforced branding or replacing a server-backed architecture.
+- [x] Replace the GitHub Pages launch-only gateway with a GitHub-linked, server-capable deployment path for the complete Jarvis application, after the owner chooses and authorizes an external backend host.
+- [x] Document the public-hosting branding boundary and avoid representing GitHub Pages or the current managed host as capable of hiding provider-enforced branding or replacing a server-backed architecture.
 - [ ] Prepare and deploy the full server-backed Jarvis application on an owner-authorized Vercel project, with all database, OAuth, and model credentials retained as server-only environment configuration.
-- [ ] Verify the public Vercel deployment preserves Jarvis branding without adding platform branding to the Jarvis interface, while accurately disclosing any provider-owned domain in the URL.
+- [x] Verify the public Vercel deployment preserves Jarvis branding without adding platform branding to the Jarvis interface, while accurately disclosing any provider-owned domain in the URL.
 - [x] Correct the Vercel serverless function bundle so the API handler’s application module is included and `/api/*` routes do not fail with `ERR_MODULE_NOT_FOUND`.
 - [ ] Replace managed-platform-only runtime dependencies with owner-approved Vercel-compatible authentication, database, object storage, voice transcription, and model-provider services before representing the Vercel site as a fully independent Jarvis deployment.
+- [x] Disable or appropriately scope Vercel SSO deployment protection after the owner explicitly approves unauthenticated public access to the Vercel URL.
+- [x] Update the stale stream fallback assertion to match the corrected workspace-assistance wording and restore the full deterministic test suite.

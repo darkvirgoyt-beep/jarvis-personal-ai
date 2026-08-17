@@ -150,7 +150,7 @@ describe("Jarvis authenticated endpoints", () => {
 
     expect(streamLLM).not.toHaveBeenCalled();
     expect(res.writes.join("")).toContain('"provider":"basic-local","reason":"provider-auth"');
-    expect(res.writes.join("")).toContain("Jarvis basic response mode is active");
+    expect(res.writes.join("")).toContain("Jarvis workspace assistance mode is active");
   });
 
   it("persists a research summary and only valid unique HTTPS sources for the signed-in user", async () => {

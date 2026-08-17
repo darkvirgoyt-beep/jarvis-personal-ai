@@ -12,6 +12,8 @@ The Vercel account connection has an available team named `darkvirgoyt-6238's pr
 
 The owner authorized the Vercel GitHub Login Connection and Vercel imported the public `darkvirgoyt-beep/jarvis-personal-ai` repository as the `scrimly` project. The public Vercel deployment is available at `https://scrimly-seven.vercel.app`.
 
+The owner also authorized public access to the Vercel URL. Vercel Authentication (SSO deployment protection), password protection, and Trusted IP protection are disabled for the `scrimly` project. An unauthenticated browser request now loads the Jarvis public landing page directly at the Vercel URL. This access setting does not configure application authentication, database access, storage, transcription, or model credentials.
+
 The first deployment returned `ERR_MODULE_NOT_FOUND` because the catch-all serverless entry imported local application modules that were not included in the function bundle. The deployment adapter now builds a standalone server artifact, including its ESM-only authentication dependency. The verified production API now reaches the Jarvis Express application: an unknown `/api/test` route returns the application-level `Cannot GET /api/test`, and `/api/trpc` returns the expected tRPC `No procedure found on path` response. Those responses prove routing and application loading rather than a Vercel function import failure.
 
 ## Remaining independent runtime prerequisites
