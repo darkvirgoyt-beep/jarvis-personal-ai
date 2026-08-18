@@ -7,6 +7,11 @@
 | 2026-08-17 | https://scrimly-seven.vercel.app | Public landing | Public landing loaded successfully with the Jarvis workspace preview, sign-in entry point, and privacy statement. |
 | 2026-08-17 | https://scrimly-seven.vercel.app | Sign-in dialog | The live dialog exposes separate existing-account and create-account paths, email/password fields, password recovery, Google, GitHub, and an explicit close control. |
 | 2026-08-17 | https://scrimly-seven.vercel.app | Post-repair deployment | The production deployment for Git commit `409b373` reached Vercel `READY`; the public landing returned HTTP 200 and the anonymous `auth.me` tRPC request returned the expected `null` identity response through the serverless API. |
+| 2026-08-18 | https://scrimly-seven.vercel.app | Responsive auth release | Git commit `c89142d` reached Vercel `READY` at `scrimly-4nxjcc0pk-darkvirgoyt-6238s-projects.vercel.app`. A direct production inspection loaded the Jarvis public landing with its visible Sign in entry and private-workspace call to action. |
+
+The settled desktop capture for `c89142d` confirms that the production document contains the public landing and interactive Sign in, workspace-creation, and workspace-exploration controls. The capture agent presents this high-density browser at a reduced visual scale; this is a capture characteristic, not evidence of a layout regression.
+
+A credential-free production interaction opened the independent Jarvis sign-in dialog. It exposed the existing-account and create-account modes, Google and GitHub provider entries, labeled email and password fields, account-creation and password-recovery paths, a clear primary Sign in securely action, and an explicit Close control. No identity, credential, provider login, or email confirmation action was attempted during this inspection.
 
 ## Known live constraints
 
