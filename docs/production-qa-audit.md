@@ -35,6 +35,8 @@ The next production check is to sign in through the existing-account path (or co
 
 The production bundle completed after temporarily stopping the local TypeScript/watch processes to avoid sandbox resource contention. The checks then completed with 95 deterministic tests and a successful Vercel bundle. A direct production browser inspection also confirmed the public landing and visible sign-in entry. The browser capture uses a high-density viewport scale, so its reduced apparent page size is a capture characteristic rather than a responsive-layout defect. A live user-owned confirmation remains intentionally unperformed because it would require opening a real confirmation link or using account credentials.
 
+On 2026-08-18, the restarted local preview at `https://3000-isk91p5nld03zw2horvr0-ccbd7436.sg1.manus.computer/` loaded the public landing and exposed both the header sign-in control and the private-workspace creation entry. That local host intentionally uses the managed OAuth route, which was unavailable to the sandbox browser at the time of inspection; it is therefore not a valid substitute for the independent Vercel Supabase dialog. The mobile dialog is covered by focused jsdom regression tests and will be visually rechecked after the next Vercel deployment.
+
 ### Follow-up visual refinement
 
 The public landing already has a coherent private command-center style. Future design refinement should focus on stronger signature branding and more concise capability language, rather than reworking the established visual system.

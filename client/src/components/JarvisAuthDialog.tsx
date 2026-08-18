@@ -14,7 +14,7 @@ import { beginJarvisOAuthSignIn, getJarvisAuthReturnUrl, type JarvisOAuthProvide
 import { beginJarvisPasswordReset } from "@/lib/jarvisRecovery";
 import { hasSupabaseAuthConfiguration, requireSupabaseClient } from "@/lib/supabaseClient";
 import { Github, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
-import { FormEvent, useState } from "react";
+import React, { FormEvent, useState } from "react";
 
 type JarvisAuthDialogProps = {
   open: boolean;
@@ -140,7 +140,7 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-cyan-300/25 bg-slate-950 text-slate-100 shadow-[0_0_48px_rgba(34,211,238,0.12)]">
+      <DialogContent className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto border-cyan-300/25 bg-slate-950 p-4 text-slate-100 shadow-[0_0_48px_rgba(34,211,238,0.12)] sm:p-6">
         <DialogHeader>
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
             <LockKeyhole className="size-5" />
@@ -153,17 +153,17 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 rounded-lg border border-white/10 bg-white/[0.025] p-1" aria-label="Email access mode">
+        <div className="grid grid-cols-1 gap-1 rounded-lg border border-white/10 bg-white/[0.025] p-1 sm:grid-cols-2" aria-label="Email access mode">
           <Button type="button" variant={mode === "sign-in" ? "secondary" : "ghost"} onClick={() => changeMode("sign-in")}>I already have an account</Button>
           <Button type="button" variant={mode === "sign-up" ? "secondary" : "ghost"} onClick={() => changeMode("sign-up")}>Create account</Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
           <Button
             type="button"
             variant="outline"
             disabled={isSubmitting}
-            className="border-white/10 bg-white/[0.035] text-slate-100 hover:bg-white/[0.08] hover:text-white"
+            className="min-h-11 w-full border-white/10 bg-white/[0.035] text-slate-100 hover:bg-white/[0.08] hover:text-white"
             onClick={() => void onOAuthSignIn("google")}
           >
             <span aria-hidden className="mr-2 font-semibold text-cyan-100">G</span>
@@ -173,7 +173,7 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
             type="button"
             variant="outline"
             disabled={isSubmitting}
-            className="border-white/10 bg-white/[0.035] text-slate-100 hover:bg-white/[0.08] hover:text-white"
+            className="min-h-11 w-full border-white/10 bg-white/[0.035] text-slate-100 hover:bg-white/[0.08] hover:text-white"
             onClick={() => void onOAuthSignIn("github")}
           >
             <Github className="mr-2 size-4" aria-hidden />
@@ -186,7 +186,7 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
           <span className="h-px flex-1 bg-white/10" />
         </div>
 
-        <form className="grid gap-4" onSubmit={onSubmit} noValidate>
+        <form className="grid gap-4" onSubmit={onSubmit} noValidate aria-busy={isSubmitting}>
           <div className="grid gap-2">
             <Label htmlFor="jarvis-auth-email" className="text-slate-300">Email</Label>
             <div className="relative">
@@ -222,6 +222,7 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
           {status && (
             <p
               role={status.tone === "error" ? "alert" : "status"}
+              aria-live="polite"
               className={status.tone === "error"
                 ? "rounded-lg border border-rose-300/25 bg-rose-300/10 px-3 py-2 text-sm text-rose-100"
                 : "rounded-lg border border-cyan-200/15 bg-cyan-300/5 px-3 py-2 text-sm text-cyan-100"}
@@ -229,8 +230,8 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
               {status.message}
             </p>
           )}
-          <DialogFooter className="pt-2">
-            <div className="flex flex-wrap gap-1">
+          <DialogFooter className="gap-3 pt-2">
+            <div className="flex w-full flex-wrap gap-1 sm:w-auto">
               <Button
                 type="button"
                 variant="ghost"
@@ -252,7 +253,7 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
                 </Button>
               )}
             </div>
-            <Button type="submit" disabled={isSubmitting} className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+            <Button type="submit" disabled={isSubmitting} className="min-h-11 w-full bg-cyan-300 text-slate-950 hover:bg-cyan-200 sm:w-auto">
               {isSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />}
               {mode === "sign-in" ? "Sign in securely" : "Create private workspace"}
             </Button>
