@@ -54,6 +54,47 @@ describe("authenticateJarvisRequest", () => {
     expect(result).toMatchObject({ id: 73, openId: "c2d5bdb5-a283-4c1f-ab01-5b1ad66d7ee5", email: "jarvis@example.com" });
   });
 
+  it("falls back to the cloud profile table when the configured local database is unreachable", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://jarvis-auth.example.supabase.co");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "server-only-role-key");
+    const getUser = vi.fn().mockResolvedValue({
+      data: { user: { id: "c2d5bdb5-a283-4c1f-ab01-5b1ad66d7ee5", email: "jarvis@example.com", user_metadata: { full_name: "Jarvis Owner" } } },
+      error: null,
+    });
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        id: 74,
+        open_id: "c2d5bdb5-a283-4c1f-ab01-5b1ad66d7ee5",
+        name: "Jarvis Owner",
+        email: "jarvis@example.com",
+        login_method: "supabase",
+        role: "user",
+        created_at: now,
+        updated_at: now,
+        last_signed_in: now,
+      },
+      error: null,
+    });
+    const select = vi.fn().mockReturnValue({ single });
+    const upsert = vi.fn().mockReturnValue({ select });
+    const from = vi.fn().mockReturnValue({ upsert });
+    const managedAuthenticate = vi.fn().mockRejectedValue(new Error("Invalid session cookie"));
+
+    vi.doMock("@supabase/supabase-js", () => ({ createClient: vi.fn(() => ({ auth: { getUser }, from })) }));
+    vi.doMock("./_core/sdk", () => ({ sdk: { authenticateRequest: managedAuthenticate } }));
+    vi.doMock("./db", () => ({
+      getDb: vi.fn().mockResolvedValue({ unreachable: true }),
+      upsertUser: vi.fn().mockRejectedValue(new Error("Local database is unreachable")),
+      getUserByOpenId: vi.fn(),
+    }));
+
+    const { authenticateJarvisRequest } = await import("./_core/authentication");
+    const result = await authenticateJarvisRequest({ header: vi.fn().mockReturnValue("Bearer verified-access-token") } as unknown as Request);
+
+    expect(from).toHaveBeenCalledWith("jarvis_users");
+    expect(result).toMatchObject({ id: 74, openId: "c2d5bdb5-a283-4c1f-ab01-5b1ad66d7ee5" });
+  });
+
   it("preserves a valid managed OAuth session without consulting Supabase", async () => {
     vi.stubEnv("SUPABASE_URL", "https://jarvis-auth.example.supabase.co");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "server-only-role-key");

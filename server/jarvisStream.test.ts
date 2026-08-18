@@ -50,6 +50,34 @@ function responseRecorder() {
 }
 
 describe("Jarvis authenticated endpoints", () => {
+  it("returns 401 instead of an SSE stream when the stream request is unauthenticated", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
+    registerJarvisStream(app);
+    vi.mocked(sdk.authenticateRequest).mockRejectedValue(new Error("Invalid session cookie"));
+    const res = responseRecorder();
+
+    await handler!({ body: { content: "Private command" } } as Request, res as unknown as Response);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "Please sign in to use Jarvis." });
+    expect(res.write).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 instead of transcribing when the voice request is unauthenticated", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, ...handlers: Array<typeof handler>) => { handler = handlers.at(-1); }) } as unknown as Express;
+    registerJarvisVoice(app);
+    vi.mocked(sdk.authenticateRequest).mockRejectedValue(new Error("Invalid session cookie"));
+    const res = responseRecorder();
+
+    await handler!({ body: Buffer.from("voice-data") } as unknown as Request, res as unknown as Response);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "Please sign in to use Jarvis voice." });
+    expect(storagePut).not.toHaveBeenCalled();
+  });
+
   it("does not stream messages from another user’s conversation", async () => {
     let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
     const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;

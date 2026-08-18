@@ -61,21 +61,27 @@ async function authenticateSupabaseRequest(req: Request): Promise<AuthenticatedU
   const name = profileName(data.user);
   const email = data.user.email ?? null;
 
-  // Preserve the current managed-database runtime when it is configured. The
-  // UUID lives in `openId`; existing protected procedures continue to use the
-  // mapped numeric user.id for their private data queries.
+  // Preserve the current managed-database runtime when it is configured and
+  // reachable. The UUID lives in `openId`; existing protected procedures
+  // continue to use the mapped numeric user.id for their private data queries.
+  // A configured-but-unreachable local database must not block the staged
+  // Supabase profile mapping, or a verified session would be rejected.
   const localDb = await db.getDb();
   if (localDb) {
-    await db.upsertUser({
-      openId,
-      name,
-      email,
-      loginMethod: "supabase",
-      lastSignedIn: now,
-    });
-    const localUser = await db.getUserByOpenId(openId);
-    if (!localUser) throw ForbiddenError("Jarvis user profile could not be created");
-    return localUser;
+    try {
+      await db.upsertUser({
+        openId,
+        name,
+        email,
+        loginMethod: "supabase",
+        lastSignedIn: now,
+      });
+      const localUser = await db.getUserByOpenId(openId);
+      if (localUser) return localUser;
+      console.warn("[Auth] Local database has no mapped profile; falling back to the staged Supabase profile table.");
+    } catch (localDbError) {
+      console.warn("[Auth] Local database mapping unavailable; using the staged Supabase profile table:", localDbError);
+    }
   }
 
   // The independently deployed Vercel runtime can authenticate against the
@@ -100,6 +106,8 @@ async function authenticateSupabaseRequest(req: Request): Promise<AuthenticatedU
 
   return toLocalUser(cloudUser);
 }
+
+export type { AuthenticatedUser } from "./sdk";
 
 /**
  * Authorize a request from either the existing managed OAuth session or a

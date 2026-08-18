@@ -4,7 +4,7 @@ import * as db from "./db";
 import { streamLLM } from "./_core/llm";
 import { isNemotronCredentialUnavailable, streamNemotronUltra } from "./nemotron";
 import { isAlternateJarvisModel } from "../shared/jarvisModels";
-import { authenticateJarvisRequest } from "./_core/authentication";
+import { authenticateJarvisRequest, type AuthenticatedUser } from "./_core/authentication";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { storageGetSignedUrl, storagePut } from "./storage";
 import { agentInstructions, extractMemoryCommand, extractTaskCommand, requiresExplicitConfirmation } from "./jarvisPolicies";
@@ -48,6 +48,13 @@ async function sendStaticCompletion(res: Response, content: string, state: { clo
 
 export function registerJarvisStream(app: Express) {
   app.post("/api/jarvis/stream", async (req: Request, res: Response) => {
+    let user: AuthenticatedUser;
+    try {
+      user = await authenticateJarvisRequest(req);
+    } catch {
+      return res.status(401).json({ error: "Please sign in to use Jarvis." });
+    }
+
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("Connection", "keep-alive");
@@ -63,7 +70,6 @@ export function registerJarvisStream(app: Express) {
     });
 
     try {
-      const user = await authenticateJarvisRequest(req);
       const input = streamInputSchema.parse(req.body);
       let conversationId = input.conversationId;
       if (conversationId) {
@@ -261,8 +267,13 @@ function extensionForMimeType(mimeType: string) {
 
 export function registerJarvisVoice(app: Express) {
   app.post("/api/jarvis/transcribe", async (req: Request, res: Response) => {
+    let user: AuthenticatedUser;
     try {
-      const user = await authenticateJarvisRequest(req);
+      user = await authenticateJarvisRequest(req);
+    } catch {
+      return res.status(401).json({ error: "Please sign in to use Jarvis voice." });
+    }
+    try {
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
         return res.status(400).json({ error: "Jarvis received no audio data." });
       }
