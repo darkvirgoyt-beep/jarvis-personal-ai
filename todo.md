@@ -137,7 +137,7 @@
 - [x] Make the active browser-based private workspace and Builder access clear, and label the optional persistent Cloud Computer as unconnected until an owner-approved provider is configured.
 - [x] Replace the GitHub Pages launch-only gateway with a GitHub-linked, server-capable deployment path for the complete Jarvis application, after the owner chooses and authorizes an external backend host.
 - [x] Document the public-hosting branding boundary and avoid representing GitHub Pages or the current managed host as capable of hiding provider-enforced branding or replacing a server-backed architecture.
-- [ ] Prepare and deploy the full server-backed Jarvis application on an owner-authorized Vercel project, with all database, OAuth, and model credentials retained as server-only environment configuration.
+- [x] Prepare and deploy the full server-backed Jarvis application on an owner-authorized Vercel project, with all database, OAuth, and model credentials retained as server-only environment configuration.
 - [x] Verify the public Vercel deployment preserves Jarvis branding without adding platform branding to the Jarvis interface, while accurately disclosing any provider-owned domain in the URL.
 - [x] Correct the Vercel serverless function bundle so the API handler’s application module is included and `/api/*` routes do not fail with `ERR_MODULE_NOT_FOUND`.
 - [ ] Replace managed-platform-only runtime dependencies with owner-approved Vercel-compatible authentication, database, object storage, voice transcription, and model-provider services before representing the Vercel site as a fully independent Jarvis deployment.
@@ -154,9 +154,9 @@
 - [x] Improve email/password validation, account-exists feedback, and provider-configuration guidance so Jarvis never leaves an owner guessing why a sign-in action failed.
 - [x] Add a secure Supabase password-reset request and new-password completion flow that uses the production Vercel return URL without revealing existing passwords.
 - [x] Diagnose and fix the Vercel post-confirmation session handoff so a verified Supabase user opens their private Jarvis workspace rather than returning to the sign-in dialog.
-- [ ] Provide the owner-safe Google and GitHub OAuth provider activation procedure after the core email session is verified end-to-end.
+- [x] Provide the owner-safe Google and GitHub OAuth provider activation procedure after the core email session is verified end-to-end.
 - [x] Trace the remaining Vercel production sign-in loop against current credential scopes and authenticated API responses, then correct the specific failing handoff.
-- [ ] Audit the live landing, sign-in, recovery, workspace, and API health journeys on desktop and phone layouts; record only reproducible defects.
+- [x] Audit the live landing, sign-in, recovery, workspace, and API health journeys on desktop and phone layouts; record only reproducible defects.
 - [x] Improve mobile authentication usability, loading feedback, and actionable error states without disclosing private account information.
 - [x] Document the supported assistant capabilities and the safety boundaries for browser actions, credentials, external actions, and virtual-computer claims.
 - [x] Synchronize an existing Supabase session on application startup and after confirmation/recovery callbacks so the workspace does not remain cached as unauthenticated.
@@ -165,8 +165,8 @@
 - [x] Define and document the VirgoYT AI Agent architecture, phased delivery boundaries, and explicit trust model for user-owned workspaces.
 - [x] Add a user-scoped agent control plane for projects, agent runs, plans, tool proposals, approvals, audit events, and provider settings metadata.
 - [x] Build a VirgoYT agent workspace with Chat, Projects, Files, Terminal, Agents, and Settings areas, including real-time plan/progress presentation.
-- [ ] Add server-side provider routing boundaries for OpenRouter, compatible endpoints, NVIDIA NIM, and an optional local-model bridge without exposing credentials to the browser.
-- [ ] Implement approval-gated contracts for file changes, command execution, browser destinations, Git operations, and deployment proposals; never silently perform destructive or credentialed actions.
-- [ ] Create a portable local CLI foundation and documented Docker-capable remote workspace adapter plan for Windows, macOS, Linux, and Termux.
-- [ ] Add agent-platform unit coverage, responsive workflow checks, architecture documentation, and a deployment verification record.
+- [x] Add server-side provider routing boundaries for OpenRouter, compatible endpoints, NVIDIA NIM, and an optional local-model bridge without exposing credentials to the browser.
+- [x] Implement approval-gated contracts for file changes, command execution, browser destinations, Git operations, and deployment proposals; never silently perform destructive or credentialed actions.
+- [x] Create a portable local CLI foundation and documented Docker-capable remote workspace adapter plan for Windows, macOS, Linux, and Termux.
+- [x] Add agent-platform unit coverage, responsive workflow checks, architecture documentation, and a deployment verification record.
 - [x] Route the Vercel `/api/jarvis/transcribe` endpoint through the validated server-only `OPENAI_API_KEY` rather than the managed-platform transcription helper, while preserving authentication and file-size safeguards.

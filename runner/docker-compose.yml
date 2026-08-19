@@ -1,0 +1,10 @@
+services:
+  virgoyt-proposal-runner:
+    build:
+      context: ..
+      dockerfile: runner/Dockerfile
+    read_only: true
+    network_mode: none
+    security_opt:
+      - no-new-privileges:true
+    command: ["status"]
