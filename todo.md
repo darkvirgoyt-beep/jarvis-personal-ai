@@ -171,6 +171,6 @@
 - [x] Add agent-platform unit coverage, responsive workflow checks, architecture documentation, and a deployment verification record.
 - [x] Diagnose and repair the Vercel Jarvis chat response path so configured server-side model access produces a user-visible reply instead of the generic completion failure.
 - [x] Clarify Jarvis as the assistant and VirgoYT as its private Agent Workspace, without introducing a platform watermark or obscuring the main chat experience.
-- [ ] Verify the latest GitHub `main` release deploys to the public Vercel domain and document the Manus URL as development preview only.
+- [x] Verify the latest GitHub `main` release deploys to the public Vercel domain and document the Manus URL as development preview only.
 - [x] Resolve the reproducible development-server module-resolution failure for the VirgoYT provider-routing import, then validate the server starts cleanly.
-- [ ] Prevent the Vercel Supabase authentication path from repeatedly attempting an unreachable legacy MySQL user upsert, while retaining safe cloud-profile fallback behavior.
+- [x] Prevent the Vercel Supabase authentication path from repeatedly attempting an unreachable legacy MySQL user upsert, while retaining safe cloud-profile fallback behavior.
