@@ -13,6 +13,8 @@ The settled desktop capture for `c89142d` confirms that the production document 
 
 A credential-free production interaction opened the independent Jarvis sign-in dialog. It exposed the existing-account and create-account modes, Google and GitHub provider entries, labeled email and password fields, account-creation and password-recovery paths, a clear primary Sign in securely action, and an explicit Close control. No identity, credential, provider login, or email confirmation action was attempted during this inspection.
 
+**Owner-controlled verification — 2026-08-18:** The owner confirmed that the live email flow works and that confirmation opens the private Jarvis workspace. This closes the previously observed post-confirmation session-handoff defect. The password-reset and social-provider checks remain separate pending actions.
+
 ## Known live constraints
 
 Google and GitHub buttons are visible by design but cannot complete sign-in until their corresponding providers are enabled and configured in the owner’s Supabase dashboard. The complete post-confirmation session handoff requires a signed-in owner test because it cannot be safely fabricated with a test account or user credential.

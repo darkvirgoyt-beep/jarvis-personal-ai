@@ -153,7 +153,7 @@
 - [x] Add Supabase Google and GitHub OAuth sign-in controls, with tested production redirect handling and documented provider credentials configured only in the owner’s Supabase dashboard.
 - [x] Improve email/password validation, account-exists feedback, and provider-configuration guidance so Jarvis never leaves an owner guessing why a sign-in action failed.
 - [x] Add a secure Supabase password-reset request and new-password completion flow that uses the production Vercel return URL without revealing existing passwords.
-- [ ] Diagnose and fix the Vercel post-confirmation session handoff so a verified Supabase user opens their private Jarvis workspace rather than returning to the sign-in dialog.
+- [x] Diagnose and fix the Vercel post-confirmation session handoff so a verified Supabase user opens their private Jarvis workspace rather than returning to the sign-in dialog.
 - [ ] Provide the owner-safe Google and GitHub OAuth provider activation procedure after the core email session is verified end-to-end.
 - [x] Trace the remaining Vercel production sign-in loop against current credential scopes and authenticated API responses, then correct the specific failing handoff.
 - [ ] Audit the live landing, sign-in, recovery, workspace, and API health journeys on desktop and phone layouts; record only reproducible defects.
@@ -162,3 +162,10 @@
 - [x] Synchronize an existing Supabase session on application startup and after confirmation/recovery callbacks so the workspace does not remain cached as unauthenticated.
 - [x] Use one production-safe `auth=complete` callback contract for email signup, OAuth, and password recovery, then remove callback tokens from the visible URL after use.
 - [x] Prevent the Vercel Supabase flow from being redirected into managed-host OAuth when a protected request is transiently unauthenticated.
+- [x] Define and document the VirgoYT AI Agent architecture, phased delivery boundaries, and explicit trust model for user-owned workspaces.
+- [ ] Add a user-scoped agent control plane for projects, agent runs, plans, tool proposals, approvals, audit events, and provider settings metadata.
+- [ ] Build a VirgoYT agent workspace with Chat, Projects, Files, Terminal, Agents, and Settings areas, including real-time plan/progress presentation.
+- [ ] Add server-side provider routing boundaries for OpenRouter, compatible endpoints, NVIDIA NIM, and an optional local-model bridge without exposing credentials to the browser.
+- [ ] Implement approval-gated contracts for file changes, command execution, browser destinations, Git operations, and deployment proposals; never silently perform destructive or credentialed actions.
+- [ ] Create a portable local CLI foundation and documented Docker-capable remote workspace adapter plan for Windows, macOS, Linux, and Termux.
+- [ ] Add agent-platform unit coverage, responsive workflow checks, architecture documentation, and a deployment verification record.
