@@ -47,3 +47,7 @@ On 2026-08-18, the restarted local preview at `https://3000-isk91p5nld03zw2horvr
 ### Follow-up visual refinement
 
 The public landing already has a coherent private command-center style. Future design refinement should focus on stronger signature branding and more concise capability language, rather than reworking the established visual system.
+
+### Voice-transcription production verification — 2026-08-19
+
+Vercel deployment `dpl_B7AzFeZFzDBuJPusDriJ1U2HqiDR` for GitHub commit `a3f85b261a496d88b6add72ce4b63f5f0b5bea8d` reached `READY`. The production `POST /api/jarvis/transcribe` endpoint returned `401` without an authenticated session, confirming that it rejects anonymous requests before processing audio. The route now parses audio only on this path, forwards authenticated command audio ephemerally through the server-only `OPENAI_API_KEY`, and does not persist recorded commands in managed storage. Live transcription content was not exercised because the audit deliberately did not use an authenticated session or submit audio.

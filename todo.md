@@ -142,7 +142,7 @@
 - [x] Correct the Vercel serverless function bundle so the API handler’s application module is included and `/api/*` routes do not fail with `ERR_MODULE_NOT_FOUND`.
 - [ ] Replace managed-platform-only runtime dependencies with owner-approved Vercel-compatible authentication, database, object storage, voice transcription, and model-provider services before representing the Vercel site as a fully independent Jarvis deployment.
 - [ ] Configure Supabase Auth, PostgreSQL, and private Storage for the Vercel Jarvis domain using server-only Supabase credentials and an owner-approved private-data cutover.
-- [ ] Configure a valid server-only OpenRouter credential and independent Whisper-compatible transcription credential in Vercel before enabling real Jarvis AI and voice responses on the Vercel domain.
+- [x] Configure a valid server-only OpenRouter credential and independent Whisper-compatible transcription credential in Vercel before enabling real Jarvis AI and voice responses on the Vercel domain.
 - [x] Disable or appropriately scope Vercel SSO deployment protection after the owner explicitly approves unauthenticated public access to the Vercel URL.
 - [x] Update the stale stream fallback assertion to match the corrected workspace-assistance wording and restore the full deterministic test suite.
 - [x] Diagnose and replace the managed-host-only sign-in path so Vercel visitors can authenticate through the approved Supabase Auth flow.
@@ -169,4 +169,4 @@
 - [ ] Implement approval-gated contracts for file changes, command execution, browser destinations, Git operations, and deployment proposals; never silently perform destructive or credentialed actions.
 - [ ] Create a portable local CLI foundation and documented Docker-capable remote workspace adapter plan for Windows, macOS, Linux, and Termux.
 - [ ] Add agent-platform unit coverage, responsive workflow checks, architecture documentation, and a deployment verification record.
-- [ ] Route the Vercel `/api/jarvis/transcribe` endpoint through the validated server-only `OPENAI_API_KEY` rather than the managed-platform transcription helper, while preserving authentication and file-size safeguards.
+- [x] Route the Vercel `/api/jarvis/transcribe` endpoint through the validated server-only `OPENAI_API_KEY` rather than the managed-platform transcription helper, while preserving authentication and file-size safeguards.
