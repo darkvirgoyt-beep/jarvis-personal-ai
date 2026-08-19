@@ -44,31 +44,6 @@ The production bundle completed after temporarily stopping the local TypeScript/
 
 On 2026-08-18, the restarted local preview at `https://3000-isk91p5nld03zw2horvr0-ccbd7436.sg1.manus.computer/` loaded the public landing and exposed both the header sign-in control and the private-workspace creation entry. That local host intentionally uses the managed OAuth route, which was unavailable to the sandbox browser at the time of inspection; it is therefore not a valid substitute for the independent Vercel Supabase dialog. The mobile dialog is covered by focused jsdom regression tests and will be visually rechecked after the next Vercel deployment.
 
-## VirgoYT local workspace verification — 2026-08-19
-
-| Viewport | Result | Finding |
-| --- | --- | --- |
-| Desktop, 1280 × 720 | Pass | The protected `/virgoyt` route renders the dark command-center layout with the project rail, planning composer, explicit approval-only notice, review queue, and audit trail visible without clipping. |
-| Phone, 375 × 812 | Pass | The workspace reflows into a clear single-column sequence: rail, planner, active run, review queue, and audit trail. The two-column navigation now keeps visible icon-and-text labels for Chat, Projects, Files, Terminal, Agents, and Settings. |
-
 ### Follow-up visual refinement
 
 The public landing already has a coherent private command-center style. Future design refinement should focus on stronger signature branding and more concise capability language, rather than reworking the established visual system.
-
-## Vercel release audit — 2026-08-19
-
-| Journey | Viewport or check | Result | Reproducible observation |
-| --- | --- | --- | --- |
-| Public landing | Desktop browser | Pass | The live Vercel URL loaded the Jarvis landing, private-workspace call to action, workspace preview, and sign-in entry without a visible client error. |
-| Sign-in dialog | Desktop browser | Pass | The dialog exposed existing-account and create-account choices, email/password labels, Google and GitHub entries, a password-recovery action, a secure sign-in action, and a close control. No credentials were entered. |
-| Password recovery entry | Desktop browser | Pass | Selecting **Forgot password?** displayed the instruction to enter an email address before continuing. No recovery message was requested. |
-| Public landing | Phone, 375 × 812 | Pass | The landing rendered as a readable stacked phone layout with visible branding, sign-in action, privacy note, touch-sized calls to action, and no initial-viewport horizontal clipping. |
-| VirgoYT entry | Desktop and phone, 375 × 812 | Pass | `/virgoyt` rendered an unauthenticated sign-in gate that explains the private scope of projects, plans, runner requests, provider metadata, approvals, and audit history. It exposed no tool-execution control. |
-| API health | Public `auth.me` request | Pass | `https://scrimly-seven.vercel.app/api/trpc/auth.me` returned HTTP 200 from the Vercel/Express API handler for an anonymous request, confirming API-first routing remained active. |
-| Runtime monitoring | Vercel, preceding 1 hour | Pass — historical events retained | The grouped report retained 19 legacy MySQL user-upsert timeouts from the prior `dpl_2uTrUAckvpBXdaXqqmpRpFFBkxT4` deployment, last seen before the corrected release. The new server code bypasses the legacy mapping on Vercel and retains the managed-host mapping path; focused regression coverage passed. |
-
-The audit deliberately did not submit credentials, request a password-reset email, exercise social OAuth, or perform authenticated user actions. The owner previously confirmed that the email confirmation flow opens the private workspace. Google/GitHub provider enablement and Whisper transcription remain owner-dashboard configuration tasks.
-
-### Confirmed production release — 2026-08-19
-
-GitHub `main` commit `3a36fd1e9c4a0fa1eb1ae66321112005d0377263` reached Vercel `READY` as deployment `dpl_4dR9ZwP96aNNw8qzBRXm1Dd1M569`. The public production domain loaded the Jarvis landing successfully after that release and produced no client-console output during the anonymous smoke check. The local validation for the same release completed TypeScript checking, 123 deterministic tests, and the Vercel production bundle. The remaining Supabase private-data cutover, private Storage, provider enablement, and independent Whisper credential are explicitly owner-controlled follow-ups rather than release defects.

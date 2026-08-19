@@ -15,8 +15,12 @@ vi.mock("./db", () => ({
   getJarvisPreferences: vi.fn(),
 }));
 vi.mock("./_core/llm", () => ({ streamLLM: vi.fn() }));
-vi.mock("./storage", () => ({ storagePut: vi.fn(), storageGetSignedUrl: vi.fn() }));
-vi.mock("./_core/voiceTranscription", () => ({ transcribeAudio: vi.fn() }));
+vi.mock("./openaiTranscription", () => ({
+  transcribeJarvisVoice: vi.fn(),
+  OpenAITranscriptionError: class OpenAITranscriptionError extends Error {
+    constructor(message: string, readonly status: number) { super(message); }
+  },
+}));
 vi.mock("./nemotron", () => ({
   streamNemotronUltra: vi.fn(),
   isNemotronCredentialUnavailable: (error: unknown) => /not configured|\b401\b|\b403\b|unauthorized|forbidden|invalid (api )?key|authorization/i.test(error instanceof Error ? error.message : String(error)),
@@ -24,8 +28,7 @@ vi.mock("./nemotron", () => ({
 
 import * as db from "./db";
 import { sdk } from "./_core/sdk";
-import { storageGetSignedUrl, storagePut } from "./storage";
-import { transcribeAudio } from "./_core/voiceTranscription";
+import { transcribeJarvisVoice } from "./openaiTranscription";
 import { streamLLM } from "./_core/llm";
 import { streamNemotronUltra } from "./nemotron";
 import { registerJarvisStream, registerJarvisVoice } from "./jarvisStream";
@@ -75,7 +78,7 @@ describe("Jarvis authenticated endpoints", () => {
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ error: "Please sign in to use Jarvis voice." });
-    expect(storagePut).not.toHaveBeenCalled();
+    expect(transcribeJarvisVoice).not.toHaveBeenCalled();
   });
 
   it("does not stream messages from another user’s conversation", async () => {
@@ -93,20 +96,17 @@ describe("Jarvis authenticated endpoints", () => {
     expect(db.createJarvisMessage).not.toHaveBeenCalled();
   });
 
-  it("stores valid recorded audio beneath the authenticated user scope before transcription", async () => {
+  it("sends valid recorded audio directly to the server-only transcription provider without persisting it", async () => {
     let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
     const app = { post: vi.fn((_path: string, ...handlers: Array<typeof handler>) => { handler = handlers.at(-1); }) } as unknown as Express;
     registerJarvisVoice(app);
     vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
-    vi.mocked(storagePut).mockResolvedValue({ key: "jarvis/42/voice/command.webm" } as never);
-    vi.mocked(storageGetSignedUrl).mockResolvedValue("https://signed.example/audio" as never);
-    vi.mocked(transcribeAudio).mockResolvedValue({ text: "Create a task", language: "en" } as never);
+    vi.mocked(transcribeJarvisVoice).mockResolvedValue({ text: "Create a task", language: "en" } as never);
     const res = responseRecorder();
 
     await handler!({ body: Buffer.from("voice-data"), headers: { "content-type": "audio/webm" } } as unknown as Request, res as unknown as Response);
 
-    expect(storagePut).toHaveBeenCalledWith(expect.stringMatching(/^jarvis\/42\/voice\/command-\d+\.webm$/), expect.any(Buffer), "audio/webm");
-    expect(transcribeAudio).toHaveBeenCalledWith(expect.objectContaining({ audioUrl: "https://signed.example/audio" }));
+    expect(transcribeJarvisVoice).toHaveBeenCalledWith(expect.any(Buffer), "audio/webm");
     expect(res.json).toHaveBeenCalledWith({ text: "Create a task", language: "en" });
   });
 
@@ -134,25 +134,6 @@ describe("Jarvis authenticated endpoints", () => {
     expect(res.writes.join("")).toContain('"text":"Fallback response"');
     expect(res.writes.join("")).toContain('"provider":"managed-fallback"');
     expect(db.createJarvisMessage).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, conversationId: 12, content: "Fallback response" }));
-  });
-
-  it("streams an authenticated ephemeral reply when the legacy conversation store is unavailable", async () => {
-    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
-    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
-    registerJarvisStream(app);
-    vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
-    vi.mocked(db.createJarvisConversation).mockRejectedValue(new Error("Jarvis data storage is unavailable"));
-    vi.mocked(streamNemotronUltra).mockResolvedValue(new Response(
-      'data: {"choices":[{"delta":{"content":"Ephemeral private reply"}}]}\n\ndata: [DONE]\n\n',
-      { status: 200, headers: { "Content-Type": "text/event-stream" } },
-    ));
-    const res = responseRecorder();
-
-    await handler!({ body: { content: "Give me a status update", agent: "general" } } as Request, res as unknown as Response);
-
-    expect(res.writes.join("")).toContain('"session":"ephemeral"');
-    expect(res.writes.join("")).toContain('"text":"Ephemeral private reply"');
-    expect(res.writes.join("")).not.toContain("Jarvis could not complete that response");
   });
 
   it("honors a validated persisted model preference while retaining Nemotron as the default path", async () => {

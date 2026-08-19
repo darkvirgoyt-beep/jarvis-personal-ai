@@ -5,8 +5,7 @@ import { streamLLM } from "./_core/llm";
 import { isNemotronCredentialUnavailable, streamNemotronUltra } from "./nemotron";
 import { isAlternateJarvisModel } from "../shared/jarvisModels";
 import { authenticateJarvisRequest, type AuthenticatedUser } from "./_core/authentication";
-import { transcribeAudio } from "./_core/voiceTranscription";
-import { storageGetSignedUrl, storagePut } from "./storage";
+import { OpenAITranscriptionError, transcribeJarvisVoice } from "./openaiTranscription";
 import { agentInstructions, extractMemoryCommand, extractTaskCommand, requiresExplicitConfirmation } from "./jarvisPolicies";
 import { buildJarvisBasicFallback } from "./jarvisBasicFallback";
 
@@ -41,14 +40,6 @@ function extractHttpsSources(content: string) {
   })));
 }
 
-function logPersistenceFallback(operation: string, error: unknown) {
-  const detail = error instanceof Error ? error.message : String(error);
-  // The Vercel runtime can authenticate through Supabase while the staged
-  // legacy MySQL store is unavailable. Keep the detail on the server and let
-  // Jarvis provide a non-persistent response rather than a generic failure.
-  console.warn(`[Jarvis] ${operation} unavailable; using an ephemeral response session.`, detail);
-}
-
 async function sendStaticCompletion(res: Response, content: string, state: { closed: boolean }) {
   if (!state.closed) writeEvent(res, "delta", { text: content });
   if (!state.closed) writeEvent(res, "done", {});
@@ -80,94 +71,51 @@ export function registerJarvisStream(app: Express) {
     try {
       const input = streamInputSchema.parse(req.body);
       let conversationId = input.conversationId;
-      let persistenceAvailable = true;
       if (conversationId) {
-        try {
-          const conversation = await db.getJarvisConversation(user.id, conversationId);
-          if (!conversation) {
-            writeEvent(res, "error", { message: "Jarvis conversation not found." });
-            finished = true;
-            return res.end();
-          }
-        } catch (error) {
-          // Do not trust a persisted conversation identifier that could not be
-          // ownership-checked. Safely start a new ephemeral session instead.
-          logPersistenceFallback("Conversation lookup", error);
-          conversationId = undefined;
-          persistenceAvailable = false;
+        const conversation = await db.getJarvisConversation(user.id, conversationId);
+        if (!conversation) {
+          writeEvent(res, "error", { message: "Jarvis conversation not found." });
+          finished = true;
+          return res.end();
         }
       } else {
-        try {
-          const conversation = await db.createJarvisConversation(user.id, conversationTitle(input.content), input.agent);
-          conversationId = conversation?.id;
-          if (!conversationId) throw new Error("Conversation storage returned no identifier");
-        } catch (error) {
-          logPersistenceFallback("Conversation storage", error);
-          persistenceAvailable = false;
-        }
+        const conversation = await db.createJarvisConversation(user.id, conversationTitle(input.content), input.agent);
+        conversationId = conversation?.id;
       }
 
-      if (persistenceAvailable && !conversationId) throw new Error("Jarvis could not initialize a conversation");
-      if (persistenceAvailable && conversationId) {
-        try {
-          await db.createJarvisMessage({ userId: user.id, conversationId, role: "user", content: input.content, agent: input.agent });
-          writeEvent(res, "meta", { conversationId, agent: input.agent });
-        } catch (error) {
-          logPersistenceFallback("Initial message storage", error);
-          persistenceAvailable = false;
-          conversationId = undefined;
-        }
-      }
-      if (!persistenceAvailable) {
-        writeEvent(res, "meta", { agent: input.agent, session: "ephemeral", persistence: "unavailable" });
-      }
+      if (!conversationId) throw new Error("Jarvis could not initialize a conversation");
+      await db.createJarvisMessage({ userId: user.id, conversationId, role: "user", content: input.content, agent: input.agent });
+      writeEvent(res, "meta", { conversationId, agent: input.agent });
 
       const pendingTask = extractTaskCommand(input.content);
-      if (pendingTask && persistenceAvailable) {
+      if (pendingTask) {
         await db.createJarvisTask({ userId: user.id, title: pendingTask, priority: "medium" });
       }
       const pendingMemory = extractMemoryCommand(input.content);
-      if (pendingMemory && persistenceAvailable) {
+      if (pendingMemory) {
         await db.createJarvisMemory({ userId: user.id, content: pendingMemory, category: "note", source: "conversation" });
       }
 
       if (requiresExplicitConfirmation(input.content)) {
-        const confirmation = persistenceAvailable
-          ? await db.createJarvisConfirmation({
-              userId: user.id,
-              action: "Review requested high-impact operation",
-              riskLevel: "high",
-              payload: JSON.stringify({ requestedCommand: input.content, agent: input.agent }),
-            })
-          : undefined;
+        const confirmation = await db.createJarvisConfirmation({
+          userId: user.id,
+          action: "Review requested high-impact operation",
+          riskLevel: "high",
+          payload: JSON.stringify({ requestedCommand: input.content, agent: input.agent }),
+        });
         const response = "I created a review gate for that operation. Jarvis will not perform destructive or external actions without your explicit approval, and no external tool is connected or executed at this stage.";
         await sendStaticCompletion(res, response, { closed });
-        if (persistenceAvailable && conversationId) {
-          await db.createJarvisMessage({ userId: user.id, conversationId, role: "assistant", content: response, agent: input.agent });
-        }
-        writeEvent(res, "confirmation", { id: confirmation?.id ?? null, status: "pending", persistence: persistenceAvailable ? "stored" : "ephemeral" });
+        await db.createJarvisMessage({ userId: user.id, conversationId, role: "assistant", content: response, agent: input.agent });
+        writeEvent(res, "confirmation", { id: confirmation?.id, status: "pending" });
         finished = true;
         return res.end();
       }
 
-      let history: Awaited<ReturnType<typeof db.listJarvisMessages>> = [];
-      let memories: Awaited<ReturnType<typeof db.listJarvisMemories>> = [];
-      let preferences: Awaited<ReturnType<typeof db.getJarvisPreferences>> | undefined;
-      if (persistenceAvailable && conversationId) {
-        try {
-          [history, memories, preferences] = await Promise.all([
-            db.listJarvisMessages(user.id, conversationId),
-            db.listJarvisMemories(user.id),
-            db.getJarvisPreferences(user.id),
-          ]);
-        } catch (error) {
-          logPersistenceFallback("Conversation context", error);
-          persistenceAvailable = false;
-          history = [];
-          memories = [];
-          preferences = undefined;
-        }
-      }
+      const [history, memories, preferences] = await Promise.all([
+        db.listJarvisMessages(user.id, conversationId),
+        db.listJarvisMemories(user.id),
+        db.getJarvisPreferences(user.id),
+      ]);
       const minimalContext = preferences?.privacyMode === "minimal";
       const recentHistory = (minimalContext ? [] : history.slice(-18)).map((message) => ({ role: message.role, content: message.content }));
       const memoryContext = minimalContext ? "Minimal privacy mode is active. Do not include stored memory context." : (memories.slice(0, 8).map((memory) => `- [${memory.category}] ${memory.content}`).join("\n") || "No saved memories.");
@@ -282,7 +230,7 @@ export function registerJarvisStream(app: Express) {
         }
       }
 
-      if (fullResponse.trim() && persistenceAvailable && conversationId) {
+      if (fullResponse.trim()) {
         await db.createJarvisMessage({ userId: user.id, conversationId, role: "assistant", content: fullResponse, agent: input.agent });
         if (input.agent === "research") {
           await db.createJarvisResearchRecord({
@@ -309,13 +257,6 @@ export function registerJarvisStream(app: Express) {
   });
 }
 
-function extensionForMimeType(mimeType: string) {
-  if (mimeType.includes("ogg")) return "ogg";
-  if (mimeType.includes("mp4") || mimeType.includes("m4a")) return "m4a";
-  if (mimeType.includes("wav")) return "wav";
-  return "webm";
-}
-
 export function registerJarvisVoice(app: Express) {
   app.post("/api/jarvis/transcribe", async (req: Request, res: Response) => {
     let user: AuthenticatedUser;
@@ -332,23 +273,12 @@ export function registerJarvisVoice(app: Express) {
         return res.status(413).json({ error: "Voice commands must be smaller than 16 MB." });
       }
       const mimeType = req.headers["content-type"]?.split(";")[0] || "audio/webm";
-      const stored = await storagePut(
-        `jarvis/${user.id}/voice/command-${Date.now()}.${extensionForMimeType(mimeType)}`,
-        req.body,
-        mimeType,
-      );
-      const audioUrl = await storageGetSignedUrl(stored.key);
-      const result = await transcribeAudio({
-        audioUrl,
-        prompt: "Transcribe the user's spoken Jarvis command accurately. Preserve names, commands, and technical terms where possible.",
-      });
-      if ("error" in result) {
-        return res.status(422).json({ error: result.error });
-      }
+      const result = await transcribeJarvisVoice(req.body, mimeType);
       return res.json({ text: result.text.trim(), language: result.language ?? null });
     } catch (error) {
       console.error("[Jarvis voice] Transcription failed", error);
-      return res.status(500).json({ error: "Jarvis could not transcribe that voice command." });
+      const status = error instanceof OpenAITranscriptionError ? error.status : 500;
+      return res.status(status).json({ error: "Jarvis could not transcribe that voice command." });
     }
   });
 }

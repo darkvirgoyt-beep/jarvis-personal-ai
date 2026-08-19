@@ -25,14 +25,6 @@ function profileName(user: SupabaseUser) {
   return typeof candidate === "string" ? candidate.slice(0, 255) : "Jarvis User";
 }
 
-function shouldUseLegacyLocalProfileMapping() {
-  // The Vercel release uses Supabase for verified identity mapping. Its
-  // historical managed MySQL endpoint is not part of the serverless runtime,
-  // so attempting an upsert there only adds latency and noisy timeout errors.
-  // The existing managed host keeps its local mapping behavior unchanged.
-  return process.env.VERCEL !== "1";
-}
-
 function toLocalUser(record: {
   id: number | string;
   open_id: string;
@@ -69,28 +61,26 @@ async function authenticateSupabaseRequest(req: Request): Promise<AuthenticatedU
   const name = profileName(data.user);
   const email = data.user.email ?? null;
 
-  if (shouldUseLegacyLocalProfileMapping()) {
-    // Preserve the current managed-database runtime when it is configured and
-    // reachable. The UUID lives in `openId`; existing protected procedures
-    // continue to use the mapped numeric user.id for their private data queries.
-    // A configured-but-unreachable local database must not block the staged
-    // Supabase profile mapping, or a verified session would be rejected.
-    const localDb = await db.getDb();
-    if (localDb) {
-      try {
-        await db.upsertUser({
-          openId,
-          name,
-          email,
-          loginMethod: "supabase",
-          lastSignedIn: now,
-        });
-        const localUser = await db.getUserByOpenId(openId);
-        if (localUser) return localUser;
-        console.warn("[Auth] Local database has no mapped profile; falling back to the staged Supabase profile table.");
-      } catch (localDbError) {
-        console.warn("[Auth] Local database mapping unavailable; using the staged Supabase profile table:", localDbError);
-      }
+  // Preserve the current managed-database runtime when it is configured and
+  // reachable. The UUID lives in `openId`; existing protected procedures
+  // continue to use the mapped numeric user.id for their private data queries.
+  // A configured-but-unreachable local database must not block the staged
+  // Supabase profile mapping, or a verified session would be rejected.
+  const localDb = await db.getDb();
+  if (localDb) {
+    try {
+      await db.upsertUser({
+        openId,
+        name,
+        email,
+        loginMethod: "supabase",
+        lastSignedIn: now,
+      });
+      const localUser = await db.getUserByOpenId(openId);
+      if (localUser) return localUser;
+      console.warn("[Auth] Local database has no mapped profile; falling back to the staged Supabase profile table.");
+    } catch (localDbError) {
+      console.warn("[Auth] Local database mapping unavailable; using the staged Supabase profile table:", localDbError);
     }
   }
 

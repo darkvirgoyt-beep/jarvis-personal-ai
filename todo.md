@@ -126,7 +126,7 @@
 - [x] Validate the public hosting URL, responsive layouts, privacy controls, and repository synchronization before delivery.
 - [x] Restore the missing durable mobile-pairing database helper export so the authenticated server starts cleanly and the Android pairing route remains available.
 - [x] Add explicit deny-by-default RLS policies for anon and authenticated Supabase API roles, and revoke public execution of the unrelated RLS helper before treating the cloud schema as security-hardened.
-- [ ] Owner action required: Switch the live Jarvis private-data runtime from the managed database to Supabase and migrate records only after explicit approval of the cutover plan.
+- [ ] Switch the live Jarvis runtime from the managed database to Supabase and migrate private records only after the owner supplies server-only Supabase credentials and explicitly approves the cutover plan.
 - [x] Remove the duplicate mobile-pairing database-helper exports, restart the server, and confirm the runtime bundle starts without the TransformError.
 - [x] Investigate and correct the reported public Jarvis deployment failure, including verification that the public URL loads successfully.
 - [x] Evaluate and, where technically compatible with the full-stack authenticated Jarvis runtime, provide a GitHub Pages public entry URL without falsely presenting Pages as a replacement for the server-backed assistant.
@@ -137,12 +137,12 @@
 - [x] Make the active browser-based private workspace and Builder access clear, and label the optional persistent Cloud Computer as unconnected until an owner-approved provider is configured.
 - [x] Replace the GitHub Pages launch-only gateway with a GitHub-linked, server-capable deployment path for the complete Jarvis application, after the owner chooses and authorizes an external backend host.
 - [x] Document the public-hosting branding boundary and avoid representing GitHub Pages or the current managed host as capable of hiding provider-enforced branding or replacing a server-backed architecture.
-- [x] Deploy the server-backed Jarvis application on the owner-authorized Vercel project, retaining configured OAuth and model credentials as server-only environment configuration; the complete private-data cutover remains tracked separately.
+- [ ] Prepare and deploy the full server-backed Jarvis application on an owner-authorized Vercel project, with all database, OAuth, and model credentials retained as server-only environment configuration.
 - [x] Verify the public Vercel deployment preserves Jarvis branding without adding platform branding to the Jarvis interface, while accurately disclosing any provider-owned domain in the URL.
 - [x] Correct the Vercel serverless function bundle so the API handler’s application module is included and `/api/*` routes do not fail with `ERR_MODULE_NOT_FOUND`.
-- [ ] Owner action required: Replace the remaining managed-platform-only private-data, object-storage, and transcription dependencies with approved Vercel-compatible services before representing the Vercel site as a fully independent Jarvis deployment.
-- [ ] Owner action required: Complete the approved Supabase private-data cutover and private Storage configuration for the Vercel Jarvis domain. Supabase Auth and `jarvis_users` profile mapping are already configured.
-- [ ] Owner action required: Add an independent Whisper-compatible transcription credential in Vercel. The server-only OpenRouter credential is configured for the Jarvis response path.
+- [ ] Replace managed-platform-only runtime dependencies with owner-approved Vercel-compatible authentication, database, object storage, voice transcription, and model-provider services before representing the Vercel site as a fully independent Jarvis deployment.
+- [ ] Configure Supabase Auth, PostgreSQL, and private Storage for the Vercel Jarvis domain using server-only Supabase credentials and an owner-approved private-data cutover.
+- [ ] Configure a valid server-only OpenRouter credential and independent Whisper-compatible transcription credential in Vercel before enabling real Jarvis AI and voice responses on the Vercel domain.
 - [x] Disable or appropriately scope Vercel SSO deployment protection after the owner explicitly approves unauthenticated public access to the Vercel URL.
 - [x] Update the stale stream fallback assertion to match the corrected workspace-assistance wording and restore the full deterministic test suite.
 - [x] Diagnose and replace the managed-host-only sign-in path so Vercel visitors can authenticate through the approved Supabase Auth flow.
@@ -154,9 +154,9 @@
 - [x] Improve email/password validation, account-exists feedback, and provider-configuration guidance so Jarvis never leaves an owner guessing why a sign-in action failed.
 - [x] Add a secure Supabase password-reset request and new-password completion flow that uses the production Vercel return URL without revealing existing passwords.
 - [x] Diagnose and fix the Vercel post-confirmation session handoff so a verified Supabase user opens their private Jarvis workspace rather than returning to the sign-in dialog.
-- [x] Provide the owner-safe Google and GitHub OAuth provider activation procedure after the core email session is verified end-to-end.
+- [ ] Provide the owner-safe Google and GitHub OAuth provider activation procedure after the core email session is verified end-to-end.
 - [x] Trace the remaining Vercel production sign-in loop against current credential scopes and authenticated API responses, then correct the specific failing handoff.
-- [x] Audit the live landing, sign-in, recovery, workspace, and API health journeys on desktop and phone layouts; record only reproducible defects.
+- [ ] Audit the live landing, sign-in, recovery, workspace, and API health journeys on desktop and phone layouts; record only reproducible defects.
 - [x] Improve mobile authentication usability, loading feedback, and actionable error states without disclosing private account information.
 - [x] Document the supported assistant capabilities and the safety boundaries for browser actions, credentials, external actions, and virtual-computer claims.
 - [x] Synchronize an existing Supabase session on application startup and after confirmation/recovery callbacks so the workspace does not remain cached as unauthenticated.
@@ -165,12 +165,8 @@
 - [x] Define and document the VirgoYT AI Agent architecture, phased delivery boundaries, and explicit trust model for user-owned workspaces.
 - [x] Add a user-scoped agent control plane for projects, agent runs, plans, tool proposals, approvals, audit events, and provider settings metadata.
 - [x] Build a VirgoYT agent workspace with Chat, Projects, Files, Terminal, Agents, and Settings areas, including real-time plan/progress presentation.
-- [x] Add server-side provider routing boundaries for OpenRouter, compatible endpoints, NVIDIA NIM, and an optional local-model bridge without exposing credentials to the browser.
-- [x] Implement approval-gated contracts for file changes, command execution, browser destinations, Git operations, and deployment proposals; never silently perform destructive or credentialed actions.
-- [x] Create a portable local CLI foundation and documented Docker-capable remote workspace adapter plan for Windows, macOS, Linux, and Termux.
-- [x] Add agent-platform unit coverage, responsive workflow checks, architecture documentation, and a deployment verification record.
-- [x] Diagnose and repair the Vercel Jarvis chat response path so configured server-side model access produces a user-visible reply instead of the generic completion failure.
-- [x] Clarify Jarvis as the assistant and VirgoYT as its private Agent Workspace, without introducing a platform watermark or obscuring the main chat experience.
-- [x] Verify the latest GitHub `main` release deploys to the public Vercel domain and document the Manus URL as development preview only.
-- [x] Resolve the reproducible development-server module-resolution failure for the VirgoYT provider-routing import, then validate the server starts cleanly.
-- [x] Prevent the Vercel Supabase authentication path from repeatedly attempting an unreachable legacy MySQL user upsert, while retaining safe cloud-profile fallback behavior.
+- [ ] Add server-side provider routing boundaries for OpenRouter, compatible endpoints, NVIDIA NIM, and an optional local-model bridge without exposing credentials to the browser.
+- [ ] Implement approval-gated contracts for file changes, command execution, browser destinations, Git operations, and deployment proposals; never silently perform destructive or credentialed actions.
+- [ ] Create a portable local CLI foundation and documented Docker-capable remote workspace adapter plan for Windows, macOS, Linux, and Termux.
+- [ ] Add agent-platform unit coverage, responsive workflow checks, architecture documentation, and a deployment verification record.
+- [ ] Route the Vercel `/api/jarvis/transcribe` endpoint through the validated server-only `OPENAI_API_KEY` rather than the managed-platform transcription helper, while preserving authentication and file-size safeguards.

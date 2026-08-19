@@ -95,44 +95,6 @@ describe("authenticateJarvisRequest", () => {
     expect(result).toMatchObject({ id: 74, openId: "c2d5bdb5-a283-4c1f-ab01-5b1ad66d7ee5" });
   });
 
-  it("skips legacy MySQL mapping for a verified Supabase session on Vercel", async () => {
-    vi.stubEnv("SUPABASE_URL", "https://jarvis-auth.example.supabase.co");
-    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "server-only-role-key");
-    vi.stubEnv("VERCEL", "1");
-    const getUser = vi.fn().mockResolvedValue({
-      data: { user: { id: "c2d5bdb5-a283-4c1f-ab01-5b1ad66d7ee5", email: "jarvis@example.com", user_metadata: {} } },
-      error: null,
-    });
-    const single = vi.fn().mockResolvedValue({
-      data: {
-        id: 75,
-        open_id: "c2d5bdb5-a283-4c1f-ab01-5b1ad66d7ee5",
-        name: "jarvis",
-        email: "jarvis@example.com",
-        login_method: "supabase",
-        role: "user",
-        created_at: now,
-        updated_at: now,
-        last_signed_in: now,
-      },
-      error: null,
-    });
-    const select = vi.fn().mockReturnValue({ single });
-    const from = vi.fn().mockReturnValue({ upsert: vi.fn().mockReturnValue({ select }) });
-    const getDb = vi.fn().mockResolvedValue({ legacy: true });
-
-    vi.doMock("@supabase/supabase-js", () => ({ createClient: vi.fn(() => ({ auth: { getUser }, from })) }));
-    vi.doMock("./_core/sdk", () => ({ sdk: { authenticateRequest: vi.fn().mockRejectedValue(new Error("Invalid session cookie")) } }));
-    vi.doMock("./db", () => ({ getDb, upsertUser: vi.fn(), getUserByOpenId: vi.fn() }));
-
-    const { authenticateJarvisRequest } = await import("./_core/authentication");
-    await expect(authenticateJarvisRequest({ header: vi.fn().mockReturnValue("Bearer verified-access-token") } as unknown as Request))
-      .resolves.toMatchObject({ id: 75, openId: "c2d5bdb5-a283-4c1f-ab01-5b1ad66d7ee5" });
-
-    expect(getDb).not.toHaveBeenCalled();
-    expect(from).toHaveBeenCalledWith("jarvis_users");
-  });
-
   it("preserves a valid managed OAuth session without consulting Supabase", async () => {
     vi.stubEnv("SUPABASE_URL", "https://jarvis-auth.example.supabase.co");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "server-only-role-key");

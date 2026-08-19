@@ -13,7 +13,6 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
-      <Route path={"/virgoyt"} component={VirgoYTAgent} />
       <Route path={"/agent"} component={VirgoYTAgent} />
       <Route path={"/reset-password"} component={ResetPassword} />
       <Route path={"/404"} component={NotFound} />

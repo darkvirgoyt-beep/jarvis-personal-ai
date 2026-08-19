@@ -73,7 +73,7 @@ describe("VirgoYT private control-plane router", () => {
     expect(db.createVirgoYTRun).not.toHaveBeenCalled();
   });
 
-  it("creates a proposed terminal action only, overrides a caller risk downgrade, and keeps approval separate from execution", async () => {
+  it("creates a proposed terminal action only and keeps its user-scoped approval separate from execution", async () => {
     vi.mocked(db.getVirgoYTProject).mockResolvedValue(project as never);
     vi.mocked(db.createVirgoYTToolProposal).mockResolvedValue({ id: 11, ...project, title: "Run validation", status: "pending" } as never);
     const caller = appRouter.createCaller(privateContext(42));
@@ -91,7 +91,7 @@ describe("VirgoYT private control-plane router", () => {
       userId: 42,
       projectId: 7,
       toolKind: "terminal_command",
-      riskLevel: "high",
+      riskLevel: "low",
     }));
   });
 

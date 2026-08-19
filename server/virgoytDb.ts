@@ -250,15 +250,9 @@ export async function createVirgoYTAuditEvent(input: {
 
 export async function listVirgoYTProviderProfiles(userId: number) {
   const db = await requireDb();
-  const rows = await db.select().from(virgoytProviderProfiles)
+  return db.select().from(virgoytProviderProfiles)
     .where(eq(virgoytProviderProfiles.userId, userId))
     .orderBy(desc(virgoytProviderProfiles.updatedAt));
-  return rows.map(toVirgoYTProviderProfileSummary);
-}
-
-function toVirgoYTProviderProfileSummary(profile: typeof virgoytProviderProfiles.$inferSelect) {
-  const { credentialCiphertext: _credentialCiphertext, ...summary } = profile;
-  return summary;
 }
 
 export async function createVirgoYTProviderProfile(input: {
@@ -267,40 +261,19 @@ export async function createVirgoYTProviderProfile(input: {
   provider: VirgoYTProvider;
   endpoint?: string | null;
   defaultModel?: string | null;
-  credentialCiphertext?: string | null;
-  credentialRef?: string | null;
-  status?: "unconfigured" | "ready" | "disabled" | "error";
 }) {
   const db = await requireDb();
   const result = await db.insert(virgoytProviderProfiles).values({
     ...input,
     endpoint: input.endpoint ?? null,
     defaultModel: input.defaultModel ?? null,
-    credentialCiphertext: input.credentialCiphertext ?? null,
-    credentialRef: input.credentialRef ?? null,
-    status: input.status ?? "unconfigured",
+    credentialRef: null,
+    status: "unconfigured",
   });
   const id = Number(result[0].insertId);
   const rows = await db.select().from(virgoytProviderProfiles)
     .where(and(eq(virgoytProviderProfiles.id, id), eq(virgoytProviderProfiles.userId, input.userId))).limit(1);
-  return rows[0] ? toVirgoYTProviderProfileSummary(rows[0]) : undefined;
-}
-
-export async function updateVirgoYTProviderProfileCredential(input: {
-  userId: number;
-  profileId: number;
-  credentialCiphertext: string | null;
-  credentialRef: string | null;
-  status: "unconfigured" | "ready" | "disabled" | "error";
-}) {
-  const db = await requireDb();
-  const result = await db.update(virgoytProviderProfiles).set({
-    credentialCiphertext: input.credentialCiphertext,
-    credentialRef: input.credentialRef,
-    status: input.status,
-    updatedAt: new Date(),
-  }).where(and(eq(virgoytProviderProfiles.id, input.profileId), eq(virgoytProviderProfiles.userId, input.userId)));
-  return Number(result[0]?.affectedRows ?? 0);
+  return rows[0];
 }
 
 export async function listVirgoYTRunnerConnections(userId: number, projectId: number) {

@@ -20,6 +20,10 @@ export function createJarvisApp() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerJarvisStream(app);
+  app.use(
+    "/api/jarvis/transcribe",
+    express.raw({ type: ["audio/*", "application/octet-stream"], limit: "16mb" }),
+  );
   registerJarvisVoice(app);
   registerJarvisMobilePairing(app);
   app.use(

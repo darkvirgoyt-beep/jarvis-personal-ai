@@ -4,12 +4,6 @@
 
 GitHub Pages currently provides a public static Jarvis launch page only. The complete Jarvis application requires server execution for its authenticated tRPC API, streaming response endpoint, voice transcription route, OAuth callback, database access, and server-only provider credential. The GitHub Pages gateway must therefore not be presented as a full runtime host.
 
-## Current public URLs
-
-The **public production URL** is [https://scrimly-seven.vercel.app](https://scrimly-seven.vercel.app). It is the URL intended for normal user access and is backed by the GitHub `main` branch of `darkvirgoyt-beep/jarvis-personal-ai`.
-
-The managed URL [https://jarvisai-tyjkhyjq.manus.space](https://jarvisai-tyjkhyjq.manus.space) is a **development preview only**. It must not be described as the public Jarvis release and remains useful solely for managed-platform development checks.
-
 ## Verified Vercel direction
 
 The Vercel account connection has an available team named `darkvirgoyt-6238's projects` (`team_IF0dQufUcoq8E5zkCHUMWuQ3`). No existing Jarvis project was found. Vercel supports routing requests to serverless functions and custom route configuration through `vercel.json`; the next implementation step is to extract the current Express application construction from its local port-listening entry point into a request handler that Vercel can invoke.
@@ -22,9 +16,9 @@ The owner also authorized public access to the Vercel URL. Vercel Authentication
 
 The first deployment returned `ERR_MODULE_NOT_FOUND` because the catch-all serverless entry imported local application modules that were not included in the function bundle. The deployment adapter now builds a standalone server artifact, including its ESM-only authentication dependency. The verified production API now reaches the Jarvis Express application: an unknown `/api/test` route returns the application-level `Cannot GET /api/test`, and `/api/trpc` returns the expected tRPC `No procedure found on path` response. Those responses prove routing and application loading rather than a Vercel function import failure.
 
-## Current independent runtime status
+## Remaining independent runtime prerequisites
 
-The Vercel deployment is a verified public client and serverless runtime for the public landing, Supabase email/password authentication, protected request verification, Jarvis streaming, and the private VirgoYT entry gate. It is **not yet a fully independent private-data runtime** because the application’s legacy MySQL data helpers and managed storage adapter have not been completely migrated to owner-approved Supabase services.
+The Vercel deployment is a verified public client and serverless-route shell, but it is **not yet an independent full Jarvis runtime**. The current source still relies on managed-platform services that are not automatically available to a Vercel function. Before real authentication, private storage, voice transcription, and AI responses are enabled on the Vercel domain, the owner must approve and configure independent equivalents.
 
 The approved Supabase target is the active `darkvirgoyt-beep's Project` (`ytqacgefcvjrahyyfmaw`) in `ap-southeast-2`, with public API URL `https://ytqacgefcvjrahyyfmaw.supabase.co`. The previously staged Jarvis schema and deny-by-default RLS policies belong to this owner project. Its database password, service-role key, and any other private credentials are intentionally not recorded in this repository.
 
@@ -32,11 +26,11 @@ The connected project confirms three applied Jarvis migrations: `jarvis_private_
 
 | Capability | Required Vercel-compatible configuration | Current state |
 | --- | --- | --- |
-| User authentication | Supabase Auth with the stable Vercel return URL | Email/password authentication is confirmed. Google and GitHub buttons are implemented but require owner activation of those providers in Supabase. |
-| Private database | Owner Supabase PostgreSQL connection and an approved migration/cutover | `jarvis_users` profile mapping is active for Vercel sessions. Migration of legacy private application records remains owner-approved work. |
+| User authentication | An independent OAuth/OIDC provider plus Vercel callback URL | Not configured; the current Manus OAuth callback cannot be assumed to cover the Vercel domain. |
+| Private database | Owner Supabase PostgreSQL connection and an approved migration/cutover | Schema is staged with RLS; credentials and data-cutover approval are pending. |
 | Object storage | S3-compatible bucket credentials and a server-side storage adapter | Not configured; current storage proxy is managed-platform-only. |
 | Voice transcription | Independent Whisper-compatible provider key and server-side endpoint | Not configured; current transcription helper is managed-platform-only. |
-| AI responses | A valid server-only `OPENROUTER_API_KEY` | Configured on Vercel. The stream route preserves an authenticated ephemeral-session fallback when the legacy conversation database is unavailable. |
+| AI responses | A valid server-only `OPENROUTER_API_KEY` (the present key was rejected by the provider) | Requires a replacement key. |
 
 No database URLs, service-role keys, storage secrets, or provider keys are committed to the public repository. They must be entered in the Vercel project environment settings only after the owner selects the providers and approves the credentials.
 
@@ -61,10 +55,6 @@ The deployment generated from commit `0776caa` is live and the deployed `auth.me
 The follow-up code repair makes all Supabase return paths converge on the same browser state. On application startup, Jarvis now reads any existing local Supabase session before relying on the event subscription, so a confirmation or recovery event that completed before React mounted cannot leave `auth.me` cached as anonymous. The email sign-up flow now uses the same `/?auth=complete` Vercel-safe callback contract as provider OAuth and recovery. That callback closes the dialog, refreshes the user query, and removes the marker from the address bar.
 
 The global API error handler now sends an unauthenticated Vercel visitor to the in-app Jarvis dialog rather than initiating managed-host OAuth. Password reset refreshes the authenticated query and replaces the recovery URL with `/` after a successful password update. TypeScript, 95 deterministic tests, and the Vercel production build pass for this repair. The only remaining end-to-end verification is an owner-controlled sign-in/confirmation run on the new Vercel deployment; no user credential or confirmation link is fabricated for testing.
-
-## Vercel Supabase profile mapping refinement
-
-Production monitoring on 19 August 2026 found that verified Supabase sessions were unnecessarily attempting a legacy MySQL `users` upsert on Vercel. That endpoint is not part of the serverless deployment, causing connection timeouts before the existing Supabase `jarvis_users` fallback ran. The next release bypasses the legacy mapping only when `VERCEL=1`, preserving the managed-host behavior while mapping verified Vercel sessions directly to the staged Supabase profile table. The change has focused regression coverage; a post-release runtime check is required to confirm that the old timeout cluster no longer receives events.
 
 ## References
 

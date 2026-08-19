@@ -4,14 +4,11 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../virgoytDb";
 import { getVirgoYTProviderRoutingSummary, isCredentialFreeProviderEndpoint } from "../virgoytProviderRouting";
-import { encryptVirgoYTProviderCredential, isVirgoYTCredentialVaultConfigured } from "../virgoytCredentialVault";
-import { getVirgoYTToolContract, listVirgoYTToolContracts } from "../virgoytToolContracts";
 
 const agentSchema = z.enum(db.VIRGOYT_AGENT_VALUES);
 const providerSchema = z.enum(db.VIRGOYT_PROVIDER_VALUES);
 const toolKindSchema = z.enum(db.VIRGOYT_TOOL_KIND_VALUES);
 const projectIdSchema = z.number().int().positive();
-const providerKeySchema = z.string().trim().min(16).max(4_000);
 const providerEndpointSchema = z.string().url().max(500).refine((value) => {
   return isCredentialFreeProviderEndpoint(value);
 }, "Provider endpoints cannot contain credentials. Configure credentials separately.");
@@ -42,8 +39,7 @@ export const virgoytRouter = router({
       { id: "security", name: "Security", description: "Flags trust and approval boundaries." },
       { id: "devops", name: "DevOps", description: "Prepares safe build and deployment proposals." },
     ],
-    toolPolicy: "All write, terminal, browser, Git, deployment, and runner actions are proposals until explicitly approved and redeemed by a paired runner.",
-    toolContracts: listVirgoYTToolContracts(),
+    toolPolicy: "All write, terminal, browser, Git, deployment, and runner actions are proposals until explicitly approved.",
   })),
 
   projects: router({
@@ -141,25 +137,24 @@ export const virgoytRouter = router({
       projectId: projectIdSchema,
       runId: z.number().int().positive().nullable().optional(),
       toolKind: toolKindSchema,
-      riskLevel: z.enum(["low", "medium", "high"]).optional(),
+      riskLevel: z.enum(["low", "medium", "high"]).default("medium"),
       title: z.string().trim().min(3).max(240),
       details: z.string().trim().min(3).max(12_000),
     })).mutation(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
       if (input.runId) await requireRun(ctx.user.id, input.projectId, input.runId);
-      const contract = getVirgoYTToolContract(input.toolKind);
       const proposal = await db.createVirgoYTToolProposal({
         userId: ctx.user.id,
         projectId: input.projectId,
         runId: input.runId,
         toolKind: input.toolKind,
-        riskLevel: contract.riskLevel,
+        riskLevel: input.riskLevel,
         title: input.title,
         details: input.details,
         expiresAt: new Date(Date.now() + 15 * 60_000),
       });
       if (!proposal) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "VirgoYT tool proposal could not be created" });
-      await db.createVirgoYTAuditEvent({ userId: ctx.user.id, projectId: input.projectId, runId: input.runId, proposalId: proposal.id, eventKind: "proposal.created", details: `${contract.kind}:${proposal.title}` });
+      await db.createVirgoYTAuditEvent({ userId: ctx.user.id, projectId: input.projectId, runId: input.runId, proposalId: proposal.id, eventKind: "proposal.created", details: proposal.title });
       return proposal;
     }),
     resolve: protectedProcedure.input(z.object({
@@ -205,38 +200,12 @@ export const virgoytRouter = router({
       provider: providerSchema,
       endpoint: providerEndpointSchema.nullable().optional(),
       defaultModel: z.string().trim().max(160).nullable().optional(),
-      apiKey: providerKeySchema.optional(),
     })).mutation(async ({ ctx, input }) => {
-      const credential = input.apiKey ? encryptVirgoYTProviderCredential(input.apiKey) : null;
-      const profile = await db.createVirgoYTProviderProfile({
-        userId: ctx.user.id,
-        label: input.label,
-        provider: input.provider,
-        endpoint: input.endpoint,
-        defaultModel: input.defaultModel,
-        credentialCiphertext: credential?.envelope ?? null,
-        credentialRef: credential?.credentialRef ?? null,
-        status: credential ? "ready" : "unconfigured",
-      });
+      const profile = await db.createVirgoYTProviderProfile({ userId: ctx.user.id, ...input });
       if (!profile) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "VirgoYT provider profile could not be created" });
-      await db.createVirgoYTAuditEvent({ userId: ctx.user.id, eventKind: credential ? "provider.profile_configured" : "provider.profile_created", details: `${input.provider}:${input.label}` });
+      await db.createVirgoYTAuditEvent({ userId: ctx.user.id, eventKind: "provider.profile_created", details: `${input.provider}:${input.label}` });
       return profile;
     }),
-    configureCredential: protectedProcedure.input(z.object({ profileId: z.number().int().positive(), apiKey: providerKeySchema })).mutation(async ({ ctx, input }) => {
-      if (!isVirgoYTCredentialVaultConfigured()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "VirgoYT credential vault is not configured for this deployment" });
-      const credential = encryptVirgoYTProviderCredential(input.apiKey);
-      const updated = await db.updateVirgoYTProviderProfileCredential({
-        userId: ctx.user.id,
-        profileId: input.profileId,
-        credentialCiphertext: credential.envelope,
-        credentialRef: credential.credentialRef,
-        status: "ready",
-      });
-      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "VirgoYT provider profile not found" });
-      await db.createVirgoYTAuditEvent({ userId: ctx.user.id, eventKind: "provider.credential_configured", details: `profile:${input.profileId}` });
-      return { success: true } as const;
-    }),
-    credentialVault: protectedProcedure.query(() => ({ configured: isVirgoYTCredentialVaultConfigured() })),
   }),
 
   runners: router({
