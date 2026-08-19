@@ -133,6 +133,147 @@ export const jarvisMobilePairings = mysqlTable("jarvisMobilePairings", {
   index("jarvisMobilePairingExpiryIdx").on(table.expiresAt),
 ]);
 
+/**
+ * VirgoYT control-plane tables intentionally contain plans, approvals, metadata,
+ * and audit records—not arbitrary runner secrets or unbounded command output.
+ * A future execution adapter must remain a separately isolated component.
+ */
+export const virgoytAgentProjects = mysqlTable("virgoytAgentProjects", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 160 }).notNull(),
+  slug: varchar("slug", { length: 120 }).notNull(),
+  description: text("description"),
+  status: mysqlEnum("status", ["active", "archived"]).notNull().default("active"),
+  defaultAgent: mysqlEnum("defaultAgent", ["coding", "research", "ui", "security", "devops"]).notNull().default("coding"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("virgoytProjectUserSlugUnique").on(table.userId, table.slug),
+  index("virgoytProjectUserUpdatedIdx").on(table.userId, table.updatedAt),
+]);
+
+export const virgoytAgentRuns = mysqlTable("virgoytAgentRuns", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  conversationId: int("conversationId"),
+  agent: mysqlEnum("agent", ["coding", "research", "ui", "security", "devops"]).notNull(),
+  provider: mysqlEnum("provider", ["openrouter", "compatible", "nvidia_nim", "local_bridge"]).notNull().default("openrouter"),
+  modelId: varchar("modelId", { length: 160 }).notNull().default("nvidia/nemotron-3-ultra-550b-a55b"),
+  status: mysqlEnum("status", ["queued", "planning", "waiting_approval", "running", "succeeded", "failed", "cancelled", "blocked"]).notNull().default("queued"),
+  requestSummary: text("requestSummary").notNull(),
+  outputSummary: text("outputSummary"),
+  failureReason: varchar("failureReason", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("virgoytRunUserCreatedIdx").on(table.userId, table.createdAt),
+  index("virgoytRunProjectStatusIdx").on(table.projectId, table.status, table.updatedAt),
+]);
+
+export const virgoytAgentPlanSteps = mysqlTable("virgoytAgentPlanSteps", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  runId: int("runId").notNull(),
+  stepOrder: int("stepOrder").notNull(),
+  title: varchar("title", { length: 240 }).notNull(),
+  description: text("description"),
+  assignedAgent: mysqlEnum("assignedAgent", ["coding", "research", "ui", "security", "devops"]).notNull(),
+  status: mysqlEnum("status", ["pending", "in_progress", "blocked", "complete", "skipped"]).notNull().default("pending"),
+  requiresApproval: int("requiresApproval").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("virgoytPlanStepOrderUnique").on(table.runId, table.stepOrder),
+  index("virgoytPlanStepProjectStatusIdx").on(table.projectId, table.status, table.stepOrder),
+]);
+
+export const virgoytToolProposals = mysqlTable("virgoytToolProposals", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  runId: int("runId"),
+  toolKind: mysqlEnum("toolKind", ["file_write", "file_delete", "terminal_command", "browser_navigate", "git_operation", "deployment", "runner_connect"]).notNull(),
+  riskLevel: mysqlEnum("riskLevel", ["low", "medium", "high"]).notNull().default("medium"),
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "claimed", "executed", "failed", "expired", "blocked"]).notNull().default("pending"),
+  title: varchar("title", { length: 240 }).notNull(),
+  payloadDigest: varchar("payloadDigest", { length: 128 }).notNull(),
+  payloadJson: text("payloadJson").notNull(),
+  expiresAt: timestamp("expiresAt"),
+  resolvedAt: timestamp("resolvedAt"),
+  executedAt: timestamp("executedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("virgoytProposalUserStatusIdx").on(table.userId, table.status, table.createdAt),
+  index("virgoytProposalProjectStatusIdx").on(table.projectId, table.status, table.updatedAt),
+]);
+
+export const virgoytToolApprovals = mysqlTable("virgoytToolApprovals", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  proposalId: int("proposalId").notNull(),
+  decision: mysqlEnum("decision", ["approved", "rejected"]).notNull(),
+  approvalNonce: varchar("approvalNonce", { length: 96 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  consumedAt: timestamp("consumedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("virgoytApprovalProposalUnique").on(table.proposalId),
+  index("virgoytApprovalUserExpiryIdx").on(table.userId, table.expiresAt),
+]);
+
+export const virgoytAgentAuditEvents = mysqlTable("virgoytAgentAuditEvents", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId"),
+  runId: int("runId"),
+  proposalId: int("proposalId"),
+  eventKind: varchar("eventKind", { length: 96 }).notNull(),
+  detailsJson: text("detailsJson").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("virgoytAuditUserCreatedIdx").on(table.userId, table.createdAt),
+  index("virgoytAuditProjectCreatedIdx").on(table.projectId, table.createdAt),
+]);
+
+export const virgoytProviderProfiles = mysqlTable("virgoytProviderProfiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  label: varchar("label", { length: 100 }).notNull(),
+  provider: mysqlEnum("provider", ["openrouter", "compatible", "nvidia_nim", "local_bridge"]).notNull(),
+  endpoint: varchar("endpoint", { length: 500 }),
+  defaultModel: varchar("defaultModel", { length: 160 }),
+  credentialRef: varchar("credentialRef", { length: 160 }),
+  credentialCiphertext: text("credentialCiphertext"),
+  status: mysqlEnum("status", ["unconfigured", "ready", "disabled", "error"]).notNull().default("unconfigured"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("virgoytProviderUserLabelUnique").on(table.userId, table.label),
+  index("virgoytProviderUserStatusIdx").on(table.userId, table.status),
+]);
+
+export const virgoytRunnerConnections = mysqlTable("virgoytRunnerConnections", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId"),
+  displayName: varchar("displayName", { length: 160 }).notNull(),
+  runnerType: mysqlEnum("runnerType", ["local_cli", "remote_isolated"]).notNull(),
+  status: mysqlEnum("status", ["pending", "paired", "active", "revoked"]).notNull().default("pending"),
+  publicKeyFingerprint: varchar("publicKeyFingerprint", { length: 128 }),
+  lastSeenAt: timestamp("lastSeenAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("virgoytRunnerUserStatusIdx").on(table.userId, table.status, table.updatedAt),
+  index("virgoytRunnerProjectIdx").on(table.projectId),
+]);
+
 export type JarvisConversation = typeof jarvisConversations.$inferSelect;
 export type JarvisMessage = typeof jarvisMessages.$inferSelect;
 export type JarvisMemory = typeof jarvisMemories.$inferSelect;
@@ -142,3 +283,11 @@ export type JarvisPreference = typeof jarvisPreferences.$inferSelect;
 export type JarvisConfirmation = typeof jarvisConfirmations.$inferSelect;
 export type JarvisWorkspaceItem = typeof jarvisWorkspaceItems.$inferSelect;
 export type JarvisMobilePairing = typeof jarvisMobilePairings.$inferSelect;
+export type VirgoYTAgentProject = typeof virgoytAgentProjects.$inferSelect;
+export type VirgoYTAgentRun = typeof virgoytAgentRuns.$inferSelect;
+export type VirgoYTAgentPlanStep = typeof virgoytAgentPlanSteps.$inferSelect;
+export type VirgoYTToolProposal = typeof virgoytToolProposals.$inferSelect;
+export type VirgoYTToolApproval = typeof virgoytToolApprovals.$inferSelect;
+export type VirgoYTAgentAuditEvent = typeof virgoytAgentAuditEvents.$inferSelect;
+export type VirgoYTProviderProfile = typeof virgoytProviderProfiles.$inferSelect;
+export type VirgoYTRunnerConnection = typeof virgoytRunnerConnections.$inferSelect;

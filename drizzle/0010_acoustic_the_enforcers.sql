@@ -1,0 +1,1 @@
+ALTER TABLE `virgoytProviderProfiles` ADD `credentialCiphertext` text;

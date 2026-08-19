@@ -44,6 +44,13 @@ The production bundle completed after temporarily stopping the local TypeScript/
 
 On 2026-08-18, the restarted local preview at `https://3000-isk91p5nld03zw2horvr0-ccbd7436.sg1.manus.computer/` loaded the public landing and exposed both the header sign-in control and the private-workspace creation entry. That local host intentionally uses the managed OAuth route, which was unavailable to the sandbox browser at the time of inspection; it is therefore not a valid substitute for the independent Vercel Supabase dialog. The mobile dialog is covered by focused jsdom regression tests and will be visually rechecked after the next Vercel deployment.
 
+## VirgoYT local workspace verification — 2026-08-19
+
+| Viewport | Result | Finding |
+| --- | --- | --- |
+| Desktop, 1280 × 720 | Pass | The protected `/virgoyt` route renders the dark command-center layout with the project rail, planning composer, explicit approval-only notice, review queue, and audit trail visible without clipping. |
+| Phone, 375 × 812 | Pass | The workspace reflows into a clear single-column sequence: rail, planner, active run, review queue, and audit trail. The two-column navigation now keeps visible icon-and-text labels for Chat, Projects, Files, Terminal, Agents, and Settings. |
+
 ### Follow-up visual refinement
 
 The public landing already has a coherent private command-center style. Future design refinement should focus on stronger signature branding and more concise capability language, rather than reworking the established visual system.
