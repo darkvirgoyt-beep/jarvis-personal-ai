@@ -136,6 +136,25 @@ describe("Jarvis authenticated endpoints", () => {
     expect(db.createJarvisMessage).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, conversationId: 12, content: "Fallback response" }));
   });
 
+  it("streams an authenticated ephemeral reply when the legacy conversation store is unavailable", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
+    registerJarvisStream(app);
+    vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
+    vi.mocked(db.createJarvisConversation).mockRejectedValue(new Error("Jarvis data storage is unavailable"));
+    vi.mocked(streamNemotronUltra).mockResolvedValue(new Response(
+      'data: {"choices":[{"delta":{"content":"Ephemeral private reply"}}]}\n\ndata: [DONE]\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    const res = responseRecorder();
+
+    await handler!({ body: { content: "Give me a status update", agent: "general" } } as Request, res as unknown as Response);
+
+    expect(res.writes.join("")).toContain('"session":"ephemeral"');
+    expect(res.writes.join("")).toContain('"text":"Ephemeral private reply"');
+    expect(res.writes.join("")).not.toContain("Jarvis could not complete that response");
+  });
+
   it("honors a validated persisted model preference while retaining Nemotron as the default path", async () => {
     let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
     const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;

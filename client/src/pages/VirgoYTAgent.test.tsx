@@ -74,6 +74,8 @@ describe("VirgoYTAgent", () => {
   it("renders the private multi-area workspace and makes tool use approval-first", () => {
     render(<VirgoYTAgent />);
 
+    expect(screen.getByText("JARVIS // VIRGOYT AGENT WORKSPACE")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back to Jarvis chat" })).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "VirgoYT workspace areas" })).toBeTruthy();
     for (const label of ["Chat", "Projects", "Files", "Terminal", "Agents", "Settings"]) {
       expect(screen.getByRole("button", { name: label })).toBeTruthy();

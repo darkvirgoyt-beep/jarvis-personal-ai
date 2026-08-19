@@ -169,3 +169,6 @@
 - [x] Implement approval-gated contracts for file changes, command execution, browser destinations, Git operations, and deployment proposals; never silently perform destructive or credentialed actions.
 - [x] Create a portable local CLI foundation and documented Docker-capable remote workspace adapter plan for Windows, macOS, Linux, and Termux.
 - [x] Add agent-platform unit coverage, responsive workflow checks, architecture documentation, and a deployment verification record.
+- [x] Diagnose and repair the Vercel Jarvis chat response path so configured server-side model access produces a user-visible reply instead of the generic completion failure.
+- [x] Clarify Jarvis as the assistant and VirgoYT as its private Agent Workspace, without introducing a platform watermark or obscuring the main chat experience.
+- [ ] Verify the latest GitHub `main` release deploys to the public Vercel domain and document the Manus URL as development preview only.
