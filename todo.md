@@ -173,12 +173,18 @@
 - [x] Redesign the authenticated Jarvis shell as a polished public-ready professional AI workspace with distinct desktop and phone information architecture, accessible motion, and a single unified command surface.
 - [x] Add a unified multimodal composer with attachable work context, intent modes for writing, research, code, app planning, image requests, data, and calculations, copyable answers, voice replay, and anti-repetition response controls.
 - [x] Add a live progress and reasoning-summary rail that exposes plan steps, artifacts, approvals, and status without revealing private model chain-of-thought or inventing background execution.
-- [ ] Build an artifact workspace for reviewed text, code, data, charts, spreadsheets, documents, and image-generation requests with safe previews, downloads, and approval-gated edits.
+- [x] Build an artifact workspace for reviewed text, code, data, charts, spreadsheets, documents, and image-generation requests with safe previews, downloads, and approval-gated edits.
 - [x] Add review-first application and website project workflows with structured requirements, generated architecture, file-change proposals, preview readiness, and publish/deployment proposals rather than silent builds or releases.
 - [x] Extend the integration and custom-model settings surface with server-only secret boundaries, provider status, GitHub connection proposals, and explicit capability scopes for external services.
 - [x] Add a Jarvis Computer surface that clearly distinguishes the current local proposal-only runner from a future owner-paired remote computer, with visible session state and no hidden browser, terminal, download, or credential actions.
-- [ ] Add source-linked web research, safe external-link proposals, calculation and data-analysis work modes, plus responsive regression coverage for the expanded unified experience.
+- [x] Add source-linked web research, safe external-link proposals, calculation and data-analysis work modes, plus responsive regression coverage for the expanded unified experience.
 - [x] Resolve the development-server startup errors by confirming the VirgoYT provider-routing module and removing any remaining authentication merge markers, then restart and validate the local server.
 - [x] Resolve the development-server startup errors by confirming the VirgoYT provider-routing module and removing any remaining authentication merge markers, then restart and validate the local server.
 - [ ] Prevent the Vercel production bundle from loading development-only JSX diagnostics so it completes reliably within the available build memory.
+- [x] Commit and synchronize the professional Jarvis workspace upgrade to GitHub `main` to trigger the Vercel production deployment.
+- [x] Fix the Vercel production client-rendering regression caused by incompatible manual vendor chunking, then verify the public Jarvis and VirgoYT routes.
+- [x] Expose the documented `/virgoyt` URL as a compatibility alias for the private VirgoYT agent workspace.
 - [x] Keep GitHub `main` as the source of truth and Vercel as the public Jarvis host; document the Manus URL as development preview only for the professional workspace release.
+- [x] Investigate the apparent public Vercel landing-page scale defect; live computed layout measurements confirm full-size desktop geometry, with the small visual originating from a 3840×3300 capture rendered at one-third device-pixel ratio.
+- [x] Verify the reported merge-marker diagnostics against fresh sources; both files are conflict-free and a fresh TypeScript check passes, so the watcher entries were stale historical logs.
+- [x] Make the shared HUD panel compatible with the project’s server-rendered component tests so the research and artifact workspace coverage can run reliably.

@@ -19,4 +19,19 @@ describe("Vercel deployment contract", () => {
     expect(buildSource).toContain('outfile: "api/_jarvis-app.cjs"');
     expect(functionSource).not.toMatch(/listen\s*\(/);
   });
+
+  it("keeps development-only JSX tooling and unsafe manual vendor chunks out of the production client build", () => {
+    const viteSource = readFileSync(resolve(root, "vite.config.ts"), "utf8");
+
+    expect(viteSource).toContain("...(isProductionBuild ? [] : [jsxLocPlugin()])");
+    expect(viteSource).toContain("reportCompressedSize: false");
+    expect(viteSource).not.toContain("manualChunks");
+  });
+
+  it("preserves the documented VirgoYT workspace URL alongside the original agent route", () => {
+    const appSource = readFileSync(resolve(root, "client", "src", "App.tsx"), "utf8");
+
+    expect(appSource).toContain('<Route path={"/agent"} component={VirgoYTAgent} />');
+    expect(appSource).toContain('<Route path={"/virgoyt"} component={VirgoYTAgent} />');
+  });
 });

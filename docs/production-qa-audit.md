@@ -51,3 +51,13 @@ The public landing already has a coherent private command-center style. Future d
 ### Voice-transcription production verification — 2026-08-19
 
 Vercel deployment `dpl_B7AzFeZFzDBuJPusDriJ1U2HqiDR` for GitHub commit `a3f85b261a496d88b6add72ce4b63f5f0b5bea8d` reached `READY`. The production `POST /api/jarvis/transcribe` endpoint returned `401` without an authenticated session, confirming that it rejects anonymous requests before processing audio. The route now parses audio only on this path, forwards authenticated command audio ephemerally through the server-only `OPENAI_API_KEY`, and does not persist recorded commands in managed storage. Live transcription content was not exercised because the audit deliberately did not use an authenticated session or submit audio.
+
+### Professional workspace release — 2026-08-20
+
+GitHub `main` commit `a1a5c6dfe8a6679348855a9fb225496fb08e6388` reached Vercel `READY` as production deployment `dpl_2B5XfjzB22Lh2CeXyqBngdZbFbBU`. A public production smoke check loaded the Jarvis landing successfully at `https://scrimly-seven.vercel.app/`. Computed browser measurements confirmed a 3840×3300 logical viewport and a normal 60px hero heading; the visually compact screenshot was a one-third device-pixel-ratio capture, not a responsive layout regression. GitHub remains the source of truth, Vercel remains the public host, and the Manus domain is development preview only.
+
+### Production rendering and workspace-route verification — 2026-08-20
+
+The professional workspace release initially exposed a blank client root despite a `READY` Vercel deployment. Direct module inspection isolated the cause to the manual vendor chunks: the Lucide chunk evaluated before its React dependency and raised `Cannot read properties of undefined (reading 'forwardRef')`. GitHub commit `ec5c98fbdb4905f7b14240449defd7cca6844a45` removed that unsafe chunk split while retaining the production exclusion of development JSX diagnostics; Vercel deployment `dpl_pVLawZRBJnuzMVUQyJsoyc2Yw8qG` reached `READY`, and the public Jarvis landing then rendered its sign-in, private-workspace, voice, memory, and guarded-build entry points.
+
+The documented VirgoYT address initially returned the SPA 404 because only `/agent` was registered. GitHub commit `5f805162f5638cf34bfbbed83402adf98c66f5f3` added `/virgoyt` as a compatibility alias and reached Vercel `READY` in deployment `dpl_A3dtZWv9rcFAPmonvWFtMLhet13p`. The public route now displays the expected private-agent sign-in boundary and confirms that no tools run from the unauthenticated page. A credential-free `GET /api/trpc/auth.me` returned HTTP 200 with `{"result":{"data":{"json":null}}}`, confirming the Vercel API function is live and the anonymous identity state is safely null.
