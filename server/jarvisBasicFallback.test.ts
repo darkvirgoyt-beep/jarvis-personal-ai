@@ -2,14 +2,16 @@ import { describe, expect, it } from "vitest";
 import { buildJarvisBasicFallback } from "./jarvisBasicFallback";
 
 describe("Jarvis basic fallback", () => {
-  it("clearly identifies provider-unavailable mode while preserving the active Builder and private-workspace boundaries", () => {
+  it("keeps app planning and reviewed deployment proposals available while preserving execution boundaries", () => {
     const response = buildJarvisBasicFallback("Build a private web application with an API", "coding");
 
-    expect(response).toContain("Jarvis workspace assistance mode is active");
-    expect(response).toContain("Your private Builder is still available");
-    expect(response).toContain("active approval-gated private workspace");
+    expect(response).toContain("Jarvis app workspace mode is active");
+    expect(response).toContain("app request is still supported through Builder");
+    expect(response).toContain("implementation and publish proposal for your approval");
+    expect(response).toContain("approval-gated");
     expect(response).toContain("persistent Cloud Computer is not connected");
-    expect(response).toContain("No code, files, migrations, integrations, or deployments were run");
+    expect(response).toContain("No code, files, migrations, integrations, or deployments were run automatically");
+    expect(response).not.toContain("cannot generate a full live code response");
   });
 
   it("does not imply external execution for general requests", () => {

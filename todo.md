@@ -180,7 +180,7 @@
 - [x] Add source-linked web research, safe external-link proposals, calculation and data-analysis work modes, plus responsive regression coverage for the expanded unified experience.
 - [x] Resolve the development-server startup errors by confirming the VirgoYT provider-routing module and removing any remaining authentication merge markers, then restart and validate the local server.
 - [x] Resolve the development-server startup errors by confirming the VirgoYT provider-routing module and removing any remaining authentication merge markers, then restart and validate the local server.
-- [ ] Prevent the Vercel production bundle from loading development-only JSX diagnostics so it completes reliably within the available build memory.
+- [x] Prevent the Vercel production bundle from loading development-only JSX diagnostics so it completes reliably within the available build memory.
 - [x] Commit and synchronize the professional Jarvis workspace upgrade to GitHub `main` to trigger the Vercel production deployment.
 - [x] Fix the Vercel production client-rendering regression caused by incompatible manual vendor chunking, then verify the public Jarvis and VirgoYT routes.
 - [x] Expose the documented `/virgoyt` URL as a compatibility alias for the private VirgoYT agent workspace.
@@ -188,3 +188,4 @@
 - [x] Investigate the apparent public Vercel landing-page scale defect; live computed layout measurements confirm full-size desktop geometry, with the small visual originating from a 3840×3300 capture rendered at one-third device-pixel ratio.
 - [x] Verify the reported merge-marker diagnostics against fresh sources; both files are conflict-free and a fresh TypeScript check passes, so the watcher entries were stale historical logs.
 - [x] Make the shared HUD panel compatible with the project’s server-rendered component tests so the research and artifact workspace coverage can run reliably.
+- [x] Diagnose and correct any Jarvis response that incorrectly claims it cannot create applications, prepare deployment artifacts, or propose a reviewed deployment.
