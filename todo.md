@@ -170,3 +170,15 @@
 - [x] Create a portable local CLI foundation and documented Docker-capable remote workspace adapter plan for Windows, macOS, Linux, and Termux.
 - [x] Add agent-platform unit coverage, responsive workflow checks, architecture documentation, and a deployment verification record.
 - [x] Route the Vercel `/api/jarvis/transcribe` endpoint through the validated server-only `OPENAI_API_KEY` rather than the managed-platform transcription helper, while preserving authentication and file-size safeguards.
+- [x] Redesign the authenticated Jarvis shell as a polished public-ready professional AI workspace with distinct desktop and phone information architecture, accessible motion, and a single unified command surface.
+- [x] Add a unified multimodal composer with attachable work context, intent modes for writing, research, code, app planning, image requests, data, and calculations, copyable answers, voice replay, and anti-repetition response controls.
+- [x] Add a live progress and reasoning-summary rail that exposes plan steps, artifacts, approvals, and status without revealing private model chain-of-thought or inventing background execution.
+- [ ] Build an artifact workspace for reviewed text, code, data, charts, spreadsheets, documents, and image-generation requests with safe previews, downloads, and approval-gated edits.
+- [x] Add review-first application and website project workflows with structured requirements, generated architecture, file-change proposals, preview readiness, and publish/deployment proposals rather than silent builds or releases.
+- [x] Extend the integration and custom-model settings surface with server-only secret boundaries, provider status, GitHub connection proposals, and explicit capability scopes for external services.
+- [x] Add a Jarvis Computer surface that clearly distinguishes the current local proposal-only runner from a future owner-paired remote computer, with visible session state and no hidden browser, terminal, download, or credential actions.
+- [ ] Add source-linked web research, safe external-link proposals, calculation and data-analysis work modes, plus responsive regression coverage for the expanded unified experience.
+- [x] Resolve the development-server startup errors by confirming the VirgoYT provider-routing module and removing any remaining authentication merge markers, then restart and validate the local server.
+- [x] Resolve the development-server startup errors by confirming the VirgoYT provider-routing module and removing any remaining authentication merge markers, then restart and validate the local server.
+- [ ] Prevent the Vercel production bundle from loading development-only JSX diagnostics so it completes reliably within the available build memory.
+- [x] Keep GitHub `main` as the source of truth and Vercel as the public Jarvis host; document the Manus URL as development preview only for the professional workspace release.

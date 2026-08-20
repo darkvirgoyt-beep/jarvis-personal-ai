@@ -8,6 +8,7 @@ import { HudPanel } from "@/components/HudPanel";
 import { JarvisCore, type JarvisCoreState } from "@/components/JarvisCore";
 import { JarvisExtensions } from "@/components/JarvisExtensions";
 import { JarvisModelSelector } from "@/components/JarvisModelSelector";
+import { JarvisMissionControl, type JarvisWorkIntent } from "@/components/JarvisMissionControl";
 import { JarvisModeNav, type JarvisWorkspaceMode } from "@/components/JarvisModeNav";
 import { JarvisPublicLanding } from "@/components/JarvisPublicLanding";
 import { JarvisMobileWorkspaceTrigger, JarvisWorkspaceRail } from "@/components/JarvisWorkspaceRail";
@@ -41,6 +42,26 @@ const quickCommands = [
   "/remember I prefer concise strategic updates",
   "Research a topic with sources",
 ];
+
+const workIntents: JarvisWorkIntent[] = [
+  { id: "answer", label: "Answer", description: "Write, explain, decide" },
+  { id: "research", label: "Research", description: "Sources and findings" },
+  { id: "code", label: "Code", description: "Draft and review code" },
+  { id: "builder", label: "App / web", description: "Plan a build" },
+  { id: "image", label: "Image", description: "Create a visual brief" },
+  { id: "data", label: "Data", description: "Calculate and analyze" },
+  { id: "document", label: "Document", description: "Shape an artifact" },
+];
+
+const intentAgent: Record<string, Agent> = {
+  answer: "General",
+  research: "Research",
+  code: "Coding",
+  builder: "Coding",
+  image: "Creative",
+  data: "Research",
+  document: "Files",
+};
 
 const statusCopy: Record<JarvisCoreState, string> = {
   idle: "All systems calibrated",
@@ -80,6 +101,8 @@ export default function Home() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [memoryDraft, setMemoryDraft] = useState("");
   const [taskDraft, setTaskDraft] = useState("");
+  const [activeIntent, setActiveIntent] = useState("answer");
+  const [stagedAttachments, setStagedAttachments] = useState<{ name: string; size: number }[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activity, setActivity] = useState<string[]>(["Jarvis core initialized", "Privacy shield active", "Awaiting command"]);
   const [activeConversationId, setActiveConversationId] = useState<number>();
@@ -327,13 +350,13 @@ export default function Home() {
   const handleSendMessage = async (content: string, overrideAgent?: Agent) => {
     const command = content.trim();
     if (!command || isSending) return;
-    const activeAgent = overrideAgent ?? agent;
+    const activeAgent = overrideAgent ?? intentAgent[activeIntent] ?? agent;
     const activeAgentId = activeAgent.toLowerCase() as "general" | "coding" | "research" | "files" | "system" | "creative";
     window.speechSynthesis?.cancel();
     setResponseMode("primary");
     setMessages((current) => [...current, { role: "user", content: command }, { role: "assistant", content: "" }]);
     transitionInteraction({ type: "typed_submitted" });
-    addActivity(`${activeAgent} agent received a command`);
+    addActivity(`${activeAgent} agent received a ${activeIntent} command`);
     let responseText = "";
     try {
       await streamJarvisResponse({
@@ -454,6 +477,19 @@ export default function Home() {
             <div className="flex items-center gap-2"><div className="hidden items-center gap-2 rounded-sm border border-white/10 bg-black/20 px-3 py-2 sm:flex"><StatusDot state={coreState} /><span className="text-[11px] text-slate-400">{statusCopy[coreState]}</span></div><button aria-label="Open private workspace" onClick={() => setWorkspaceOpen(true)} className="flex size-9 items-center justify-center rounded-sm border border-fuchsia-400/20 bg-fuchsia-400/5 text-fuchsia-100 transition-all hover:border-fuchsia-400/45 hover:bg-fuchsia-400/10 active:scale-[0.97]"><Database className="size-4" /></button><button aria-label="Open Jarvis settings" onClick={() => setSettingsOpen(true)} className="flex size-9 items-center justify-center rounded-sm border border-cyan-300/20 bg-cyan-300/5 text-cyan-100 transition-all hover:border-cyan-300/45 hover:bg-cyan-300/10 active:scale-[0.97]"><Settings2 className="size-4" /></button></div>
           </HudPanel>
 
+          <JarvisMissionControl
+            intents={workIntents}
+            activeIntent={activeIntent}
+            activity={activity}
+            isWorking={isSending}
+            pendingApprovals={pendingConfirmations.length}
+            stagedAttachmentCount={stagedAttachments.length}
+            onIntentChange={(intent) => { setActiveIntent(intent); setAgent(intentAgent[intent] ?? "General"); addActivity(`${workIntents.find((item) => item.id === intent)?.label ?? "Assistant"} work mode selected`); }}
+            onOpenBuilder={() => setActiveMode("builder")}
+            onOpenWorkspace={() => setActiveMode("projects")}
+            onOpenIntegrations={() => setActiveMode("integrations")}
+          />
+
           <div className="jarvis-chat-stage grid min-w-0 gap-3 lg:grid-cols-[minmax(300px,0.85fr)_minmax(360px,1.15fr)]">
             <HudPanel className="relative overflow-hidden px-4 py-5 sm:px-7">
               <div className="absolute left-5 top-4 flex items-center gap-2"><span className="hud-label">NEURAL PRESENCE</span></div>
@@ -465,7 +501,7 @@ export default function Home() {
 
             <HudPanel className="flex min-h-[490px] flex-col overflow-hidden">
               <div className="flex items-center justify-between border-b border-cyan-300/15 px-5 py-3"><div className="flex items-center gap-2"><Command className="size-4 text-fuchsia-200" /><p className="hud-label">CONVERSATION FEED</p></div><span className={cn("rounded-full border px-2 py-1 font-mono text-[9px] tracking-[0.15em]", responseMode === "provider-auth" || responseMode === "basic" ? "border-amber-300/30 bg-amber-300/10 text-amber-100" : responseMode === "managed" ? "border-cyan-300/25 bg-cyan-300/10 text-cyan-100" : "border-fuchsia-400/25 bg-fuchsia-400/10 text-fuchsia-100")}>{responseMode === "provider-auth" ? "KEY UNAVAILABLE" : responseMode === "basic" ? "BASIC MODE" : responseMode === "managed" ? "MANAGED FALLBACK" : agent.toUpperCase()}</span></div>
-              <AIChatBox messages={messages} onSendMessage={handleSendMessage} isLoading={isSending} voiceState={voiceState} onVoiceStart={handleVoiceStart} onVoiceStop={handleVoiceStop} placeholder="Ask Jarvis anything, or hold the mic to speak…" emptyStateMessage="Jarvis is synchronized. Give a voice or text command to begin." suggestedPrompts={quickCommands} height="100%" className="flex-1 border-0 shadow-none" />
+              <AIChatBox messages={messages} onSendMessage={handleSendMessage} isLoading={isSending} voiceState={voiceState} onVoiceStart={handleVoiceStart} onVoiceStop={handleVoiceStop} activeIntent={activeIntent} intents={workIntents} onIntentChange={(intent) => { setActiveIntent(intent); setAgent(intentAgent[intent] ?? "General"); }} stagedAttachments={stagedAttachments} onStageAttachments={(files) => { setStagedAttachments((current) => [...current, ...files.map((file) => ({ name: file.name, size: file.size })).filter((incoming) => !current.some((existing) => existing.name === incoming.name))].slice(0, 6)); addActivity(`${files.length} local context file${files.length === 1 ? "" : "s"} staged for review`); }} onRemoveAttachment={(name) => setStagedAttachments((current) => current.filter((file) => file.name !== name))} onSpeakMessage={speakResponse} placeholder="Describe what you want to create, research, calculate, or improve…" emptyStateMessage="Jarvis is ready. Choose a work intent, then describe the outcome in normal language." suggestedPrompts={quickCommands} height="100%" className="flex-1 border-0 shadow-none" />
               <div className="flex items-center justify-between border-t border-cyan-300/10 px-4 py-2 text-[10px] text-slate-600"><span>Hold mic or <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-slate-400">Ctrl/⌘ Space</kbd></span><span>Private by design</span></div>
             </HudPanel>
           </div>

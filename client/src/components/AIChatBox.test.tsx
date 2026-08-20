@@ -61,4 +61,27 @@ describe("AIChatBox Jarvis interaction states", () => {
     expect(markup).toContain("Transcribing voice command");
     expect(markup).toContain("animate-spin");
   });
+
+  it("renders explicit work modes, browser-local staged context, and reusable assistant output controls", () => {
+    const markup = renderToStaticMarkup(
+      <AIChatBox
+        messages={[{ role: "assistant", content: "Here is a reviewed plan." }]}
+        onSendMessage={vi.fn()}
+        voiceState="idle"
+        activeIntent="research"
+        intents={[{ id: "answer", label: "Answer", description: "Write" }, { id: "research", label: "Research", description: "Sources" }]}
+        onIntentChange={vi.fn()}
+        stagedAttachments={[{ name: "requirements.md", size: 2048 }]}
+        onStageAttachments={vi.fn()}
+        onRemoveAttachment={vi.fn()}
+        onSpeakMessage={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain("Research");
+    expect(markup).toContain("requirements.md");
+    expect(markup).toContain("Local context is staged in this browser only");
+    expect(markup).toContain("Copy Jarvis response");
+    expect(markup).toContain("Listen to Jarvis response");
+  });
 });

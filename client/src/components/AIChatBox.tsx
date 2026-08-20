@@ -1,7 +1,7 @@
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Mic, Send, Sparkles, Square, User } from "lucide-react";
+import { Check, Copy, Loader2, Mic, Paperclip, Send, Sparkles, Square, User, Volume2, X } from "lucide-react";
 import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { Streamdown } from "streamdown";
@@ -61,6 +61,13 @@ export type AIChatBoxProps = {
   onVoiceStart?: () => void;
   onVoiceStop?: () => void;
   onInputChange?: (content: string) => void;
+  activeIntent?: string;
+  intents?: { id: string; label: string; description: string }[];
+  onIntentChange?: (intent: string) => void;
+  stagedAttachments?: { name: string; size: number }[];
+  onStageAttachments?: (files: File[]) => void;
+  onRemoveAttachment?: (name: string) => void;
+  onSpeakMessage?: (content: string) => void;
 };
 
 /**
@@ -127,12 +134,21 @@ export function AIChatBox({
   onVoiceStart,
   onVoiceStop,
   onInputChange,
+  activeIntent,
+  intents = [],
+  onIntentChange,
+  stagedAttachments = [],
+  onStageAttachments,
+  onRemoveAttachment,
+  onSpeakMessage,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
+  const [copiedMessage, setCopiedMessage] = useState<number | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   // Filter out system messages
   const displayMessages = messages.filter((msg) => msg.role !== "system");
@@ -194,6 +210,21 @@ export function AIChatBox({
       e.preventDefault();
       handleSubmit(e);
     }
+  };
+
+  const copyMessage = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessage(index);
+      window.setTimeout(() => setCopiedMessage((current) => current === index ? null : current), 1600);
+    } catch {
+      setCopiedMessage(null);
+    }
+  };
+
+  const formatFileSize = (size: number) => {
+    if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (
@@ -263,16 +294,24 @@ export function AIChatBox({
 
                     <div
                       className={cn(
-                        "max-w-[84%] rounded-sm px-4 py-3 text-sm leading-6",
+                        "group relative max-w-[84%] rounded-sm px-4 py-3 text-sm leading-6",
                         message.role === "user"
                           ? "border border-fuchsia-400/35 bg-fuchsia-500/10 text-fuchsia-50"
                           : "border border-cyan-300/15 bg-slate-900/75 text-slate-200"
                       )}
                     >
                       {message.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <Streamdown>{message.content}</Streamdown>
-                        </div>
+                        <>
+                          <div className="prose prose-sm dark:prose-invert max-w-none pr-14">
+                            <Streamdown>{message.content}</Streamdown>
+                          </div>
+                          <div className="absolute right-2 top-2 flex gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
+                            <button type="button" aria-label="Copy Jarvis response" onClick={() => void copyMessage(message.content, index)} className="flex size-7 items-center justify-center rounded-sm border border-white/10 bg-black/25 text-slate-400 transition hover:border-cyan-300/35 hover:text-cyan-100">
+                              {copiedMessage === index ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                            </button>
+                            {onSpeakMessage && <button type="button" aria-label="Listen to Jarvis response" onClick={() => onSpeakMessage(message.content)} className="flex size-7 items-center justify-center rounded-sm border border-white/10 bg-black/25 text-slate-400 transition hover:border-fuchsia-400/35 hover:text-fuchsia-100"><Volume2 className="size-3.5" /></button>}
+                          </div>
+                        </>
                       ) : (
                         <p className="whitespace-pre-wrap text-sm">
                           {message.content}
@@ -315,45 +354,52 @@ export function AIChatBox({
       <form
         ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="flex items-end gap-2 border-t border-cyan-300/15 bg-slate-950/85 p-3"
+        className="border-t border-cyan-300/15 bg-slate-950/85 p-3"
       >
-        <Textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => {
-            setInput(e.target.value);
-            onInputChange?.(e.target.value);
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="min-h-10 max-h-32 flex-1 resize-none rounded-sm border-cyan-300/20 bg-slate-900/80 text-slate-100 placeholder:text-slate-600 focus-visible:border-cyan-300/55 focus-visible:ring-cyan-300/20"
-          rows={1}
-        />
-        {onVoiceStart && onVoiceStop && (
-          <button
-            type="button"
-            aria-label={voiceState === "recording" ? "Release to send voice command" : voiceState === "transcribing" ? "Transcribing voice command" : "Hold to talk to Jarvis"}
-            aria-busy={voiceState === "transcribing"}
-            onPointerDown={onVoiceStart}
-            onPointerUp={onVoiceStop}
-            onPointerLeave={() => voiceState === "recording" && onVoiceStop()}
-            disabled={voiceState === "unavailable" || isLoading}
-            className={cn("voice-command-button", voiceState === "recording" && "voice-command-button--recording", voiceState === "transcribing" && "voice-command-button--transcribing")}
-          >
-            {voiceState === "recording" ? <Square className="size-3.5 fill-current" /> : voiceState === "transcribing" ? <Loader2 className="size-4 animate-spin" /> : <Mic className="size-4" />}
-          </button>
-        )}
-        <button
-          type="submit"
-          disabled={!input.trim() || isLoading}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-cyan-300/30 bg-cyan-300/10 text-cyan-100 transition-all duration-150 hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-35 active:scale-[0.97]"
-        >
-          {isLoading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
+        {intents.length > 0 && <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1" aria-label="Jarvis work mode">{intents.map((intent) => <button type="button" key={intent.id} aria-pressed={activeIntent === intent.id} title={intent.description} onClick={() => onIntentChange?.(intent.id)} className={cn("shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] transition", activeIntent === intent.id ? "border-fuchsia-400/40 bg-fuchsia-400/10 text-fuchsia-100" : "border-white/10 bg-white/[0.025] text-slate-500 hover:border-cyan-300/30 hover:text-cyan-100")}>{intent.label}</button>)}</div>}
+        {stagedAttachments.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{stagedAttachments.map((file) => <span className="inline-flex max-w-full items-center gap-1.5 rounded-sm border border-cyan-300/20 bg-cyan-300/[0.05] px-2 py-1 text-[10px] text-cyan-50" key={file.name}><Paperclip className="size-3 shrink-0" /><span className="max-w-32 truncate">{file.name}</span><span className="text-slate-500">{formatFileSize(file.size)}</span>{onRemoveAttachment && <button aria-label={`Remove ${file.name}`} type="button" onClick={() => onRemoveAttachment(file.name)} className="text-cyan-100 hover:text-white"><X className="size-3" /></button>}</span>)}</div>}
+        <div className="flex items-end gap-2">
+          <input ref={attachmentInputRef} onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) onStageAttachments?.(files); event.currentTarget.value = ""; }} type="file" multiple className="sr-only" aria-label="Stage files as local work context" />
+          {onStageAttachments && <button type="button" onClick={() => attachmentInputRef.current?.click()} aria-label="Stage local work context" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-white/10 bg-white/[0.025] text-slate-400 transition hover:border-cyan-300/35 hover:text-cyan-100"><Paperclip className="size-4" /></button>}
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              onInputChange?.(e.target.value);
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="min-h-10 max-h-32 flex-1 resize-none rounded-sm border-cyan-300/20 bg-slate-900/80 text-slate-100 placeholder:text-slate-600 focus-visible:border-cyan-300/55 focus-visible:ring-cyan-300/20"
+            rows={1}
+          />
+          {onVoiceStart && onVoiceStop && (
+            <button
+              type="button"
+              aria-label={voiceState === "recording" ? "Release to send voice command" : voiceState === "transcribing" ? "Transcribing voice command" : "Hold to talk to Jarvis"}
+              aria-busy={voiceState === "transcribing"}
+              onPointerDown={onVoiceStart}
+              onPointerUp={onVoiceStop}
+              onPointerLeave={() => voiceState === "recording" && onVoiceStop()}
+              disabled={voiceState === "unavailable" || isLoading}
+              className={cn("voice-command-button", voiceState === "recording" && "voice-command-button--recording", voiceState === "transcribing" && "voice-command-button--transcribing")}
+            >
+              {voiceState === "recording" ? <Square className="size-3.5 fill-current" /> : voiceState === "transcribing" ? <Loader2 className="size-4 animate-spin" /> : <Mic className="size-4" />}
+            </button>
           )}
-        </button>
+          <button
+            type="submit"
+            disabled={!input.trim() || isLoading}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-cyan-300/30 bg-cyan-300/10 text-cyan-100 transition-all duration-150 hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-35 active:scale-[0.97]"
+          >
+            {isLoading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
+          </button>
+        </div>
+        {onStageAttachments && <p className="mt-2 text-[10px] leading-4 text-slate-600">Local context is staged in this browser only. Jarvis does not upload or read file contents until a reviewed upload flow is connected.</p>}
       </form>
     </div>
   );

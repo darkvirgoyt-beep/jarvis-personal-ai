@@ -2,7 +2,9 @@
 
 ## Deployment boundary
 
-GitHub Pages currently provides a public static Jarvis launch page only. The complete Jarvis application requires server execution for its authenticated tRPC API, streaming response endpoint, voice transcription route, OAuth callback, database access, and server-only provider credential. The GitHub Pages gateway must therefore not be presented as a full runtime host.
+The public source of truth for Jarvis is the [`darkvirgoyt-beep/jarvis-personal-ai`](https://github.com/darkvirgoyt-beep/jarvis-personal-ai) GitHub repository. Vercel deploys its `main` branch to the public production URL: **https://scrimly-seven.vercel.app**. The Manus address is a development preview only and must not be represented as the public Jarvis product or its permanent host.
+
+The complete Jarvis application requires server execution for its authenticated tRPC API, streamed responses, voice transcription route, OAuth callback, database access, and server-only provider credentials. GitHub remains source control rather than a runtime host; Vercel is the approved public runtime.
 
 ## Verified Vercel direction
 
@@ -16,9 +18,9 @@ The owner also authorized public access to the Vercel URL. Vercel Authentication
 
 The first deployment returned `ERR_MODULE_NOT_FOUND` because the catch-all serverless entry imported local application modules that were not included in the function bundle. The deployment adapter now builds a standalone server artifact, including its ESM-only authentication dependency. The verified production API now reaches the Jarvis Express application: an unknown `/api/test` route returns the application-level `Cannot GET /api/test`, and `/api/trpc` returns the expected tRPC `No procedure found on path` response. Those responses prove routing and application loading rather than a Vercel function import failure.
 
-## Remaining independent runtime prerequisites
+## Current independent runtime scope
 
-The Vercel deployment is a verified public client and serverless-route shell, but it is **not yet an independent full Jarvis runtime**. The current source still relies on managed-platform services that are not automatically available to a Vercel function. Before real authentication, private storage, voice transcription, and AI responses are enabled on the Vercel domain, the owner must approve and configure independent equivalents.
+The Vercel deployment is a verified public client and serverless runtime for Supabase Auth, Jarvis model responses, and authenticated voice transcription. It is not yet a fully independent private-data runtime because managed-database records and private object storage have not been cut over to Supabase.
 
 The approved Supabase target is the active `darkvirgoyt-beep's Project` (`ytqacgefcvjrahyyfmaw`) in `ap-southeast-2`, with public API URL `https://ytqacgefcvjrahyyfmaw.supabase.co`. The previously staged Jarvis schema and deny-by-default RLS policies belong to this owner project. Its database password, service-role key, and any other private credentials are intentionally not recorded in this repository.
 
@@ -26,11 +28,11 @@ The connected project confirms three applied Jarvis migrations: `jarvis_private_
 
 | Capability | Required Vercel-compatible configuration | Current state |
 | --- | --- | --- |
-| User authentication | An independent OAuth/OIDC provider plus Vercel callback URL | Not configured; the current Manus OAuth callback cannot be assumed to cover the Vercel domain. |
-| Private database | Owner Supabase PostgreSQL connection and an approved migration/cutover | Schema is staged with RLS; credentials and data-cutover approval are pending. |
-| Object storage | S3-compatible bucket credentials and a server-side storage adapter | Not configured; current storage proxy is managed-platform-only. |
-| Voice transcription | Independent Whisper-compatible provider key and server-side endpoint | Not configured; current transcription helper is managed-platform-only. |
-| AI responses | A valid server-only `OPENROUTER_API_KEY` (the present key was rejected by the provider) | Requires a replacement key. |
+| User authentication | Supabase Auth and approved production return URLs | Configured. Email/password works; Google and GitHub provider activation remains an owner dashboard task. |
+| Private database | Owner Supabase PostgreSQL connection and an approved migration/cutover | Schema and RLS are staged; private-record cutover approval is pending. |
+| Object storage | Private Supabase Storage or S3-compatible bucket with a server-side adapter | Pending owner approval and bucket configuration. |
+| Voice transcription | Server-only `OPENAI_API_KEY` and authenticated route | Configured. The Vercel route rejects anonymous requests and sends authenticated command audio ephemerally. |
+| AI responses | Server-only `OPENROUTER_API_KEY` | Configured for the Jarvis response path. |
 
 No database URLs, service-role keys, storage secrets, or provider keys are committed to the public repository. They must be entered in the Vercel project environment settings only after the owner selects the providers and approves the credentials.
 
