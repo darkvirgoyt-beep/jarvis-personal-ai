@@ -7,8 +7,8 @@ export function buildJarvisBasicFallback(content: string, agent: JarvisAgent) {
     return [
       "Jarvis app workspace mode is active. The live AI provider is temporarily unavailable, but your app request is still supported through Builder and a reviewable Coding-agent brief.",
       "I can structure the product requirements, choose website or full-stack architecture, identify API, database, authentication, storage, and deployment requirements, and prepare a concrete implementation and publish proposal for your approval.",
-      "Jarvis keeps file changes, repository updates, migrations, secrets, and deployment proposals visible and approval-gated. A persistent Cloud Computer is not connected, so I will not pretend to silently run, compile, install, or browse on a virtual desktop in this session.",
-      "No code, files, migrations, integrations, or deployments were run automatically. When live generation is available, Jarvis can turn the approved Builder brief into reviewable code and an explicit GitHub or deployment proposal.",
+      "Jarvis keeps file changes, repository updates, migrations, secrets, cloud-runner plans, and deployment proposals visible and approval-gated. Builder can prepare a web, Android, or cloud-service toolchain checklist and a reviewed runner proposal. A persistent Cloud Computer is not connected, so I will not pretend to silently run, compile, install, sign, or browse on a virtual desktop in this session.",
+      "No code, files, migrations, integrations, builds, signed artifacts, or deployments were run automatically. When live generation is available, Jarvis can turn the approved Builder brief into reviewable code, a compile-readiness report, and an explicit GitHub, runner, or deployment proposal.",
     ].join("\n\n");
   }
   return [

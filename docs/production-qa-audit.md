@@ -72,7 +72,7 @@ Following explicit owner approval, GitHub commit `bcc9577ae535beb6d2724b69960f7f
 
 The owner then signed in through the live Vercel page. The private workspace rendered with its private chat list, specialist workspace controls, activity panel, and approval-gated workspace surfaces; no content was opened or modified during inspection. A deliberately credential-free browser `auth.me` probe returned HTTP 200 with a null identity, as expected because that probe did not send the application’s Supabase Bearer token. The final check is therefore to confirm the normal bearer-token tRPC path, not to treat the credential-free result as an authenticated failure.
 
-The normal client bearer-token path was then checked without exposing the token or profile fields. The browser had a Supabase session, a `Bearer` request to `auth.me` returned HTTP 200, and the verified identity was non-null. The signed-in workspace reported no runtime console errors. This validates session transport and server-side identity verification after the cutover. No chat, memory, task, project, approval, or file write was performed; an explicit user-approved write test remains the final optional end-to-end check.
+The normal client bearer-token path was then checked without exposing the token or profile fields. The browser had a Supabase session, a `Bearer` request to `auth.me` returned HTTP 200, and the verified identity was non-null. The signed-in workspace reported no runtime console errors. This validates session transport and server-side identity verification after the cutover. A separate owner-approved temporary task write/delete validation is recorded below.
 
 ### Signed-in app-capability contract correction — 2026-08-21
 
@@ -81,3 +81,16 @@ An owner-provided signed-in screenshot exposed a stale model-generated denial cl
 ### Deployment-timeout diagnosis — 2026-08-21
 
 The available server logs show an earlier local sandbox process exit (`137`) while Vite rendered the production bundle under memory pressure. This was not a current Vercel production failure: the corrected Vercel deployment reached `READY`, and a fresh credential-free `GET /api/trpc/auth.me` returned HTTP 200 in 0.30 seconds. Jarvis therefore retains GitHub as source of truth and Vercel as the public production host; the historical sandbox build-memory timeout is not treated as a public deployment outage.
+
+### Signed-in Supabase task write/delete validation — 2026-08-22
+
+With explicit owner approval, the live signed-in Vercel session performed one isolated, temporary private task validation through the normal authenticated `Bearer`-token tRPC path. Jarvis created the temporary task titled `Supabase verification — temporary`, retrieved that task in the same authenticated session, deleted it immediately through the new protected `jarvis.tasks.delete` contract, and confirmed that no task with that title remained afterward. The task title and its validation note were the only record content used; no existing private task, chat, memory, project, approval, workspace file, credential, or profile field was read, changed, or exposed.
+
+| Check | Result |
+| --- | --- |
+| Authenticated creation in the Supabase-backed workspace | Pass |
+| Same-session retrieval through the normal task-list procedure | Pass |
+| Protected deletion through the user-scoped task contract | Pass |
+| Absence after deletion | Pass |
+
+The returned verification result was `{"ok":true,"created":true,"retrievedInSameSession":true,"deleted":true,"absentAfterDelete":true}`. This closes the owner-approved temporary task write/read/delete check for the Supabase Vercel runtime.

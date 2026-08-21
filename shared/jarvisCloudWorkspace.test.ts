@@ -16,6 +16,13 @@ describe("Jarvis cloud workspace contract", () => {
     expect(isStealthAutomationAllowed()).toBe(false);
   });
 
+  it("keeps cloud compilation as an approval-gated runner proposal until a runner is connected", () => {
+    const runner = jarvisCloudWorkspaceStates.find((item) => item.name === "Cloud build runner")?.status;
+    expect(runner).toContain("reviewed web, Android, or cloud-service runner proposal");
+    expect(runner).toContain("no runner is connected");
+    expect(runner).toContain("no build can start automatically");
+  });
+
   it("requires minimal changes without weakening core safeguards", () => {
     expect(jarvisEngineeringPrinciples.join(" ")).toContain("smallest tested patch");
     expect(jarvisEngineeringPrinciples.join(" ")).toContain("privacy");

@@ -194,8 +194,11 @@
 - [x] Apply the approved Supabase PostgreSQL schema, RLS policies, and private Storage controls for the Jarvis Vercel runtime.
 - [x] Replace managed-database runtime reads and writes with tested server-only Supabase data access for Vercel.
 - [ ] Migrate or safely initialize approved private records, verify per-user isolation, and validate production authentication, chat, memory, project, and approval flows.
-- [ ] Create, verify, and immediately delete one owner-approved temporary private validation task in the live Supabase-backed workspace.
+- [x] Create, verify, and immediately delete one owner-approved temporary private validation task in the live Supabase-backed workspace.
+- [x] Add a protected, user-scoped task-deletion endpoint in both managed and Supabase runtime adapters so approved temporary validation records can be removed cleanly.
 - [ ] Inspect the exact live Jarvis assistant reply against the approved product requirements and correct any inaccurate capability guidance.
 - [ ] Remove the stale signed-in fallback that falsely says Jarvis cannot build, compile, sign, or deploy applications despite its reviewed app-workspace and deployment-proposal capabilities.
 - [x] Diagnose and resolve the reported managed deployment timeout without changing the GitHub-to-Vercel public production source of truth.
 - [x] Verify the exact index.html and vercel.json routing-guide changes against the supplied Vercel process and correct only any missing compatible configuration.
+- [x] Add an approval-gated Compiling Tools and Cloud surface that prepares reviewed build plans, cloud-runner requirements, and deployment proposals without claiming unconnected compilation, signing, or publishing has already occurred.
+- [x] Correct Jarvis capability guidance so it offers app planning, artifact generation, compile-readiness review, cloud-runner setup, GitHub handoff, and explicit deployment proposals instead of a blanket inability statement.

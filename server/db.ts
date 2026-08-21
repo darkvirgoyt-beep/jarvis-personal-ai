@@ -284,6 +284,14 @@ export async function updateJarvisTask(input: {
   return Number(result[0]?.affectedRows ?? 0);
 }
 
+export async function deleteJarvisTask(userId: number, id: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.deleteJarvisTask(userId, id);
+  const db = await requireDb();
+  const result = await db.delete(jarvisTasks)
+    .where(and(eq(jarvisTasks.id, id), eq(jarvisTasks.userId, userId)));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
 export async function listJarvisResearchRecords(userId: number) {
   if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.listJarvisResearchRecords(userId);
   const db = await requireDb();

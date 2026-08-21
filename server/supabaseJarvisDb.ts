@@ -144,6 +144,10 @@ export async function updateJarvisTask(input: { userId: number; id: number; titl
   const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(input.userId);
   const { data, error } = await runtime.from("jarvis_tasks").update(compact({ title: input.title, notes: input.notes, status: input.status, priority: input.priority, due_at: input.dueAt === undefined ? undefined : iso(input.dueAt), updated_at: iso(new Date()) })).eq("id", input.id).eq("user_open_id", openId).select("id"); fail(error, "Jarvis task update failed"); return data?.length ?? 0;
 }
+export async function deleteJarvisTask(userId: number, id: number) {
+  const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId);
+  const { data, error } = await runtime.from("jarvis_tasks").delete().eq("id", id).eq("user_open_id", openId).select("id"); fail(error, "Jarvis task deletion failed"); return data?.length ?? 0;
+}
 export async function listJarvisResearchRecords(userId: number) {
   const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId);
   const { data, error } = await runtime.from("jarvis_research_records").select("*").eq("user_open_id", openId).order("created_at", { ascending: false }); fail(error, "Jarvis research listing failed"); return (data ?? []).map((row) => research(row, userId));

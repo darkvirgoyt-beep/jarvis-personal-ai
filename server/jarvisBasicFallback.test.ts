@@ -9,8 +9,9 @@ describe("Jarvis basic fallback", () => {
     expect(response).toContain("app request is still supported through Builder");
     expect(response).toContain("implementation and publish proposal for your approval");
     expect(response).toContain("approval-gated");
+    expect(response).toContain("Builder can prepare a web, Android, or cloud-service toolchain checklist");
     expect(response).toContain("persistent Cloud Computer is not connected");
-    expect(response).toContain("No code, files, migrations, integrations, or deployments were run automatically");
+    expect(response).toContain("No code, files, migrations, integrations, builds, signed artifacts, or deployments were run automatically");
     expect(response).not.toContain("cannot generate a full live code response");
   });
 

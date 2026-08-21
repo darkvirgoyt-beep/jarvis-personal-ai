@@ -99,6 +99,12 @@ export const jarvisRouter = router({
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Jarvis task not found" });
       return { success: true } as const;
     }),
+    delete: protectedProcedure.input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const deleted = await db.deleteJarvisTask(ctx.user.id, input.id);
+        if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Jarvis task not found" });
+        return { success: true } as const;
+      }),
   }),
 
   research: router({
