@@ -189,3 +189,4 @@
 - [x] Verify the reported merge-marker diagnostics against fresh sources; both files are conflict-free and a fresh TypeScript check passes, so the watcher entries were stale historical logs.
 - [x] Make the shared HUD panel compatible with the project’s server-rendered component tests so the research and artifact workspace coverage can run reliably.
 - [x] Diagnose and correct any Jarvis response that incorrectly claims it cannot create applications, prepare deployment artifacts, or propose a reviewed deployment.
+- [x] Review the supplied Vercel routing process against Jarvis production routes and apply any compatible API-safe corrections.

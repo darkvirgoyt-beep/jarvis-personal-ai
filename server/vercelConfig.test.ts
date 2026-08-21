@@ -34,4 +34,17 @@ describe("Vercel deployment contract", () => {
     expect(appSource).toContain('<Route path={"/agent"} component={VirgoYTAgent} />');
     expect(appSource).toContain('<Route path={"/virgoyt"} component={VirgoYTAgent} />');
   });
+
+  it("keeps API handling ahead of the SPA fallback and restores only legacy encoded browser deep links", () => {
+    const config = JSON.parse(readFileSync(resolve(root, "vercel.json"), "utf8"));
+    const indexSource = readFileSync(resolve(root, "client", "index.html"), "utf8");
+
+    expect(config.rewrites).toEqual([
+      { source: "/api/(.*)", destination: "/api/[...path]" },
+      { source: "/(.*)", destination: "/index.html" },
+    ]);
+    expect(indexSource).toContain('if (location.search[1] !== "/") return;');
+    expect(indexSource).toContain("window.history.replaceState");
+    expect(indexSource).toContain('segment.replace(/~and~/g, "&")');
+  });
 });
