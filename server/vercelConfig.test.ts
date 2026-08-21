@@ -47,4 +47,19 @@ describe("Vercel deployment contract", () => {
     expect(indexSource).toContain("window.history.replaceState");
     expect(indexSource).toContain('segment.replace(/~and~/g, "&")');
   });
+
+  it("uses a server-only Supabase private-data and Storage adapter for the Vercel runtime", () => {
+    const runtimeSource = readFileSync(resolve(root, "server", "supabaseRuntime.ts"), "utf8");
+    const jarvisSource = readFileSync(resolve(root, "server", "db.ts"), "utf8");
+    const virgoytSource = readFileSync(resolve(root, "server", "virgoytDb.ts"), "utf8");
+    const storageSource = readFileSync(resolve(root, "server", "storage.ts"), "utf8");
+
+    expect(runtimeSource).toContain('process.env.VERCEL === "1"');
+    expect(runtimeSource).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(runtimeSource).not.toContain("VITE_SUPABASE");
+    expect(jarvisSource).toContain('import * as supabaseJarvisDb from "./supabaseJarvisDb"');
+    expect(virgoytSource).toContain('import * as supabaseVirgoYTDb from "./supabaseVirgoYTDb"');
+    expect(storageSource).toContain('from("jarvis-private")');
+    expect(storageSource).toContain("createSignedUrl");
+  });
 });

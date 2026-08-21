@@ -3,6 +3,7 @@
 // Downloads return /manus-storage/{key} paths served via 307 redirect.
 
 import { ENV } from "./_core/env";
+import { requireSupabaseRuntimeClient, usesSupabasePrivateRuntime } from "./supabaseRuntime";
 
 function getForgeConfig() {
   const forgeUrl = ENV.forgeApiUrl;
@@ -33,6 +34,16 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
+  if (usesSupabasePrivateRuntime()) {
+    const key = appendHashSuffix(normalizeKey(relKey));
+    const runtime = requireSupabaseRuntimeClient();
+    const { error } = await runtime.storage.from("jarvis-private").upload(key, data as any, {
+      contentType,
+      upsert: false,
+    });
+    if (error) throw new Error(`Supabase private storage upload failed: ${error.message}`);
+    return storageGet(key);
+  }
   const { forgeUrl, forgeKey } = getForgeConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
 
@@ -73,10 +84,17 @@ export async function storagePut(
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
+  if (usesSupabasePrivateRuntime()) {
+    const runtime = requireSupabaseRuntimeClient();
+    const { data, error } = await runtime.storage.from("jarvis-private").createSignedUrl(key, 60 * 60);
+    if (error || !data?.signedUrl) throw new Error(`Supabase private storage download failed: ${error?.message ?? "empty signed URL"}`);
+    return { key, url: data.signedUrl };
+  }
   return { key, url: `/manus-storage/${key}` };
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
+  if (usesSupabasePrivateRuntime()) return (await storageGet(relKey)).url;
   const { forgeUrl, forgeKey } = getForgeConfig();
   const key = normalizeKey(relKey);
 

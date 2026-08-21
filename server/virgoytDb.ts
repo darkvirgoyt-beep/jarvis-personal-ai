@@ -11,6 +11,8 @@ import {
   virgoytToolProposals,
 } from "../drizzle/schema";
 import { getDb } from "./db";
+import * as supabaseVirgoYTDb from "./supabaseVirgoYTDb";
+import { usesSupabasePrivateRuntime } from "./supabaseRuntime";
 
 export const VIRGOYT_AGENT_VALUES = ["coding", "research", "ui", "security", "devops"] as const;
 export const VIRGOYT_PROVIDER_VALUES = ["openrouter", "compatible", "nvidia_nim", "local_bridge"] as const;
@@ -45,6 +47,7 @@ export function normalizeVirgoYTRiskLevel(toolKind: VirgoYTToolKind, requested: 
 }
 
 export async function listVirgoYTProjects(userId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.listVirgoYTProjects(userId);
   const db = await requireDb();
   return db.select().from(virgoytAgentProjects)
     .where(eq(virgoytAgentProjects.userId, userId))
@@ -58,6 +61,7 @@ export async function createVirgoYTProject(input: {
   description?: string | null;
   defaultAgent: VirgoYTAgent;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.createVirgoYTProject(input);
   const db = await requireDb();
   const result = await db.insert(virgoytAgentProjects).values({
     ...input,
@@ -68,6 +72,7 @@ export async function createVirgoYTProject(input: {
 }
 
 export async function getVirgoYTProject(userId: number, projectId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.getVirgoYTProject(userId, projectId);
   const db = await requireDb();
   const rows = await db.select().from(virgoytAgentProjects)
     .where(and(eq(virgoytAgentProjects.id, projectId), eq(virgoytAgentProjects.userId, userId))).limit(1);
@@ -75,6 +80,7 @@ export async function getVirgoYTProject(userId: number, projectId: number) {
 }
 
 export async function archiveVirgoYTProject(userId: number, projectId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.archiveVirgoYTProject(userId, projectId);
   const db = await requireDb();
   const result = await db.update(virgoytAgentProjects).set({ status: "archived", updatedAt: new Date() })
     .where(and(eq(virgoytAgentProjects.id, projectId), eq(virgoytAgentProjects.userId, userId)));
@@ -82,6 +88,7 @@ export async function archiveVirgoYTProject(userId: number, projectId: number) {
 }
 
 export async function listVirgoYTRuns(userId: number, projectId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.listVirgoYTRuns(userId, projectId);
   const db = await requireDb();
   return db.select().from(virgoytAgentRuns)
     .where(and(eq(virgoytAgentRuns.userId, userId), eq(virgoytAgentRuns.projectId, projectId)))
@@ -89,6 +96,7 @@ export async function listVirgoYTRuns(userId: number, projectId: number) {
 }
 
 export async function getVirgoYTRun(userId: number, projectId: number, runId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.getVirgoYTRun(userId, projectId, runId);
   const db = await requireDb();
   const rows = await db.select().from(virgoytAgentRuns)
     .where(and(
@@ -108,6 +116,7 @@ export async function createVirgoYTRun(input: {
   modelId: string;
   requestSummary: string;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.createVirgoYTRun(input);
   const db = await requireDb();
   const result = await db.insert(virgoytAgentRuns).values({
     ...input,
@@ -121,6 +130,7 @@ export async function createVirgoYTRun(input: {
 }
 
 export async function listVirgoYTPlanSteps(userId: number, projectId: number, runId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.listVirgoYTPlanSteps(userId, projectId, runId);
   const db = await requireDb();
   return db.select().from(virgoytAgentPlanSteps)
     .where(and(
@@ -140,6 +150,7 @@ export async function createVirgoYTPlanStep(input: {
   assignedAgent: VirgoYTAgent;
   requiresApproval: number;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.createVirgoYTPlanStep(input);
   const db = await requireDb();
   const result = await db.insert(virgoytAgentPlanSteps).values({
     ...input,
@@ -152,6 +163,7 @@ export async function createVirgoYTPlanStep(input: {
 }
 
 export async function listVirgoYTToolProposals(userId: number, projectId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.listVirgoYTToolProposals(userId, projectId);
   const db = await requireDb();
   return db.select().from(virgoytToolProposals)
     .where(and(eq(virgoytToolProposals.userId, userId), eq(virgoytToolProposals.projectId, projectId)))
@@ -159,6 +171,7 @@ export async function listVirgoYTToolProposals(userId: number, projectId: number
 }
 
 export async function getVirgoYTToolProposal(userId: number, projectId: number, proposalId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.getVirgoYTToolProposal(userId, projectId, proposalId);
   const db = await requireDb();
   const rows = await db.select().from(virgoytToolProposals)
     .where(and(
@@ -179,6 +192,7 @@ export async function createVirgoYTToolProposal(input: {
   details: string;
   expiresAt: Date;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.createVirgoYTToolProposal(input);
   const db = await requireDb();
   const payload = { details: redactVirgoYTSensitiveText(input.details) };
   const result = await db.insert(virgoytToolProposals).values({
@@ -201,6 +215,7 @@ export async function resolveVirgoYTToolProposal(input: {
   approvalNonce: string;
   expiresAt: Date;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.resolveVirgoYTToolProposal(input);
   const db = await requireDb();
   const nextStatus = input.decision === "approved" ? "approved" : "rejected";
   const result = await db.update(virgoytToolProposals).set({ status: nextStatus, resolvedAt: new Date(), updatedAt: new Date() })
@@ -223,6 +238,7 @@ export async function resolveVirgoYTToolProposal(input: {
 }
 
 export async function listVirgoYTAuditEvents(userId: number, projectId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.listVirgoYTAuditEvents(userId, projectId);
   const db = await requireDb();
   return db.select().from(virgoytAgentAuditEvents)
     .where(and(eq(virgoytAgentAuditEvents.userId, userId), eq(virgoytAgentAuditEvents.projectId, projectId)))
@@ -237,6 +253,7 @@ export async function createVirgoYTAuditEvent(input: {
   eventKind: string;
   details: string;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.createVirgoYTAuditEvent(input);
   const db = await requireDb();
   await db.insert(virgoytAgentAuditEvents).values({
     userId: input.userId,
@@ -249,6 +266,7 @@ export async function createVirgoYTAuditEvent(input: {
 }
 
 export async function listVirgoYTProviderProfiles(userId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.listVirgoYTProviderProfiles(userId);
   const db = await requireDb();
   return db.select().from(virgoytProviderProfiles)
     .where(eq(virgoytProviderProfiles.userId, userId))
@@ -262,6 +280,7 @@ export async function createVirgoYTProviderProfile(input: {
   endpoint?: string | null;
   defaultModel?: string | null;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.createVirgoYTProviderProfile(input);
   const db = await requireDb();
   const result = await db.insert(virgoytProviderProfiles).values({
     ...input,
@@ -277,6 +296,7 @@ export async function createVirgoYTProviderProfile(input: {
 }
 
 export async function listVirgoYTRunnerConnections(userId: number, projectId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.listVirgoYTRunnerConnections(userId, projectId);
   const db = await requireDb();
   return db.select().from(virgoytRunnerConnections)
     .where(and(eq(virgoytRunnerConnections.userId, userId), eq(virgoytRunnerConnections.projectId, projectId)))
@@ -289,6 +309,7 @@ export async function createVirgoYTRunnerConnection(input: {
   displayName: string;
   runnerType: "local_cli" | "remote_isolated";
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.createVirgoYTRunnerConnection(input);
   const db = await requireDb();
   const result = await db.insert(virgoytRunnerConnections).values({ ...input, status: "pending" });
   const id = Number(result[0].insertId);

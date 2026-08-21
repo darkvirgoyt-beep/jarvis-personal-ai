@@ -14,6 +14,8 @@ import {
   users,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import * as supabaseJarvisDb from "./supabaseJarvisDb";
+import { usesSupabasePrivateRuntime } from "./supabaseRuntime";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -27,6 +29,7 @@ export function setJarvisDbForTests(db: ReturnType<typeof drizzle> | null) {
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
+  if (usesSupabasePrivateRuntime()) return null;
   if (!_db && process.env.DATABASE_URL) {
     try {
       _db = drizzle(process.env.DATABASE_URL);
@@ -39,6 +42,7 @@ export async function getDb() {
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.upsertUser(user);
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
@@ -98,6 +102,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 }
 
 export async function getUserByOpenId(openId: string) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.getUserByOpenId(openId);
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get user: database not available");
@@ -115,6 +120,7 @@ export async function createJarvisMobilePairing(input: {
   userOpenId: string;
   expiresAt: Date;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.createJarvisMobilePairing(input);
   const db = await requireDb();
   await db.insert(jarvisMobilePairings).values(input);
 }
@@ -124,6 +130,7 @@ export async function consumeJarvisMobilePairing(input: {
   codeHash: string;
   verifierHash: string;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.consumeJarvisMobilePairing(input);
   const db = await requireDb();
   const now = new Date();
   const rows = await db.select().from(jarvisMobilePairings)
@@ -149,6 +156,7 @@ async function requireDb() {
 }
 
 export async function listJarvisConversations(userId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.listJarvisConversations(userId);
   const db = await requireDb();
   return db.select().from(jarvisConversations)
     .where(eq(jarvisConversations.userId, userId))
@@ -156,6 +164,7 @@ export async function listJarvisConversations(userId: number) {
 }
 
 export async function createJarvisConversation(userId: number, title: string, activeAgent: "general" | "coding" | "research" | "files" | "system" | "creative") {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.createJarvisConversation(userId, title, activeAgent);
   const db = await requireDb();
   const result = await db.insert(jarvisConversations).values({ userId, title, activeAgent });
   const conversationId = Number(result[0].insertId);
@@ -165,6 +174,7 @@ export async function createJarvisConversation(userId: number, title: string, ac
 }
 
 export async function getJarvisConversation(userId: number, conversationId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.getJarvisConversation(userId, conversationId);
   const db = await requireDb();
   const records = await db.select().from(jarvisConversations)
     .where(and(eq(jarvisConversations.id, conversationId), eq(jarvisConversations.userId, userId))).limit(1);
@@ -173,6 +183,7 @@ export async function getJarvisConversation(userId: number, conversationId: numb
 
 /** Persist a conversation star only after checking the conversation belongs to the signed-in user. */
 export async function setJarvisConversationStar(userId: number, conversationId: number, starred: boolean) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.setJarvisConversationStar(userId, conversationId, starred);
   const db = await requireDb();
   const result = await db.update(jarvisConversations)
     .set({ starredAt: starred ? new Date() : null })
@@ -181,6 +192,7 @@ export async function setJarvisConversationStar(userId: number, conversationId: 
 }
 
 export async function listJarvisMessages(userId: number, conversationId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.listJarvisMessages(userId, conversationId);
   const db = await requireDb();
   return db.select().from(jarvisMessages)
     .where(and(eq(jarvisMessages.userId, userId), eq(jarvisMessages.conversationId, conversationId)))
@@ -194,6 +206,7 @@ export async function createJarvisMessage(input: {
   content: string;
   agent: string;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.createJarvisMessage(input);
   const db = await requireDb();
   await db.insert(jarvisMessages).values(input);
   await db.update(jarvisConversations).set({ updatedAt: new Date() })
@@ -201,6 +214,7 @@ export async function createJarvisMessage(input: {
 }
 
 export async function listJarvisMemories(userId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.listJarvisMemories(userId);
   const db = await requireDb();
   return db.select().from(jarvisMemories)
     .where(eq(jarvisMemories.userId, userId))
@@ -213,11 +227,13 @@ export async function createJarvisMemory(input: {
   category: "preference" | "project" | "personal" | "fact" | "note";
   source?: "manual" | "conversation";
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.createJarvisMemory(input);
   const db = await requireDb();
   await db.insert(jarvisMemories).values({ ...input, source: input.source ?? "manual" });
 }
 
 export async function updateJarvisMemory(userId: number, id: number, content: string, category: "preference" | "project" | "personal" | "fact" | "note") {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.updateJarvisMemory(userId, id, content, category);
   const db = await requireDb();
   const result = await db.update(jarvisMemories).set({ content, category, updatedAt: new Date() })
     .where(and(eq(jarvisMemories.id, id), eq(jarvisMemories.userId, userId)));
@@ -225,12 +241,14 @@ export async function updateJarvisMemory(userId: number, id: number, content: st
 }
 
 export async function deleteJarvisMemory(userId: number, id: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.deleteJarvisMemory(userId, id);
   const db = await requireDb();
   const result = await db.delete(jarvisMemories).where(and(eq(jarvisMemories.id, id), eq(jarvisMemories.userId, userId)));
   return Number(result[0]?.affectedRows ?? 0);
 }
 
 export async function listJarvisTasks(userId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.listJarvisTasks(userId);
   const db = await requireDb();
   return db.select().from(jarvisTasks)
     .where(eq(jarvisTasks.userId, userId))
@@ -244,6 +262,7 @@ export async function createJarvisTask(input: {
   priority: "low" | "medium" | "high";
   dueAt?: Date | null;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.createJarvisTask(input);
   const db = await requireDb();
   await db.insert(jarvisTasks).values({ ...input, notes: input.notes ?? null, dueAt: input.dueAt ?? null });
 }
@@ -257,6 +276,7 @@ export async function updateJarvisTask(input: {
   priority?: "low" | "medium" | "high";
   dueAt?: Date | null;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.updateJarvisTask(input);
   const db = await requireDb();
   const { userId, id, ...values } = input;
   const result = await db.update(jarvisTasks).set({ ...values, updatedAt: new Date() })
@@ -265,6 +285,7 @@ export async function updateJarvisTask(input: {
 }
 
 export async function listJarvisResearchRecords(userId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.listJarvisResearchRecords(userId);
   const db = await requireDb();
   return db.select().from(jarvisResearchRecords)
     .where(eq(jarvisResearchRecords.userId, userId))
@@ -278,11 +299,13 @@ export async function createJarvisResearchRecord(input: {
   sourceLedger: string;
   summary: string;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.createJarvisResearchRecord(input);
   const db = await requireDb();
   await db.insert(jarvisResearchRecords).values(input);
 }
 
 export async function getJarvisPreferences(userId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.getJarvisPreferences(userId);
   const db = await requireDb();
   const existing = await db.select().from(jarvisPreferences).where(eq(jarvisPreferences.userId, userId)).limit(1);
   if (existing[0]) return existing[0];
@@ -304,6 +327,7 @@ export async function updateJarvisPreferences(input: {
   visualMode?: "hud" | "reduced_motion";
   pluginSettings?: string | null;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.updateJarvisPreferences(input);
   const db = await requireDb();
   const { userId, ...values } = input;
   await db.insert(jarvisPreferences).values({ userId, ...values }).onDuplicateKeyUpdate({
@@ -313,6 +337,7 @@ export async function updateJarvisPreferences(input: {
 }
 
 export async function listJarvisConfirmations(userId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.listJarvisConfirmations(userId);
   const db = await requireDb();
   return db.select().from(jarvisConfirmations)
     .where(eq(jarvisConfirmations.userId, userId))
@@ -325,6 +350,7 @@ export async function createJarvisConfirmation(input: {
   riskLevel: "low" | "medium" | "high";
   payload: string;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.createJarvisConfirmation(input);
   const db = await requireDb();
   const result = await db.insert(jarvisConfirmations).values(input);
   const id = Number(result[0].insertId);
@@ -334,6 +360,7 @@ export async function createJarvisConfirmation(input: {
 }
 
 export async function resolveJarvisConfirmation(userId: number, id: number, status: "approved" | "rejected") {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.resolveJarvisConfirmation(userId, id, status);
   const db = await requireDb();
   const result = await db.update(jarvisConfirmations).set({ status, resolvedAt: new Date() })
     .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, userId), eq(jarvisConfirmations.status, "pending")));
@@ -341,6 +368,7 @@ export async function resolveJarvisConfirmation(userId: number, id: number, stat
 }
 
 export async function getJarvisConfirmation(userId: number, id: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.getJarvisConfirmation(userId, id);
   const db = await requireDb();
   const records = await db.select().from(jarvisConfirmations)
     .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, userId))).limit(1);
@@ -348,6 +376,7 @@ export async function getJarvisConfirmation(userId: number, id: number) {
 }
 
 export async function markJarvisConfirmationExecuted(userId: number, id: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.markJarvisConfirmationExecuted(userId, id);
   const db = await requireDb();
   const result = await db.update(jarvisConfirmations).set({ status: "executed", resolvedAt: new Date() })
     .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, userId), eq(jarvisConfirmations.status, "approved")));
@@ -355,6 +384,7 @@ export async function markJarvisConfirmationExecuted(userId: number, id: number)
 }
 
 export async function listJarvisWorkspaceItems(userId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.listJarvisWorkspaceItems(userId);
   const db = await requireDb();
   return db.select().from(jarvisWorkspaceItems)
     .where(eq(jarvisWorkspaceItems.userId, userId))
@@ -370,6 +400,7 @@ export async function createJarvisWorkspaceItem(input: {
   contentType?: string | null;
   sizeBytes?: number;
 }) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.createJarvisWorkspaceItem(input);
   const db = await requireDb();
   const result = await db.insert(jarvisWorkspaceItems).values({
     ...input,

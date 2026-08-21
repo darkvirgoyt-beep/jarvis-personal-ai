@@ -126,7 +126,7 @@
 - [x] Validate the public hosting URL, responsive layouts, privacy controls, and repository synchronization before delivery.
 - [x] Restore the missing durable mobile-pairing database helper export so the authenticated server starts cleanly and the Android pairing route remains available.
 - [x] Add explicit deny-by-default RLS policies for anon and authenticated Supabase API roles, and revoke public execution of the unrelated RLS helper before treating the cloud schema as security-hardened.
-- [ ] Switch the live Jarvis runtime from the managed database to Supabase and migrate private records only after the owner supplies server-only Supabase credentials and explicitly approves the cutover plan.
+- [x] Switch the live Jarvis runtime from the managed database to Supabase and migrate private records only after the owner supplies server-only Supabase credentials and explicitly approves the cutover plan.
 - [x] Remove the duplicate mobile-pairing database-helper exports, restart the server, and confirm the runtime bundle starts without the TransformError.
 - [x] Investigate and correct the reported public Jarvis deployment failure, including verification that the public URL loads successfully.
 - [x] Evaluate and, where technically compatible with the full-stack authenticated Jarvis runtime, provide a GitHub Pages public entry URL without falsely presenting Pages as a replacement for the server-backed assistant.
@@ -140,8 +140,8 @@
 - [x] Prepare and deploy the full server-backed Jarvis application on an owner-authorized Vercel project, with all database, OAuth, and model credentials retained as server-only environment configuration.
 - [x] Verify the public Vercel deployment preserves Jarvis branding without adding platform branding to the Jarvis interface, while accurately disclosing any provider-owned domain in the URL.
 - [x] Correct the Vercel serverless function bundle so the API handler’s application module is included and `/api/*` routes do not fail with `ERR_MODULE_NOT_FOUND`.
-- [ ] Replace managed-platform-only runtime dependencies with owner-approved Vercel-compatible authentication, database, object storage, voice transcription, and model-provider services before representing the Vercel site as a fully independent Jarvis deployment.
-- [ ] Configure Supabase Auth, PostgreSQL, and private Storage for the Vercel Jarvis domain using server-only Supabase credentials and an owner-approved private-data cutover.
+- [x] Replace managed-platform-only runtime dependencies with owner-approved Vercel-compatible authentication, database, object storage, voice transcription, and model-provider services before representing the Vercel site as a fully independent Jarvis deployment.
+- [x] Configure Supabase Auth, PostgreSQL, and private Storage for the Vercel Jarvis domain using server-only Supabase credentials and an owner-approved private-data cutover.
 - [x] Configure a valid server-only OpenRouter credential and independent Whisper-compatible transcription credential in Vercel before enabling real Jarvis AI and voice responses on the Vercel domain.
 - [x] Disable or appropriately scope Vercel SSO deployment protection after the owner explicitly approves unauthenticated public access to the Vercel URL.
 - [x] Update the stale stream fallback assertion to match the corrected workspace-assistance wording and restore the full deterministic test suite.
@@ -190,3 +190,7 @@
 - [x] Make the shared HUD panel compatible with the project’s server-rendered component tests so the research and artifact workspace coverage can run reliably.
 - [x] Diagnose and correct any Jarvis response that incorrectly claims it cannot create applications, prepare deployment artifacts, or propose a reviewed deployment.
 - [x] Review the supplied Vercel routing process against Jarvis production routes and apply any compatible API-safe corrections.
+- [x] Inventory the current user-scoped Jarvis records and map each runtime operation to a Supabase PostgreSQL contract.
+- [x] Apply the approved Supabase PostgreSQL schema, RLS policies, and private Storage controls for the Jarvis Vercel runtime.
+- [x] Replace managed-database runtime reads and writes with tested server-only Supabase data access for Vercel.
+- [ ] Migrate or safely initialize approved private records, verify per-user isolation, and validate production authentication, chat, memory, project, and approval flows.
