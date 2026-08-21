@@ -136,6 +136,40 @@ describe("Jarvis authenticated endpoints", () => {
     expect(db.createJarvisMessage).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, conversationId: 12, content: "Fallback response" }));
   });
 
+  it("tells live-model fallbacks to support reviewed app building and deployment proposals without falsely denying those capabilities", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
+    registerJarvisStream(app);
+    vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
+    vi.mocked(db.createJarvisConversation).mockResolvedValue({ id: 13 } as never);
+    vi.mocked(db.listJarvisMessages).mockResolvedValue([] as never);
+    vi.mocked(db.listJarvisMemories).mockResolvedValue([] as never);
+    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ personality: "balanced" } as never);
+    vi.mocked(db.createJarvisMessage).mockResolvedValue(undefined);
+    vi.mocked(streamNemotronUltra).mockRejectedValue(new Error("provider unavailable"));
+    vi.mocked(streamLLM).mockResolvedValue(new Response(
+      'data: {"choices":[{"delta":{"content":"I can prepare a reviewed build proposal."}}]}\n\ndata: [DONE]\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    const res = responseRecorder();
+
+    await handler!({ body: { content: "Can you make and deploy an app?", agent: "coding" } } as Request, res as unknown as Response);
+
+    expect(streamLLM).toHaveBeenCalledWith(expect.objectContaining({
+      messages: expect.arrayContaining([
+        expect.objectContaining({
+          role: "system",
+          content: expect.stringContaining("Jarvis supports app and website work"),
+        }),
+        expect.objectContaining({
+          role: "system",
+          content: expect.stringContaining("Never falsely say that Jarvis cannot build applications"),
+        }),
+      ]),
+    }));
+    expect(res.writes.join("")).toContain("reviewed build proposal");
+  });
+
   it("honors a validated persisted model preference while retaining Nemotron as the default path", async () => {
     let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
     const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
