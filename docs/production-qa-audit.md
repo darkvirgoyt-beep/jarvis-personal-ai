@@ -77,3 +77,7 @@ The normal client bearer-token path was then checked without exposing the token 
 ### Signed-in app-capability contract correction — 2026-08-21
 
 An owner-provided signed-in screenshot exposed a stale model-generated denial claiming Jarvis could not compile, sign, or deploy applications. That wording did not meet the documented reviewed-workspace and deployment-proposal contract. GitHub commit `7253f8a25db8f4c804ed59235dea21e1c10b48b9` strengthened the live-model system contract and stream regression coverage: Jarvis must offer app and website architecture, reviewed artifacts, GitHub handoff, and explicit deployment proposals, while accurately reserving actual signing, release, remote-computer, and credentialed deployment execution for connected approved tools. Vercel deployment `dpl_CUjPpinvssVZzoKAM4xvedLMp7cN` reached `READY`; a signed-in new-chat confirmation remains the final user-visible check because historical messages are intentionally immutable.
+
+### Deployment-timeout diagnosis — 2026-08-21
+
+The available server logs show an earlier local sandbox process exit (`137`) while Vite rendered the production bundle under memory pressure. This was not a current Vercel production failure: the corrected Vercel deployment reached `READY`, and a fresh credential-free `GET /api/trpc/auth.me` returned HTTP 200 in 0.30 seconds. Jarvis therefore retains GitHub as source of truth and Vercel as the public production host; the historical sandbox build-memory timeout is not treated as a public deployment outage.

@@ -197,5 +197,5 @@
 - [ ] Create, verify, and immediately delete one owner-approved temporary private validation task in the live Supabase-backed workspace.
 - [ ] Inspect the exact live Jarvis assistant reply against the approved product requirements and correct any inaccurate capability guidance.
 - [ ] Remove the stale signed-in fallback that falsely says Jarvis cannot build, compile, sign, or deploy applications despite its reviewed app-workspace and deployment-proposal capabilities.
-- [ ] Diagnose and resolve the reported managed deployment timeout without changing the GitHub-to-Vercel public production source of truth.
+- [x] Diagnose and resolve the reported managed deployment timeout without changing the GitHub-to-Vercel public production source of truth.
 - [x] Verify the exact index.html and vercel.json routing-guide changes against the supplied Vercel process and correct only any missing compatible configuration.
