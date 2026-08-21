@@ -15,7 +15,7 @@ export function JarvisMissionControl({
   isWorking,
   pendingApprovals,
   stagedAttachmentCount,
-  onIntentChange,
+  onIntentChange: _onIntentChange,
   onOpenBuilder,
   onOpenWorkspace,
   onOpenIntegrations,
@@ -26,7 +26,7 @@ export function JarvisMissionControl({
   isWorking: boolean;
   pendingApprovals: number;
   stagedAttachmentCount: number;
-  onIntentChange: (intent: string) => void;
+  onIntentChange?: (intent: string) => void;
   onOpenBuilder: () => void;
   onOpenWorkspace: () => void;
   onOpenIntegrations: () => void;
@@ -34,7 +34,7 @@ export function JarvisMissionControl({
   const active = intents.find((intent) => intent.id === activeIntent) ?? intents[0];
   const progress = isWorking
     ? ["Request received", `Working in ${active?.label ?? "Assistant"} mode`, "Streaming a reviewed response"]
-    : ["Choose a work intent", "Describe the outcome in normal language", "Review artifacts and approve actions when needed"];
+    : ["Describe the outcome in normal language", "Jarvis routes the request to the right reviewed workflow", "Review artifacts and approve actions when needed"];
 
   return (
     <section aria-label="Jarvis mission control" className="overflow-hidden rounded-xl border border-white/10 bg-slate-950/60 shadow-[0_18px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl">
@@ -43,9 +43,7 @@ export function JarvisMissionControl({
           <div className="min-w-0"><div className="flex items-center gap-2"><span className="flex size-7 items-center justify-center rounded-md border border-fuchsia-400/25 bg-fuchsia-400/[0.08] text-fuchsia-100"><Sparkles className="size-3.5" /></span><p className="hud-label text-fuchsia-100">JARVIS MISSION CONTROL</p></div><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">Describe the result you want. Jarvis selects a clear working surface; every external, file, deployment, and remote-computer action stays visible and approval-gated.</p></div>
           <div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 text-[10px] font-semibold tracking-[0.1em] text-cyan-100"><CircleDot className={cn("size-3", isWorking && "animate-pulse")} />{isWorking ? "WORKING" : "READY"}</span><span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.025] px-2.5 py-1 text-[10px] font-semibold tracking-[0.1em] text-slate-400"><LockKeyhole className="size-3" />{pendingApprovals} REVIEW{pendingApprovals === 1 ? "" : "S"}</span></div>
         </div>
-        <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Work intent">
-          {intents.map((intent) => <button key={intent.id} type="button" role="tab" aria-selected={activeIntent === intent.id} onClick={() => onIntentChange(intent.id)} className={cn("shrink-0 rounded-lg border px-3 py-2 text-left transition", activeIntent === intent.id ? "border-cyan-300/35 bg-cyan-300/[0.08] text-cyan-50" : "border-white/[0.08] bg-white/[0.02] text-slate-500 hover:border-white/20 hover:text-slate-300")}><span className="block text-[11px] font-semibold">{intent.label}</span><span className="mt-0.5 block text-[10px] text-slate-500">{intent.description}</span></button>)}
-        </div>
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-cyan-300/15 bg-cyan-300/[0.04] px-3 py-2.5"><span className="rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-2 py-1 font-mono text-[9px] tracking-[0.12em] text-cyan-100">AUTO ROUTE</span><p className="text-[11px] text-slate-400"><span className="font-medium text-slate-200">{active?.label ?? "General assistance"}</span> — {active?.description ?? "Jarvis chooses the right reviewed surface from your prompt."}</p></div>
       </div>
 
       <div className="grid gap-px bg-white/[0.07] lg:grid-cols-[minmax(0,1.15fr)_minmax(250px,0.85fr)_minmax(245px,0.8fr)]">

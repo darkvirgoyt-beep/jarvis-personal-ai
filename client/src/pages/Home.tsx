@@ -3,6 +3,7 @@ import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { JarvisActionDock } from "@/components/JarvisActionDock";
 import { JarvisAuthDialog } from "@/components/JarvisAuthDialog";
 import { JarvisBuilderDock } from "@/components/JarvisBuilderDock";
+import { JarvisCommandCenter } from "@/components/JarvisCommandCenter";
 import { JarvisArtifactWorkspace } from "@/components/JarvisArtifactWorkspace";
 import { JarvisResearchDesk } from "@/components/JarvisResearchDesk";
 import { JarvisWorkspaceDock } from "@/components/JarvisWorkspaceDock";
@@ -20,6 +21,7 @@ import { streamJarvisResponse, transcribeJarvisAudio } from "@/lib/jarvisApi";
 import { initialJarvisInteractionState, transitionJarvisInteraction, type JarvisInteractionEvent } from "@/lib/jarvisInteractionState";
 import { buildJarvisMarkdownExport, getLatestJarvisAssistantOutput } from "@/lib/jarvisOutput";
 import { getJarvisVoiceProfile, selectJarvisBrowserVoice } from "@/lib/jarvisVoice";
+import { routeJarvisPrompt, type JarvisPromptRoute } from "@/lib/jarvisIntentRouter";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { jarvisCloudWorkspaceStates } from "@shared/jarvisCloudWorkspace";
@@ -53,17 +55,9 @@ const workIntents: JarvisWorkIntent[] = [
   { id: "image", label: "Image", description: "Create a visual brief" },
   { id: "data", label: "Data", description: "Calculate and analyze" },
   { id: "document", label: "Document", description: "Shape an artifact" },
+  { id: "debug", label: "Debug", description: "Trace and verify a fix" },
+  { id: "environment", label: "Computer", description: "Prepare a runner handoff" },
 ];
-
-const intentAgent: Record<string, Agent> = {
-  answer: "General",
-  research: "Research",
-  code: "Coding",
-  builder: "Coding",
-  image: "Creative",
-  data: "Research",
-  document: "Files",
-};
 
 const statusCopy: Record<JarvisCoreState, string> = {
   idle: "All systems calibrated",
@@ -104,6 +98,7 @@ export default function Home() {
   const [memoryDraft, setMemoryDraft] = useState("");
   const [taskDraft, setTaskDraft] = useState("");
   const [activeIntent, setActiveIntent] = useState("answer");
+  const [lastRoute, setLastRoute] = useState<JarvisPromptRoute>(() => routeJarvisPrompt(""));
   const [stagedAttachments, setStagedAttachments] = useState<{ name: string; size: number }[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activity, setActivity] = useState<string[]>(["Jarvis core initialized", "Privacy shield active", "Awaiting command"]);
@@ -352,13 +347,19 @@ export default function Home() {
   const handleSendMessage = async (content: string, overrideAgent?: Agent) => {
     const command = content.trim();
     if (!command || isSending) return;
-    const activeAgent = overrideAgent ?? intentAgent[activeIntent] ?? agent;
+    const route = routeJarvisPrompt(command);
+    const activeAgent = overrideAgent ?? route.agent;
     const activeAgentId = activeAgent.toLowerCase() as "general" | "coding" | "research" | "files" | "system" | "creative";
+    setLastRoute(route);
+    if (!overrideAgent) {
+      setActiveIntent(route.intent);
+      setAgent(route.agent);
+    }
     window.speechSynthesis?.cancel();
     setResponseMode("primary");
     setMessages((current) => [...current, { role: "user", content: command }, { role: "assistant", content: "" }]);
     transitionInteraction({ type: "typed_submitted" });
-    addActivity(`${activeAgent} agent received a ${activeIntent} command`);
+    addActivity(`Auto-routed: ${route.label} — ${route.executionLine}`);
     let responseText = "";
     try {
       await streamJarvisResponse({
@@ -486,10 +487,26 @@ export default function Home() {
             isWorking={isSending}
             pendingApprovals={pendingConfirmations.length}
             stagedAttachmentCount={stagedAttachments.length}
-            onIntentChange={(intent) => { setActiveIntent(intent); setAgent(intentAgent[intent] ?? "General"); addActivity(`${workIntents.find((item) => item.id === intent)?.label ?? "Assistant"} work mode selected`); }}
             onOpenBuilder={() => setActiveMode("builder")}
             onOpenWorkspace={() => setActiveMode("projects")}
             onOpenIntegrations={() => setActiveMode("integrations")}
+          />
+
+          <JarvisCommandCenter
+            route={lastRoute}
+            activity={activity}
+            isWorking={isSending}
+            onRequestRunner={(profile) => {
+              const environment = profile === "kali" ? "Kali-compatible security lab" : "Ubuntu build and diagnostic runner";
+              void proposeConfirmation.mutateAsync({
+                action: `Review ${environment} handoff`,
+                riskLevel: "high",
+                details: `Prepare the requirements for a visible, owner-approved ${environment}. Jarvis will not access a terminal, browser, sandbox, credentials, downloads, or external links until a real connected provider session is displayed and separately approved.`,
+              }).then(() => {
+                addActivity(`${environment} review gate created`);
+                void utils.jarvis.confirmations.list.invalidate();
+              }).catch(() => addActivity("Runner review gate could not be created"));
+            }}
           />
 
           {(activeIntent === "research" || activeIntent === "data") && <JarvisResearchDesk mode={activeIntent === "data" ? "data" : "research"} onSendBrief={(prompt) => { addActivity(activeIntent === "data" ? "Local data summary sent to Jarvis for explanation" : "Research brief sent to Jarvis for source-linked review"); void handleSendMessage(prompt, activeIntent === "data" ? "Research" : "Research"); }} />}
@@ -505,7 +522,7 @@ export default function Home() {
 
             <HudPanel className="flex min-h-[490px] flex-col overflow-hidden">
               <div className="flex items-center justify-between border-b border-cyan-300/15 px-5 py-3"><div className="flex items-center gap-2"><Command className="size-4 text-fuchsia-200" /><p className="hud-label">CONVERSATION FEED</p></div><span className={cn("rounded-full border px-2 py-1 font-mono text-[9px] tracking-[0.15em]", responseMode === "provider-auth" || responseMode === "basic" ? "border-amber-300/30 bg-amber-300/10 text-amber-100" : responseMode === "managed" ? "border-cyan-300/25 bg-cyan-300/10 text-cyan-100" : "border-fuchsia-400/25 bg-fuchsia-400/10 text-fuchsia-100")}>{responseMode === "provider-auth" ? "KEY UNAVAILABLE" : responseMode === "basic" ? "BASIC MODE" : responseMode === "managed" ? "MANAGED FALLBACK" : agent.toUpperCase()}</span></div>
-              <AIChatBox messages={messages} onSendMessage={handleSendMessage} isLoading={isSending} voiceState={voiceState} onVoiceStart={handleVoiceStart} onVoiceStop={handleVoiceStop} activeIntent={activeIntent} intents={workIntents} onIntentChange={(intent) => { setActiveIntent(intent); setAgent(intentAgent[intent] ?? "General"); }} stagedAttachments={stagedAttachments} onStageAttachments={(files) => { setStagedAttachments((current) => [...current, ...files.map((file) => ({ name: file.name, size: file.size })).filter((incoming) => !current.some((existing) => existing.name === incoming.name))].slice(0, 6)); addActivity(`${files.length} local context file${files.length === 1 ? "" : "s"} staged for review`); }} onRemoveAttachment={(name) => setStagedAttachments((current) => current.filter((file) => file.name !== name))} onSpeakMessage={speakResponse} placeholder="Describe what you want to create, research, calculate, or improve…" emptyStateMessage="Jarvis is ready. Choose a work intent, then describe the outcome in normal language." suggestedPrompts={quickCommands} height="100%" className="flex-1 border-0 shadow-none" />
+              <AIChatBox messages={messages} onSendMessage={handleSendMessage} isLoading={isSending} voiceState={voiceState} onVoiceStart={handleVoiceStart} onVoiceStop={handleVoiceStop} stagedAttachments={stagedAttachments} onStageAttachments={(files) => { setStagedAttachments((current) => [...current, ...files.map((file) => ({ name: file.name, size: file.size })).filter((incoming) => !current.some((existing) => existing.name === incoming.name))].slice(0, 6)); addActivity(`${files.length} local context file${files.length === 1 ? "" : "s"} staged for review`); }} onRemoveAttachment={(name) => setStagedAttachments((current) => current.filter((file) => file.name !== name))} onSpeakMessage={speakResponse} placeholder="Describe anything you want done — Jarvis routes it automatically…" emptyStateMessage="Jarvis is ready. Describe the outcome in normal language; Jarvis will select the reviewed workflow." suggestedPrompts={quickCommands} height="100%" className="flex-1 border-0 shadow-none" />
               <div className="flex items-center justify-between border-t border-cyan-300/10 px-4 py-2 text-[10px] text-slate-600"><span>Hold mic or <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-slate-400">Ctrl/⌘ Space</kbd></span><span>Private by design</span></div>
             </HudPanel>
           </div>

@@ -40,6 +40,18 @@ function extractHttpsSources(content: string) {
   })));
 }
 
+function isJarvisBuildRequest(content: string, agent: string) {
+  return agent === "coding" || /\b(build|website|web app|application|frontend|backend|api|database|code|compile|deploy|publish|apk|android)\b/i.test(content);
+}
+
+const broadBuildDenialPattern = /\b(?:I|Jarvis)\s+(?:can(?:not|['’]t)|cannot)\s+(?:compile|run|sign|publish|deploy)\b[^.!?]{0,360}[.!?]?/gi;
+const correctedBuildCapability = "Jarvis can prepare the architecture, reviewed code and artifacts, compile-readiness checks, cloud-runner requirements, GitHub handoff, and an explicit deployment proposal. A real compile, signing, publishing, or deployment step requires a connected runner or provider result and any required explicit approval.";
+
+export function normalizeJarvisBuildCapabilityResponse(content: string, isBuildRequest: boolean) {
+  if (!isBuildRequest) return content;
+  return content.replace(broadBuildDenialPattern, correctedBuildCapability);
+}
+
 async function sendStaticCompletion(res: Response, content: string, state: { closed: boolean }) {
   if (!state.closed) writeEvent(res, "delta", { text: content });
   if (!state.closed) writeEvent(res, "done", {});
@@ -70,6 +82,7 @@ export function registerJarvisStream(app: Express) {
 
     try {
       const input = streamInputSchema.parse(req.body);
+      const buildRequest = isJarvisBuildRequest(input.content, input.agent);
       let conversationId = input.conversationId;
       if (conversationId) {
         const conversation = await db.getJarvisConversation(user.id, conversationId);
@@ -124,7 +137,9 @@ export function registerJarvisStream(app: Express) {
         agentInstructions[input.agent],
         `Personality setting: ${preferences?.personality ?? "balanced"}.`,
         `Privacy mode: ${preferences?.privacyMode ?? "standard"}.`,
+        `Runtime time context (UTC, generated at this request): ${new Date().toISOString()}. Treat this as the authoritative current timestamp for this response; explain time-zone conversions instead of guessing local time.`,
         "Capability contract: Jarvis supports app and website work. For build requests, confidently offer to turn requirements into a reviewed Builder brief, architecture, implementation plan, code and artifact proposals, compile-readiness review, cloud-runner requirements, repository handoff, and an explicit deployment proposal. First identify the intended target (web build, Android package, or cloud service) and explain the toolchain, test, artifact, and signing or runtime requirements. Never falsely say that Jarvis cannot build applications, make code, compile a project, or deploy as a broad limitation. Be precise instead: a real external build, repository mutation, deployment, signing, app-store submission, or virtual-computer action occurs only after a connected tool result and any required explicit approval. Do not use an unavailable file system, IDE, CI/CD pipeline, app-store account, or unconnected cloud runner as a reason to deny app-building assistance.",
+        "Normal language first: infer the right workflow from the user’s ordinary prompt. For build, code, debugging, research, documents, data, images, or environment requests, lead with a concrete reviewed plan and useful artifacts instead of requiring the user to select a technical mode. For Ubuntu, Kali-compatible security-lab, terminal, browser, sandbox, or virtual-computer requests, prepare requirements and an explicit approval-gated handoff; never claim the environment is connected before an actual tool result exists.",
         "Safety is mandatory: never claim to have accessed a computer, file system, account, device, email, calendar, smart-home system, terminal, or other external service unless a connected tool result is supplied in the conversation. Never execute, simulate executing, or imply completion of external or destructive actions. Describe proposed actions and require explicit user confirmation for high-impact operations.",
         "The user may request web research. If live source material is not provided, state the limitation and give a concrete research plan rather than fabricating current facts or citations.",
         `Private memory relevant to this conversation:\n${memoryContext}`,
@@ -133,6 +148,22 @@ export function registerJarvisStream(app: Express) {
       const modelMessages = [{ role: "system" as const, content: systemPrompt }, ...recentHistory];
       let upstream: globalThis.Response | undefined;
       let fullResponse = "";
+      let pendingBuildSentence = "";
+      const emitModelText = (text: string) => {
+        const normalizedText = normalizeJarvisBuildCapabilityResponse(text, buildRequest);
+        if (!normalizedText) return;
+        fullResponse += normalizedText;
+        if (!closed) writeEvent(res, "delta", { text: normalizedText });
+      };
+      const emitBuildSentences = (force = false) => {
+        if (!pendingBuildSentence) return;
+        const sentenceEnd = Math.max(pendingBuildSentence.lastIndexOf("."), pendingBuildSentence.lastIndexOf("!"), pendingBuildSentence.lastIndexOf("?"));
+        const length = force ? pendingBuildSentence.length : sentenceEnd + 1;
+        if (length <= 0) return;
+        const text = pendingBuildSentence.slice(0, length);
+        pendingBuildSentence = pendingBuildSentence.slice(length);
+        emitModelText(text);
+      };
       const emitBasicFallback = (reason: "provider-auth" | "providers-unavailable") => {
         fullResponse = buildJarvisBasicFallback(input.content, input.agent);
         writeEvent(res, "meta", { provider: "basic-local", reason });
@@ -195,8 +226,7 @@ export function registerJarvisStream(app: Express) {
       }
       if (upstream?.headers.get("content-type")?.includes("application/json")) {
         const response = await upstream.json();
-        fullResponse = parseDelta(response);
-        if (fullResponse && !closed) writeEvent(res, "delta", { text: fullResponse });
+        emitModelText(parseDelta(response));
       } else if (upstream) {
         if (!upstream.body) throw new Error("Jarvis response stream was unavailable");
         const reader = upstream.body.getReader();
@@ -221,8 +251,12 @@ export function registerJarvisStream(app: Express) {
             try {
               const delta = parseDelta(JSON.parse(data));
               if (delta) {
-                fullResponse += delta;
-                if (!closed) writeEvent(res, "delta", { text: delta });
+                if (buildRequest) {
+                  pendingBuildSentence += delta;
+                  emitBuildSentences();
+                } else {
+                  emitModelText(delta);
+                }
               }
             } catch {
               // Ignore provider keep-alive and non-content frames.
@@ -230,6 +264,8 @@ export function registerJarvisStream(app: Express) {
           }
         }
       }
+
+      if (buildRequest) emitBuildSentences(true);
 
       if (fullResponse.trim()) {
         await db.createJarvisMessage({ userId: user.id, conversationId, role: "assistant", content: fullResponse, agent: input.agent });

@@ -196,9 +196,13 @@
 - [ ] Migrate or safely initialize approved private records, verify per-user isolation, and validate production authentication, chat, memory, project, and approval flows.
 - [x] Create, verify, and immediately delete one owner-approved temporary private validation task in the live Supabase-backed workspace.
 - [x] Add a protected, user-scoped task-deletion endpoint in both managed and Supabase runtime adapters so approved temporary validation records can be removed cleanly.
-- [ ] Inspect the exact live Jarvis assistant reply against the approved product requirements and correct any inaccurate capability guidance.
-- [ ] Remove the stale signed-in fallback that falsely says Jarvis cannot build, compile, sign, or deploy applications despite its reviewed app-workspace and deployment-proposal capabilities.
+- [x] Inspect the exact live Jarvis assistant reply against the approved product requirements and correct any inaccurate capability guidance.
+- [x] Remove the stale signed-in fallback that falsely says Jarvis cannot build, compile, sign, or deploy applications despite its reviewed app-workspace and deployment-proposal capabilities.
 - [x] Diagnose and resolve the reported managed deployment timeout without changing the GitHub-to-Vercel public production source of truth.
 - [x] Verify the exact index.html and vercel.json routing-guide changes against the supplied Vercel process and correct only any missing compatible configuration.
 - [x] Add an approval-gated Compiling Tools and Cloud surface that prepares reviewed build plans, cloud-runner requirements, and deployment proposals without claiming unconnected compilation, signing, or publishing has already occurred.
 - [x] Correct Jarvis capability guidance so it offers app planning, artifact generation, compile-readiness review, cloud-runner setup, GitHub handoff, and explicit deployment proposals instead of a blanket inability statement.
+- [x] Add a normal-chat intent router that turns a plain Jarvis prompt into an appropriate reviewed artifact, research, code, image brief, app/web build, debugging, or environment workflow without asking the user to choose a technical mode first.
+- [x] Upgrade the workspace with advanced debugging, file/terminal/session telemetry, current date/time context, and clear live artifact/run status surfaces.
+- [x] Add an approval-gated cloud-computer environment handoff for Ubuntu and Kali-compatible runner requirements, with explicit connected/unconnected state and no implied shell, browser, sandbox, credential, or external-link access before connection.
+- [x] Update the Jarvis capability contract and tests so ordinary conversational requests accurately offer reviewed end-to-end build, artifact, diagnostic, and cloud-runner workflows without broad capability denials.

@@ -165,9 +165,42 @@ describe("Jarvis authenticated endpoints", () => {
           role: "system",
           content: expect.stringContaining("Never falsely say that Jarvis cannot build applications"),
         }),
+        expect.objectContaining({
+          role: "system",
+          content: expect.stringContaining("Runtime time context (UTC, generated at this request)"),
+        }),
+        expect.objectContaining({
+          role: "system",
+          content: expect.stringContaining("Normal language first: infer the right workflow"),
+        }),
       ]),
     }));
     expect(res.writes.join("")).toContain("reviewed build proposal");
+  });
+
+  it("replaces a broad model denial with accurate approval-gated build guidance before streaming or persistence", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
+    registerJarvisStream(app);
+    vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
+    vi.mocked(db.createJarvisConversation).mockResolvedValue({ id: 16 } as never);
+    vi.mocked(db.listJarvisMessages).mockResolvedValue([] as never);
+    vi.mocked(db.listJarvisMemories).mockResolvedValue([] as never);
+    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ personality: "balanced" } as never);
+    vi.mocked(db.createJarvisMessage).mockResolvedValue(undefined);
+    vi.mocked(streamNemotronUltra).mockResolvedValue(new Response(
+      'data: {"choices":[{"delta":{"content":"I can’t compile, run, sign, or publish it for you; you’ll copy the files into your own repo."}}]}\n\ndata: [DONE]\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    const res = responseRecorder();
+
+    await handler!({ body: { content: "Build and deploy a mobile app", agent: "coding" } } as Request, res as unknown as Response);
+
+    const emitted = res.writes.join("");
+    expect(emitted).not.toContain("I can’t compile, run, sign, or publish it for you");
+    expect(emitted).toContain("Jarvis can prepare the architecture");
+    expect(emitted).toContain("requires a connected runner or provider result");
+    expect(db.createJarvisMessage).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining("Jarvis can prepare the architecture") }));
   });
 
   it("honors a validated persisted model preference while retaining Nemotron as the default path", async () => {
