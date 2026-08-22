@@ -82,6 +82,6 @@ describe("AIChatBox Jarvis interaction states", () => {
     expect(markup).toContain("requirements.md");
     expect(markup).toContain("Local context is staged in this browser only");
     expect(markup).toContain("Copy Jarvis response");
-    expect(markup).toContain("Listen to Jarvis response");
+    expect(markup).toContain("Replay Jarvis response");
   });
 });

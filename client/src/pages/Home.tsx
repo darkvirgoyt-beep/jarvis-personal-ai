@@ -20,6 +20,7 @@ import { JARVIS_OPEN_AUTH_EVENT, startLogin } from "@/const";
 import { streamJarvisResponse, transcribeJarvisAudio } from "@/lib/jarvisApi";
 import { initialJarvisInteractionState, transitionJarvisInteraction, type JarvisInteractionEvent } from "@/lib/jarvisInteractionState";
 import { buildJarvisMarkdownExport, getLatestJarvisAssistantOutput } from "@/lib/jarvisOutput";
+import { normalizeJarvisSpeechText } from "@/lib/jarvisSpeechText";
 import { getJarvisVoiceProfile, selectJarvisBrowserVoice } from "@/lib/jarvisVoice";
 import { routeJarvisPrompt, type JarvisPromptRoute } from "@/lib/jarvisIntentRouter";
 import { trpc } from "@/lib/trpc";
@@ -252,8 +253,13 @@ export default function Home() {
       transitionInteraction({ type: "speech_finished" });
       return;
     }
+    const speechText = normalizeJarvisSpeechText(content);
+    if (!speechText) {
+      transitionInteraction({ type: "speech_finished" });
+      return;
+    }
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(content);
+    const utterance = new SpeechSynthesisUtterance(speechText);
     const personality = preferencesQuery.data?.personality ?? "balanced";
     const voiceProfile = getJarvisVoiceProfile(personality);
     utterance.rate = Math.min(1.5, Math.max(0.6, ((preferencesQuery.data?.speechRate ?? 100) / 100) * voiceProfile.rate));

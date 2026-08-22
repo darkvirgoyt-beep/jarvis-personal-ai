@@ -309,7 +309,7 @@ export function AIChatBox({
                             <button type="button" aria-label="Copy Jarvis response" onClick={() => void copyMessage(message.content, index)} className="flex size-7 items-center justify-center rounded-sm border border-white/10 bg-black/25 text-slate-400 transition hover:border-cyan-300/35 hover:text-cyan-100">
                               {copiedMessage === index ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
                             </button>
-                            {onSpeakMessage && <button type="button" aria-label="Listen to Jarvis response" onClick={() => onSpeakMessage(message.content)} className="flex size-7 items-center justify-center rounded-sm border border-white/10 bg-black/25 text-slate-400 transition hover:border-fuchsia-400/35 hover:text-fuchsia-100"><Volume2 className="size-3.5" /></button>}
+                            {onSpeakMessage && <button type="button" aria-label="Replay Jarvis response" title="Replay Jarvis response" onClick={() => onSpeakMessage(message.content)} className="flex size-7 items-center justify-center rounded-sm border border-white/10 bg-black/25 text-slate-400 transition hover:border-fuchsia-400/35 hover:text-fuchsia-100"><Volume2 className="size-3.5" /></button>}
                           </div>
                         </>
                       ) : (

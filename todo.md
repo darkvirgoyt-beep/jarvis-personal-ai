@@ -211,3 +211,7 @@
 - [x] Add secure compile-job lifecycle controls that require a connected runner before execution, keep credentials out of chat and logs, and require separate explicit approval for signing, external publishing, store upload, or deployment.
 - [x] Update Jarvis normal-chat capability guidance and regression tests so it promises real compilation only when a connected runner reports a build result, rather than returning a blanket local-machine handoff.
 - [x] Add visible secure session-persistence status and keep-signed-in guidance so users know their Supabase browser session is retained without storing passwords in Jarvis.
+- [x] Make Jarvis automatically speak completed assistant replies after the user explicitly enables voice, while keeping Listen as a replay control rather than the only speech trigger.
+- [x] Normalize Markdown, code fences, bullets, links, mathematical delimiters, and other formatting into clean natural speech before browser text-to-speech is invoked.
+- [ ] Refine the advanced-workflow contract using the supplied tool blueprint, retaining real-result-only claims and explicit approval gates for search, runner execution, file changes, browser work, Git operations, deployment, images, and vision.
+- [ ] Assess the requested Anthropic model integration with an exact supported model identifier and server-only credential boundary before enabling any provider switch.
