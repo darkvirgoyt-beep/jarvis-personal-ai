@@ -191,6 +191,17 @@ export async function setJarvisConversationStar(userId: number, conversationId: 
   return Number(result[0].affectedRows ?? 0) > 0;
 }
 
+/** Remove only the signed-in user's conversation and its private messages. */
+export async function deleteJarvisConversation(userId: number, conversationId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.deleteJarvisConversation(userId, conversationId);
+  const db = await requireDb();
+  await db.delete(jarvisMessages)
+    .where(and(eq(jarvisMessages.userId, userId), eq(jarvisMessages.conversationId, conversationId)));
+  const result = await db.delete(jarvisConversations)
+    .where(and(eq(jarvisConversations.id, conversationId), eq(jarvisConversations.userId, userId)));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
 export async function listJarvisMessages(userId: number, conversationId: number) {
   if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.listJarvisMessages(userId, conversationId);
   const db = await requireDb();
@@ -388,6 +399,15 @@ export async function markJarvisConfirmationExecuted(userId: number, id: number)
   const db = await requireDb();
   const result = await db.update(jarvisConfirmations).set({ status: "executed", resolvedAt: new Date() })
     .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, userId), eq(jarvisConfirmations.status, "approved")));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
+/** Remove only the signed-in user's approval record. This never executes the approved action. */
+export async function deleteJarvisConfirmation(userId: number, id: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseJarvisDb.deleteJarvisConfirmation(userId, id);
+  const db = await requireDb();
+  const result = await db.delete(jarvisConfirmations)
+    .where(and(eq(jarvisConfirmations.id, id), eq(jarvisConfirmations.userId, userId)));
   return Number(result[0]?.affectedRows ?? 0);
 }
 

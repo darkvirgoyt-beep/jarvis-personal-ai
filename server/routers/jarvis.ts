@@ -48,6 +48,12 @@ export const jarvisRouter = router({
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Jarvis conversation not found" });
       return { success: true } as const;
     }),
+    delete: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const deleted = await db.deleteJarvisConversation(ctx.user.id, input.conversationId);
+        if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Jarvis conversation not found" });
+        return { success: true } as const;
+      }),
   }),
 
   memory: router({
@@ -164,6 +170,12 @@ export const jarvisRouter = router({
           : "Jarvis rejected the proposed action. No external action was executed.",
       } as const;
     }),
+    delete: protectedProcedure.input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const deleted = await db.deleteJarvisConfirmation(ctx.user.id, input.id);
+        if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Jarvis approval gate not found" });
+        return { success: true } as const;
+      }),
   }),
 
   workspace: router({

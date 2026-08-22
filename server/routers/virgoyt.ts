@@ -66,6 +66,11 @@ export const virgoytRouter = router({
       await db.createVirgoYTAuditEvent({ userId: ctx.user.id, projectId: input.projectId, eventKind: "project.archived", details: "Project archived by owner" });
       return { success: true } as const;
     }),
+    deleteEmpty: protectedProcedure.input(z.object({ projectId: projectIdSchema })).mutation(async ({ ctx, input }) => {
+      const deleted = await db.deleteEmptyVirgoYTProject(ctx.user.id, input.projectId);
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "VirgoYT project not found, is not owned by you, or contains work records" });
+      return { success: true } as const;
+    }),
   }),
 
   runs: router({

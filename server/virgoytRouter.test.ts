@@ -9,6 +9,7 @@ vi.mock("./virgoytDb", () => ({
   listVirgoYTProjects: vi.fn(),
   createVirgoYTProject: vi.fn(),
   archiveVirgoYTProject: vi.fn(),
+  deleteEmptyVirgoYTProject: vi.fn(),
   listVirgoYTRuns: vi.fn(),
   getVirgoYTRun: vi.fn(),
   createVirgoYTRun: vi.fn(),
@@ -71,6 +72,23 @@ describe("VirgoYT private control-plane router", () => {
     await expect(caller.virgoyt.runs.create({ projectId: 99, request: "Review this private repository safely" })).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(db.getVirgoYTProject).toHaveBeenCalledWith(42, 99);
     expect(db.createVirgoYTRun).not.toHaveBeenCalled();
+  });
+
+  it("removes only an empty temporary project through the authenticated user scope", async () => {
+    vi.mocked(db.deleteEmptyVirgoYTProject).mockResolvedValue(1);
+    const caller = appRouter.createCaller(privateContext(42));
+
+    await caller.virgoyt.projects.deleteEmpty({ projectId: 7 });
+
+    expect(db.deleteEmptyVirgoYTProject).toHaveBeenCalledWith(42, 7);
+  });
+
+  it("refuses cleanup when the project is missing, belongs to another user, or contains work", async () => {
+    vi.mocked(db.deleteEmptyVirgoYTProject).mockResolvedValue(0);
+    const caller = appRouter.createCaller(privateContext(42));
+
+    await expect(caller.virgoyt.projects.deleteEmpty({ projectId: 99 })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(db.deleteEmptyVirgoYTProject).toHaveBeenCalledWith(42, 99);
   });
 
   it("creates a proposed terminal action only and keeps its user-scoped approval separate from execution", async () => {

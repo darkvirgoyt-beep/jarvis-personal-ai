@@ -87,6 +87,26 @@ export async function archiveVirgoYTProject(userId: number, projectId: number) {
   return Number(result[0]?.affectedRows ?? 0);
 }
 
+/**
+ * Remove an owner's empty control-plane project and its audit trail. This deliberately
+ * refuses projects with runs, proposals, or runner connections so it cannot discard work.
+ */
+export async function deleteEmptyVirgoYTProject(userId: number, projectId: number) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.deleteEmptyVirgoYTProject(userId, projectId);
+  const db = await requireDb();
+  const [runs, proposals, runners] = await Promise.all([
+    db.select({ id: virgoytAgentRuns.id }).from(virgoytAgentRuns).where(and(eq(virgoytAgentRuns.userId, userId), eq(virgoytAgentRuns.projectId, projectId))).limit(1),
+    db.select({ id: virgoytToolProposals.id }).from(virgoytToolProposals).where(and(eq(virgoytToolProposals.userId, userId), eq(virgoytToolProposals.projectId, projectId))).limit(1),
+    db.select({ id: virgoytRunnerConnections.id }).from(virgoytRunnerConnections).where(and(eq(virgoytRunnerConnections.userId, userId), eq(virgoytRunnerConnections.projectId, projectId))).limit(1),
+  ]);
+  if (runs.length || proposals.length || runners.length) return 0;
+  await db.delete(virgoytAgentAuditEvents)
+    .where(and(eq(virgoytAgentAuditEvents.userId, userId), eq(virgoytAgentAuditEvents.projectId, projectId)));
+  const result = await db.delete(virgoytAgentProjects)
+    .where(and(eq(virgoytAgentProjects.id, projectId), eq(virgoytAgentProjects.userId, userId)));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
 export async function listVirgoYTRuns(userId: number, projectId: number) {
   if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.listVirgoYTRuns(userId, projectId);
   const db = await requireDb();

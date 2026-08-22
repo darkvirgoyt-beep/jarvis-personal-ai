@@ -5,6 +5,7 @@ vi.mock("./db", () => ({
   getJarvisConversation: vi.fn(),
   listJarvisConversations: vi.fn(),
   createJarvisConversation: vi.fn(),
+  deleteJarvisConversation: vi.fn(),
   listJarvisMessages: vi.fn(),
   listJarvisMemories: vi.fn(),
   createJarvisMemory: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock("./db", () => ({
   listJarvisConfirmations: vi.fn(),
   createJarvisConfirmation: vi.fn(),
   resolveJarvisConfirmation: vi.fn(),
+  deleteJarvisConfirmation: vi.fn(),
   getJarvisConfirmation: vi.fn(),
   markJarvisConfirmationExecuted: vi.fn(),
   listJarvisWorkspaceItems: vi.fn(),
@@ -73,6 +75,7 @@ describe("Jarvis private router", () => {
     const empty = [] as never[];
     vi.mocked(db.listJarvisConversations).mockResolvedValue(empty as never);
     vi.mocked(db.createJarvisConversation).mockResolvedValue({ id: 11 } as never);
+    vi.mocked(db.deleteJarvisConversation).mockResolvedValue(1);
     vi.mocked(db.getJarvisConversation).mockResolvedValue({ id: 11, userId: 42 } as never);
     vi.mocked(db.listJarvisMessages).mockResolvedValue(empty as never);
     vi.mocked(db.listJarvisMemories).mockResolvedValue(empty as never);
@@ -86,11 +89,13 @@ describe("Jarvis private router", () => {
     vi.mocked(db.updateJarvisPreferences).mockResolvedValue({ userId: 42 } as never);
     vi.mocked(db.listJarvisConfirmations).mockResolvedValue(empty as never);
     vi.mocked(db.createJarvisConfirmation).mockResolvedValue({ id: 5 } as never);
+    vi.mocked(db.deleteJarvisConfirmation).mockResolvedValue(1);
     const caller = appRouter.createCaller(privateContext(42));
 
     await caller.jarvis.conversations.list();
     await caller.jarvis.conversations.create({ title: "Private plan", activeAgent: "coding" });
     await caller.jarvis.conversations.messages({ conversationId: 11 });
+    await caller.jarvis.conversations.delete({ conversationId: 11 });
     await caller.jarvis.memory.list();
     await caller.jarvis.memory.update({ id: 3, content: "Private note", category: "note" });
     await caller.jarvis.memory.delete({ id: 3 });
@@ -110,10 +115,12 @@ describe("Jarvis private router", () => {
     });
     await caller.jarvis.confirmations.list();
     await caller.jarvis.confirmations.propose({ action: "Review private action", details: "No execution" });
+    await caller.jarvis.confirmations.delete({ id: 5 });
 
     expect(db.listJarvisConversations).toHaveBeenCalledWith(42);
     expect(db.createJarvisConversation).toHaveBeenCalledWith(42, "Private plan", "coding");
     expect(db.listJarvisMessages).toHaveBeenCalledWith(42, 11);
+    expect(db.deleteJarvisConversation).toHaveBeenCalledWith(42, 11);
     expect(db.listJarvisMemories).toHaveBeenCalledWith(42);
     expect(db.updateJarvisMemory).toHaveBeenCalledWith(42, 3, "Private note", "note");
     expect(db.deleteJarvisMemory).toHaveBeenCalledWith(42, 3);
@@ -133,6 +140,7 @@ describe("Jarvis private router", () => {
     }));
     expect(db.listJarvisConfirmations).toHaveBeenCalledWith(42);
     expect(db.createJarvisConfirmation).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, action: "Review private action" }));
+    expect(db.deleteJarvisConfirmation).toHaveBeenCalledWith(42, 5);
   });
 
   it("never substitutes another user id for private mutations", async () => {
@@ -142,6 +150,8 @@ describe("Jarvis private router", () => {
     vi.mocked(db.deleteJarvisTask).mockResolvedValue(1);
     vi.mocked(db.updateJarvisPreferences).mockResolvedValue({ userId: 7 } as never);
     vi.mocked(db.resolveJarvisConfirmation).mockResolvedValue(1);
+    vi.mocked(db.deleteJarvisConversation).mockResolvedValue(1);
+    vi.mocked(db.deleteJarvisConfirmation).mockResolvedValue(1);
     const caller = appRouter.createCaller(privateContext(7));
 
     await caller.jarvis.memory.update({ id: 3, content: "User seven note", category: "note" });
@@ -150,6 +160,8 @@ describe("Jarvis private router", () => {
     await caller.jarvis.tasks.delete({ id: 2 });
     await caller.jarvis.preferences.update({ speechRate: 110 });
     await caller.jarvis.confirmations.resolve({ id: 9, decision: "approved" });
+    await caller.jarvis.conversations.delete({ conversationId: 12 });
+    await caller.jarvis.confirmations.delete({ id: 10 });
 
     expect(db.updateJarvisMemory).toHaveBeenCalledWith(7, 3, "User seven note", "note");
     expect(db.deleteJarvisMemory).toHaveBeenCalledWith(7, 3);
@@ -157,6 +169,8 @@ describe("Jarvis private router", () => {
     expect(db.deleteJarvisTask).toHaveBeenCalledWith(7, 2);
     expect(db.updateJarvisPreferences).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, speechRate: 110 }));
     expect(db.resolveJarvisConfirmation).toHaveBeenCalledWith(7, 9, "approved");
+    expect(db.deleteJarvisConversation).toHaveBeenCalledWith(7, 12);
+    expect(db.deleteJarvisConfirmation).toHaveBeenCalledWith(7, 10);
   });
 
   it("ignores a forged preference owner id and always reads or writes only the authenticated user profile", async () => {
@@ -200,6 +214,8 @@ describe("Jarvis private router", () => {
     vi.mocked(db.updateJarvisTask).mockResolvedValue(0);
     vi.mocked(db.deleteJarvisTask).mockResolvedValue(0);
     vi.mocked(db.resolveJarvisConfirmation).mockResolvedValue(0);
+    vi.mocked(db.deleteJarvisConversation).mockResolvedValue(0);
+    vi.mocked(db.deleteJarvisConfirmation).mockResolvedValue(0);
     const caller = appRouter.createCaller(privateContext(7));
 
     await expect(caller.jarvis.memory.update({ id: 99, content: "Other user note", category: "note" })).rejects.toMatchObject({ code: "NOT_FOUND" });
@@ -207,12 +223,16 @@ describe("Jarvis private router", () => {
     await expect(caller.jarvis.tasks.update({ id: 99, status: "done" })).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(caller.jarvis.tasks.delete({ id: 99 })).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(caller.jarvis.confirmations.resolve({ id: 99, decision: "approved" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(caller.jarvis.conversations.delete({ conversationId: 99 })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(caller.jarvis.confirmations.delete({ id: 99 })).rejects.toMatchObject({ code: "NOT_FOUND" });
 
     expect(db.updateJarvisMemory).toHaveBeenCalledWith(7, 99, "Other user note", "note");
     expect(db.deleteJarvisMemory).toHaveBeenCalledWith(7, 99);
     expect(db.updateJarvisTask).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, id: 99 }));
     expect(db.deleteJarvisTask).toHaveBeenCalledWith(7, 99);
     expect(db.resolveJarvisConfirmation).toHaveBeenCalledWith(7, 99, "approved");
+    expect(db.deleteJarvisConversation).toHaveBeenCalledWith(7, 99);
+    expect(db.deleteJarvisConfirmation).toHaveBeenCalledWith(7, 99);
   });
 
   it("keeps virtual-workspace proposals and execution records scoped to the signed-in user", async () => {

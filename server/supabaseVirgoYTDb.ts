@@ -25,6 +25,20 @@ export async function listVirgoYTProjects(userId: number) { const runtime = requ
 export async function createVirgoYTProject(input: { userId: number; name: string; slug: string; description?: string | null; defaultAgent: VirgoYTAgent }) { const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(input.userId); const { data, error } = await runtime.from("virgoyt_projects").insert({ user_open_id: openId, name: input.name, slug: input.slug, description: input.description ?? null, default_agent: input.defaultAgent }).select("*").single(); fail(error, "VirgoYT project creation failed"); return project(data!, input.userId); }
 export async function getVirgoYTProject(userId: number, projectId: number) { const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId); const { data, error } = await runtime.from("virgoyt_projects").select("*").eq("id", projectId).eq("user_open_id", openId).maybeSingle(); fail(error, "VirgoYT project lookup failed"); return data ? project(data, userId) : undefined; }
 export async function archiveVirgoYTProject(userId: number, projectId: number) { const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId); const { data, error } = await runtime.from("virgoyt_projects").update({ status: "archived", updated_at: new Date().toISOString() }).eq("id", projectId).eq("user_open_id", openId).select("id"); fail(error, "VirgoYT project archive failed"); return data?.length ?? 0; }
+export async function deleteEmptyVirgoYTProject(userId: number, projectId: number) {
+  const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId);
+  const [runs, proposals, runners] = await Promise.all([
+    runtime.from("virgoyt_runs").select("id").eq("user_open_id", openId).eq("project_id", projectId).limit(1),
+    runtime.from("virgoyt_tool_proposals").select("id").eq("user_open_id", openId).eq("project_id", projectId).limit(1),
+    runtime.from("virgoyt_runner_connections").select("id").eq("user_open_id", openId).eq("project_id", projectId).limit(1),
+  ]);
+  fail(runs.error, "VirgoYT project run check failed"); fail(proposals.error, "VirgoYT project proposal check failed"); fail(runners.error, "VirgoYT project runner check failed");
+  if (runs.data?.length || proposals.data?.length || runners.data?.length) return 0;
+  const audit = await runtime.from("virgoyt_audit_events").delete().eq("user_open_id", openId).eq("project_id", projectId);
+  fail(audit.error, "VirgoYT project audit cleanup failed");
+  const { data, error } = await runtime.from("virgoyt_projects").delete().eq("id", projectId).eq("user_open_id", openId).select("id");
+  fail(error, "VirgoYT project deletion failed"); return data?.length ?? 0;
+}
 
 export async function listVirgoYTRuns(userId: number, projectId: number) { const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId); const { data, error } = await runtime.from("virgoyt_runs").select("*").eq("user_open_id", openId).eq("project_id", projectId).order("created_at", { ascending: false }); fail(error, "VirgoYT run listing failed"); return (data ?? []).map((row) => run(row, userId)); }
 export async function getVirgoYTRun(userId: number, projectId: number, runId: number) { const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId); const { data, error } = await runtime.from("virgoyt_runs").select("*").eq("id", runId).eq("project_id", projectId).eq("user_open_id", openId).maybeSingle(); fail(error, "VirgoYT run lookup failed"); return data ? run(data, userId) : undefined; }

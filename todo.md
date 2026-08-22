@@ -206,3 +206,4 @@
 - [x] Upgrade the workspace with advanced debugging, file/terminal/session telemetry, current date/time context, and clear live artifact/run status surfaces.
 - [x] Add an approval-gated cloud-computer environment handoff for Ubuntu and Kali-compatible runner requirements, with explicit connected/unconnected state and no implied shell, browser, sandbox, credential, or external-link access before connection.
 - [x] Update the Jarvis capability contract and tests so ordinary conversational requests accurately offer reviewed end-to-end build, artifact, diagnostic, and cloud-runner workflows without broad capability denials.
+- [ ] Add protected, user-scoped cleanup contracts for temporary conversation, approval, and project validation records so approved live Supabase checks can remove their own test data immediately.

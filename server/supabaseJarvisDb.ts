@@ -103,6 +103,13 @@ export async function setJarvisConversationStar(userId: number, conversationId: 
   const { data, error } = await runtime.from("jarvis_conversations").update({ starred_at: starred ? iso(new Date()) : null, updated_at: iso(new Date()) }).eq("id", conversationId).eq("user_open_id", openId).select("id");
   fail(error, "Jarvis conversation update failed"); return Boolean(data?.length);
 }
+export async function deleteJarvisConversation(userId: number, conversationId: number) {
+  const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId);
+  const { error: messagesError } = await runtime.from("jarvis_messages").delete().eq("conversation_id", conversationId).eq("user_open_id", openId);
+  fail(messagesError, "Jarvis conversation message cleanup failed");
+  const { data, error } = await runtime.from("jarvis_conversations").delete().eq("id", conversationId).eq("user_open_id", openId).select("id");
+  fail(error, "Jarvis conversation deletion failed"); return data?.length ?? 0;
+}
 export async function listJarvisMessages(userId: number, conversationId: number) {
   const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId);
   const { data, error } = await runtime.from("jarvis_messages").select("*").eq("user_open_id", openId).eq("conversation_id", conversationId).order("created_at", { ascending: true });
@@ -187,6 +194,11 @@ export async function getJarvisConfirmation(userId: number, id: number) {
 export async function markJarvisConfirmationExecuted(userId: number, id: number) {
   const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId);
   const { data, error } = await runtime.from("jarvis_confirmations").update({ status: "executed", resolved_at: iso(new Date()) }).eq("id", id).eq("user_open_id", openId).eq("status", "approved").select("id"); fail(error, "Jarvis confirmation execution failed"); return data?.length ?? 0;
+}
+export async function deleteJarvisConfirmation(userId: number, id: number) {
+  const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId);
+  const { data, error } = await runtime.from("jarvis_confirmations").delete().eq("id", id).eq("user_open_id", openId).select("id");
+  fail(error, "Jarvis confirmation deletion failed"); return data?.length ?? 0;
 }
 export async function listJarvisWorkspaceItems(userId: number) {
   const runtime = requireSupabaseRuntimeClient(); const openId = await openIdForUserId(userId);
