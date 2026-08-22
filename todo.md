@@ -235,3 +235,10 @@
 - [x] Add a reviewed terminal and code-diff workspace that exposes plans, commands, outputs, and artifacts without silent execution.
 - [x] Extend supported approval-gated compile-job controls with clear runner status, build logs, and sanitized result artifacts.
 - [x] Add deterministic and responsive validation for the terminal, diff, and compilation workspace before publishing.
+
+- [ ] Verify and use the configured Puter Claude Fable 5 runtime as the development assistant for an additional Jarvis upgrade, or document the exact authorization/runtime blocker without claiming provider use.
+
+- [ ] Run and present one harmless read-only Puter connection test, then summarize only verified non-sensitive connector capabilities and runtime status.
+
+- [ ] Record the user-supplied Puter read-only test report as external evidence, clearly distinguishing it from this task's unavailable runtime attachment.
+- [x] Record the user-supplied Puter read-only test report as external evidence, clearly distinguishing it from this task's unavailable runtime attachment.
