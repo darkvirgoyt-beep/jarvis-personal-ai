@@ -244,3 +244,6 @@
 - [x] Record the user-supplied Puter read-only test report as external evidence, clearly distinguishing it from this task's unavailable runtime attachment.
 
 - [x] Perform one final current-session Puter runtime discovery check and document the fresh-session handoff if no server is attached.
+
+- [x] Add a dedicated VirgoYT Coding Environment workspace that presents approved Ubuntu build environments, connected-runner state, and the selected Fable 5 planning route without exposing credentials or allowing arbitrary shell execution.
+- [x] Add regression coverage for the Coding Environment workspace and its approval-first Fable 5 guidance.

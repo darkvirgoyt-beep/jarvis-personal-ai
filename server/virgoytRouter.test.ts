@@ -27,7 +27,12 @@ vi.mock("./virgoytDb", () => ({
   createVirgoYTRunnerConnection: vi.fn(),
 }));
 
+vi.mock("./_core/llm", () => ({
+  invokeLLM: vi.fn(),
+}));
+
 import * as db from "./virgoytDb";
+import { invokeLLM } from "./_core/llm";
 import { appRouter } from "./routers";
 
 function privateContext(userId = 42): TrpcContext {
@@ -135,6 +140,29 @@ describe("VirgoYT private control-plane router", () => {
     expect(db.createVirgoYTRunnerConnection).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, projectId: 7, displayName: "My Linux workstation", runnerType: "local_cli", pairingFingerprint: "pairing-digest" }));
     expect(result.runner.status).toBe("pending");
     expect(result.message).toContain("pending");
+  });
+
+  it("requests an authenticated Fable 5 text-only coding review and writes an audit event without staging execution", async () => {
+    vi.mocked(db.getVirgoYTProject).mockResolvedValue(project as never);
+    vi.mocked(invokeLLM).mockResolvedValue({
+      model: "anthropic/claude-fable-5",
+      choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "Goal\n- Keep execution approval-gated." } }],
+    } as never);
+    const caller = appRouter.createCaller(privateContext(42));
+
+    const result = await caller.virgoyt.coding.review({ projectId: 7, request: "Review the smallest safe navigation performance improvement." });
+
+    expect(invokeLLM).toHaveBeenCalledWith(expect.objectContaining({
+      model: "anthropic/claude-fable-5",
+      maxTokens: 1_800,
+    }));
+    expect(result.review).toContain("Keep execution approval-gated");
+    expect(db.createVirgoYTAuditEvent).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+      projectId: 7,
+      eventKind: "coding.review_generated",
+    }));
+    expect(db.createVirgoYTToolProposal).not.toHaveBeenCalled();
   });
 
   it("rejects provider endpoints that try to include browser-submitted credentials", async () => {

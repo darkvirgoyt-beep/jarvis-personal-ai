@@ -11,13 +11,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { AlertTriangle, ArrowLeft, Bot, Check, ChevronRight, Code2, FileCode2, FolderKanban, HardDrive, History, Laptop, LockKeyhole, Play, Plus, Radio, Rocket, ScrollText, Settings2, ShieldCheck, TerminalSquare, Wrench, X } from "lucide-react";
 
-type WorkspaceTab = "chat" | "projects" | "files" | "terminal" | "agents" | "settings";
+type WorkspaceTab = "chat" | "projects" | "files" | "terminal" | "environment" | "agents" | "settings";
 
 const tabs: { id: WorkspaceTab; label: string; icon: typeof Bot }[] = [
   { id: "chat", label: "Chat", icon: Bot },
   { id: "projects", label: "Projects", icon: FolderKanban },
   { id: "files", label: "Files", icon: FileCode2 },
   { id: "terminal", label: "Terminal", icon: TerminalSquare },
+  { id: "environment", label: "Environment", icon: Laptop },
   { id: "agents", label: "Agents", icon: Wrench },
   { id: "settings", label: "Settings", icon: Settings2 },
 ];
@@ -90,6 +91,8 @@ export default function VirgoYTAgent() {
   const [runnerType, setRunnerType] = useState<"local_cli" | "remote_isolated">("local_cli");
   const [compileTarget, setCompileTarget] = useState<"web" | "android" | "service">("web");
   const [compileWorkspacePath, setCompileWorkspacePath] = useState("");
+  const [codingBrief, setCodingBrief] = useState("");
+  const [codingReview, setCodingReview] = useState<{ modelId: string; review: string }>();
   const [notice, setNotice] = useState("");
 
   const catalogQuery = trpc.virgoyt.catalog.useQuery(undefined, { enabled: Boolean(user) });
@@ -109,6 +112,7 @@ export default function VirgoYTAgent() {
   const resolveProposal = trpc.virgoyt.proposals.resolve.useMutation();
   const createProvider = trpc.virgoyt.providers.create.useMutation();
   const registerRunner = trpc.virgoyt.runners.register.useMutation();
+  const createCodingReview = trpc.virgoyt.coding.review.useMutation();
 
   const activeProject = useMemo(() => (projectsQuery.data ?? []).find((project) => project.id === activeProjectId), [activeProjectId, projectsQuery.data]);
   const activeRun = useMemo(() => (runsQuery.data ?? []).find((run) => run.id === activeRunId), [activeRunId, runsQuery.data]);
@@ -222,6 +226,19 @@ export default function VirgoYTAgent() {
     }
   };
 
+  const handleCreateCodingReview = async () => {
+    if (!activeProjectId) return setNotice("Create or select a private project before asking Fable 5 for a coding review.");
+    if (codingBrief.trim().length < 8) return setNotice("Describe the coding outcome, change, or bug for Fable 5 to review.");
+    try {
+      const result = await createCodingReview.mutateAsync({ projectId: activeProjectId, request: codingBrief.trim() });
+      setCodingReview(result);
+      setNotice("Fable 5 returned a text-only coding review. Review it, then stage separate proposals for any file, terminal, or deployment action.");
+      await utils.virgoyt.audit.list.invalidate();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "VirgoYT could not obtain the Fable 5 coding review.");
+    }
+  };
+
   const handleResolveProposal = async (proposalId: number, decision: "approved" | "rejected") => {
     if (!activeProjectId) return;
     try {
@@ -259,6 +276,8 @@ export default function VirgoYTAgent() {
     }
   };
 
+  const codingEnvironmentPanel = <div className="space-y-6"><div className="flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-5 sm:flex-row sm:items-end"><div><p className="hud-label text-fuchsia-200">CODING ENVIRONMENT</p><h1 className="mt-2 text-2xl font-semibold text-white">Fable 5 plans. You approve execution.</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Claude Fable 5 provides a server-side text review for the selected private project. It cannot inspect your device, read Puter storage, run a shell, edit files, or deploy from this view.</p></div><StatusPill value={(runnersQuery.data ?? []).some((runner) => runner.status === "active") ? "runner_active" : "runner_unconnected"} /></div><div className="grid gap-4 xl:grid-cols-3"><div className="rounded-sm border border-fuchsia-300/25 bg-fuchsia-400/[0.04] p-4 xl:col-span-2"><p className="hud-label text-fuchsia-100">FABLE 5 CODING ROUTE</p><p className="mt-2 text-sm font-medium text-white">Server-only model: <span className="font-mono text-fuchsia-100">anthropic/claude-fable-5</span></p><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">Ask for implementation plans, risk reviews, test ideas, and proposed file-level changes. A response never becomes an action unless you stage a separate proposal.</p><label htmlFor="fable-coding-brief" className="mt-4 block text-xs font-medium text-slate-200">Coding task for Claude Fable 5</label><Textarea id="fable-coding-brief" value={codingBrief} onChange={(event) => setCodingBrief(event.target.value)} placeholder="Example: review our mobile navigation performance, propose the smallest file-level changes, and list the tests required. Do not execute anything." className="mt-2 min-h-36 border-white/10 bg-slate-950/70 text-slate-100 placeholder:text-slate-600" /><div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><p className="font-mono text-[10px] text-fuchsia-100/80">TEXT-ONLY REVIEW · NO SHELL · NO FILE ACCESS · NO DEPLOYMENT</p><Button type="button" onClick={() => void handleCreateCodingReview()} disabled={createCodingReview.isPending} className="min-h-11 bg-fuchsia-400 text-white hover:bg-fuchsia-300"><Code2 className="mr-2 size-4" />{createCodingReview.isPending ? "Reviewing…" : "Ask Fable 5"}</Button></div></div><div className="rounded-sm border border-cyan-300/15 bg-cyan-300/[0.025] p-4"><p className="hud-label text-cyan-100">EXECUTION BOUNDARY</p><div className="mt-4 space-y-3 text-xs leading-5"><div className="rounded-sm border border-white/[0.08] bg-slate-950/60 p-3"><p className="font-medium text-white">Ubuntu Node</p><p className="mt-1 text-slate-500">Fixed web/service recipes only.</p></div><div className="rounded-sm border border-white/[0.08] bg-slate-950/60 p-3"><p className="font-medium text-white">Ubuntu Android</p><p className="mt-1 text-slate-500">Fixed debug APK recipe; signing off.</p></div><div className="rounded-sm border border-amber-300/15 bg-amber-300/[0.035] p-3 text-amber-100">A paired runner and explicit approval are required before a fixed build starts.</div></div></div></div>{codingReview && <section aria-live="polite" className="rounded-sm border border-cyan-300/20 bg-black/30 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="hud-label text-cyan-100">FABLE 5 REVIEW</p><p className="mt-1 text-xs text-slate-500">Returned by {codingReview.modelId}</p></div><StatusPill value="reviewed" /></div><pre className="mt-4 max-h-[34rem] overflow-auto whitespace-pre-wrap rounded-sm border border-white/[0.08] bg-slate-950/80 p-4 font-sans text-xs leading-6 text-slate-300">{codingReview.review}</pre><p className="mt-3 text-[11px] leading-5 text-slate-500">This review did not create, change, build, run, sign, publish, or deploy anything. Use Files or Terminal to stage a separate approval proposal if you want to act on it.</p></section>}</div>;
+
   if (loading) return <main className="min-h-screen bg-[#05080f] p-8 text-slate-400">Synchronizing private workspace…</main>;
 
   if (!user) return <main className="min-h-screen bg-[#05080f] px-5 py-16 text-slate-100 sm:px-8"><div className="mx-auto max-w-2xl rounded-sm border border-cyan-300/20 bg-slate-950/85 p-8 shadow-[0_0_60px_rgba(34,211,238,0.1)]"><p className="hud-label text-cyan-200">VIRGOYT // PRIVATE AGENT CONTROL</p><h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">Sign in before opening your agent workspace.</h1><p className="mt-3 max-w-xl leading-7 text-slate-400">Projects, plans, runner requests, provider metadata, approvals, and audit history are private to the signed-in Jarvis account. VirgoYT never runs tools from this public screen.</p><div className="mt-7 flex flex-wrap gap-3"><Button onClick={() => setAuthDialogOpen(true)} className="bg-cyan-300 text-slate-950 hover:bg-cyan-200"><LockKeyhole className="mr-2 size-4" />Sign in to VirgoYT</Button><Link href="/" className="inline-flex items-center rounded-sm border border-white/10 px-4 py-2 text-sm text-slate-300 hover:text-white"><ArrowLeft className="mr-2 size-4" />Back to Jarvis</Link></div></div><JarvisAuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} onAuthenticated={() => void utils.auth.me.invalidate()} /></main>;
@@ -277,6 +296,7 @@ export default function VirgoYTAgent() {
 
         {tab === "files" && <ToolProposalPanel title="Files are proposed, never silently changed." icon={<FileCode2 className="size-5 text-cyan-100" />} selectedKind={proposalKind} setSelectedKind={setProposalKind} proposalTitle={proposalTitle} setProposalTitle={setProposalTitle} proposalDetails={proposalDetails} setProposalDetails={setProposalDetails} onCreate={handleCreateProposal} isPending={createProposal.isPending} />}
         {tab === "terminal" && <div className="space-y-6"><CompileRunnerPanel target={compileTarget} setTarget={setCompileTarget} workspacePath={compileWorkspacePath} setWorkspacePath={setCompileWorkspacePath} onCreate={handleCreateCompile} isPending={createCompile.isPending} runnerActive={(runnersQuery.data ?? []).some((runner) => runner.status === "active")} /><ReviewedTerminalPanel proposals={proposalsQuery.data ?? []} auditEvents={auditQuery.data ?? []} runnerActive={(runnersQuery.data ?? []).some((runner) => runner.status === "active")} /><ToolProposalPanel title="Other terminal requests stay reviewable and non-executable here." icon={<TerminalSquare className="size-5 text-fuchsia-200" />} selectedKind={proposalKind} setSelectedKind={setProposalKind} proposalTitle={proposalTitle} setProposalTitle={setProposalTitle} proposalDetails={proposalDetails} setProposalDetails={setProposalDetails} onCreate={handleCreateProposal} isPending={createProposal.isPending} forceKind="terminal_command" /></div>}
+        {tab === "environment" && codingEnvironmentPanel}
 
         {tab === "agents" && <div><div className="flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-5 sm:flex-row sm:items-end"><div><p className="hud-label text-cyan-100">MULTI-AGENT BOARD</p><h1 className="mt-2 text-2xl font-semibold text-white">Visible roles. Reviewable plan.</h1></div><Button variant="outline" onClick={() => void handleCreatePlanStep()} disabled={!activeRunId || createPlanStep.isPending} className="min-h-11 border-cyan-300/25 text-cyan-100 hover:bg-cyan-300/10"><Plus className="mr-2 size-4" />Add review checkpoint</Button></div><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{(catalogQuery.data?.agents ?? []).map((agent) => <div key={agent.id} className="rounded-sm border border-white/[0.08] bg-black/20 p-4"><Bot className="size-4 text-cyan-100" /><p className="mt-3 font-medium text-white">{agent.name}</p><p className="mt-1 text-xs leading-5 text-slate-500">{agent.description}</p></div>)}</div><div className="mt-6 rounded-sm border border-white/[0.08] bg-black/20 p-4"><div className="flex items-center justify-between"><p className="text-sm font-semibold text-white">Plan for {activeRun ? `run #${activeRun.id}` : "selected run"}</p><span className="font-mono text-[10px] text-slate-600">AUTO REFRESH 6S</span></div><div className="mt-4 space-y-2">{(planQuery.data ?? []).map((step) => <div className="flex items-start gap-3 rounded-sm border border-white/[0.07] px-3 py-3" key={step.id}><span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 font-mono text-[10px] text-cyan-100">{step.stepOrder}</span><div className="min-w-0 flex-1"><p className="text-xs font-medium text-slate-200">{step.title}</p><p className="mt-1 text-[11px] leading-5 text-slate-500">{step.description}</p></div><StatusPill value={step.status} /></div>)}{!planQuery.data?.length && <p className="text-xs text-slate-500">No plan checkpoints yet. Start a run, then add a review checkpoint.</p>}</div></div></div>}
 

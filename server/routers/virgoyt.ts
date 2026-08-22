@@ -5,12 +5,14 @@ import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../virgoytDb";
 import { getVirgoYTProviderRoutingSummary, isCredentialFreeProviderEndpoint } from "../virgoytProviderRouting";
 import { createVirgoYTCompileSpec, VIRGOYT_COMPILE_TARGETS } from "../../shared/virgoytCompile";
+import { invokeLLM } from "../_core/llm";
 
 const agentSchema = z.enum(db.VIRGOYT_AGENT_VALUES);
 const providerSchema = z.enum(db.VIRGOYT_PROVIDER_VALUES);
 const toolKindSchema = z.enum(db.VIRGOYT_TOOL_KIND_VALUES);
 const modelSchema = z.enum(["nvidia/nemotron-3-ultra-550b-a55b", "anthropic/claude-fable-5"]);
 const projectIdSchema = z.number().int().positive();
+const fableCodingModel = "anthropic/claude-fable-5";
 const providerEndpointSchema = z.string().url().max(500).refine((value) => {
   return isCredentialFreeProviderEndpoint(value);
 }, "Provider endpoints cannot contain credentials. Configure credentials separately.");
@@ -30,6 +32,15 @@ async function requireRun(userId: number, projectId: number, runId: number) {
   const run = await db.getVirgoYTRun(userId, projectId, runId);
   if (!run) throw new TRPCError({ code: "NOT_FOUND", message: "VirgoYT agent run not found" });
   return run;
+}
+
+function getLLMText(content: string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } } | { type: "file_url"; file_url: { url: string } }>) {
+  if (typeof content === "string") return content.trim();
+  return content
+    .filter((item): item is { type: "text"; text: string } => item.type === "text")
+    .map((item) => item.text)
+    .join("\n")
+    .trim();
 }
 
 export const virgoytRouter = router({
@@ -101,6 +112,35 @@ export const virgoytRouter = router({
       if (!run) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "VirgoYT agent run could not be created" });
       await db.createVirgoYTAuditEvent({ userId: ctx.user.id, projectId: input.projectId, runId: run.id, eventKind: "run.planning", details: `Planning with ${input.agent}` });
       return run;
+    }),
+  }),
+
+  coding: router({
+    review: protectedProcedure.input(z.object({
+      projectId: projectIdSchema,
+      request: z.string().trim().min(8).max(12_000),
+    })).mutation(async ({ ctx, input }) => {
+      await requireProject(ctx.user.id, input.projectId);
+      const response = await invokeLLM({
+        model: fableCodingModel,
+        maxTokens: 1_800,
+        messages: [
+          {
+            role: "system",
+            content: "You are the VirgoYT coding-planning assistant. Return a concise, implementation-ready engineering review with: goal, proposed file-level changes, risks, tests, and an explicit approval boundary. You are text-only: do not claim that you read files, ran commands, changed code, accessed secrets, connected to a runner, or deployed anything. Never include credentials or command lines that perform destructive actions.",
+          },
+          { role: "user", content: input.request },
+        ],
+      });
+      const review = getLLMText(response.choices[0]?.message.content ?? "");
+      if (!review) throw new TRPCError({ code: "BAD_GATEWAY", message: "Claude Fable 5 returned no readable coding review. Please try again." });
+      await db.createVirgoYTAuditEvent({
+        userId: ctx.user.id,
+        projectId: input.projectId,
+        eventKind: "coding.review_generated",
+        details: `Text-only coding review generated with ${fableCodingModel}`,
+      });
+      return { modelId: response.model || fableCodingModel, review };
     }),
   }),
 

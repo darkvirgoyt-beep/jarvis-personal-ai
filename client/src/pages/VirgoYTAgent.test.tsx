@@ -42,6 +42,9 @@ vi.mock("@/lib/trpc", () => ({
         list: { useQuery: () => ({ data: [] }) },
         create: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
       },
+      coding: {
+        review: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
+      },
       proposals: {
         list: { useQuery: () => ({ data: [] }) },
         create: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
@@ -74,13 +77,24 @@ describe("VirgoYTAgent", () => {
     render(<VirgoYTAgent />);
 
     expect(screen.getByRole("navigation", { name: "VirgoYT workspace areas" })).toBeTruthy();
-    for (const label of ["Chat", "Projects", "Files", "Terminal", "Agents", "Settings"]) {
+    for (const label of ["Chat", "Projects", "Files", "Terminal", "Environment", "Agents", "Settings"]) {
       expect(screen.getByRole("button", { name: label })).toBeTruthy();
     }
 
     fireEvent.click(screen.getByRole("button", { name: "Files" }));
     expect(screen.getByText("Files are proposed, never silently changed.")).toBeTruthy();
     expect(screen.getByText(/Approval records intent only; no local or remote tool is invoked/)).toBeTruthy();
+  });
+
+  it("shows Fable 5 as a text-only coding environment with runner approval safeguards", () => {
+    render(<VirgoYTAgent />);
+    fireEvent.click(screen.getByRole("button", { name: "Environment" }));
+
+    expect(screen.getByRole("heading", { name: "Fable 5 plans. You approve execution." })).toBeTruthy();
+    expect(screen.getByText("anthropic/claude-fable-5")).toBeTruthy();
+    expect(screen.getByLabelText("Coding task for Claude Fable 5")).toBeTruthy();
+    expect(screen.getByText(/paired runner and explicit approval are required/i)).toBeTruthy();
+    expect(screen.getByText(/NO SHELL · NO FILE ACCESS · NO DEPLOYMENT/)).toBeTruthy();
   });
 
   it("creates a user-scoped project before allowing an agent run", async () => {
