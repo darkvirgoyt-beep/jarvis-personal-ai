@@ -94,3 +94,16 @@ With explicit owner approval, the live signed-in Vercel session performed one is
 | Absence after deletion | Pass |
 
 The returned verification result was `{"ok":true,"created":true,"retrievedInSameSession":true,"deleted":true,"absentAfterDelete":true}`. This closes the owner-approved temporary task write/read/delete check for the Supabase Vercel runtime.
+
+### Signed-in isolated private-record validation — 2026-08-22
+
+With the same owner-approved, authenticated Vercel session, Jarvis performed an isolated create/read/delete validation for four additional private record types through the normal Supabase Bearer-token tRPC transport: one temporary conversation, one manual memory, one empty VirgoYT project, and one low-risk approval record. Each record was retrieved in the same signed-in session, removed immediately through its protected owner-scoped cleanup procedure, then confirmed absent from its corresponding list. The test used only a unique temporary marker and did not inspect, modify, or expose existing user data, profile data, credentials, workspace files, or provider settings.
+
+| Record type | Create and same-session read | Protected cleanup | Absence after deletion |
+| --- | --- | --- | --- |
+| Jarvis conversation | Pass | `jarvis.conversations.delete` | Pass |
+| Jarvis memory | Pass | `jarvis.memory.delete` | Pass |
+| VirgoYT empty project | Pass | `virgoyt.projects.deleteEmpty` | Pass |
+| Jarvis approval | Pass | `jarvis.confirmations.delete` | Pass |
+
+The returned validation result was `{"chat":true,"memory":true,"project":true,"approval":true,"cleanup":true}`. This completes the approved temporary validation coverage for chat, memory, project, and approval records in the Supabase-backed Vercel runtime.
