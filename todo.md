@@ -210,3 +210,4 @@
 - [x] Add an approval-gated connected-runner compilation workflow that turns ordinary build prompts into executable build jobs with selected Linux environment, command plan, live logs, result state, and artifact references.
 - [x] Add secure compile-job lifecycle controls that require a connected runner before execution, keep credentials out of chat and logs, and require separate explicit approval for signing, external publishing, store upload, or deployment.
 - [x] Update Jarvis normal-chat capability guidance and regression tests so it promises real compilation only when a connected runner reports a build result, rather than returning a blanket local-machine handoff.
+- [x] Add visible secure session-persistence status and keep-signed-in guidance so users know their Supabase browser session is retained without storing passwords in Jarvis.

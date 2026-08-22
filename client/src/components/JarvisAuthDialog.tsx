@@ -13,7 +13,7 @@ import { describeJarvisAuthError, validateJarvisCredentials, validateJarvisEmail
 import { beginJarvisOAuthSignIn, getJarvisAuthReturnUrl, type JarvisOAuthProvider } from "@/lib/jarvisOAuth";
 import { beginJarvisPasswordReset } from "@/lib/jarvisRecovery";
 import { hasSupabaseAuthConfiguration, requireSupabaseClient } from "@/lib/supabaseClient";
-import { Github, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
+import { Github, LoaderCircle, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import React, { FormEvent, useState } from "react";
 
 type JarvisAuthDialogProps = {
@@ -152,6 +152,11 @@ export function JarvisAuthDialog({ open, onOpenChange, onAuthenticated }: Jarvis
               : "Create a private Jarvis workspace with a real email address. You will receive a confirmation email before first sign-in."}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="flex gap-3 rounded-lg border border-cyan-300/15 bg-cyan-300/[0.045] px-3 py-3 text-xs leading-5 text-slate-300" role="note">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-cyan-200" aria-hidden />
+          <p><span className="font-medium text-cyan-50">Keep me signed in on this browser.</span> Jarvis securely retains your renewable session after sign-in, but never stores your password. Use Sign out on a shared device or clear browser data to remove this session.</p>
+        </div>
 
         <div className="grid grid-cols-1 gap-1 rounded-lg border border-white/10 bg-white/[0.025] p-1 sm:grid-cols-2" aria-label="Email access mode">
           <Button type="button" variant={mode === "sign-in" ? "secondary" : "ghost"} onClick={() => changeMode("sign-in")}>I already have an account</Button>

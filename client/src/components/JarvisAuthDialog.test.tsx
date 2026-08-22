@@ -20,6 +20,8 @@ describe("JarvisAuthDialog mobile access flow", () => {
     expect(screen.getByRole("button", { name: "Google" }).className).toContain("w-full");
     expect(screen.getByRole("button", { name: "GitHub" }).className).toContain("w-full");
     expect(screen.getByRole("button", { name: "Sign in securely" }).className).toContain("w-full");
+    expect(screen.getByRole("note").textContent).toContain("Keep me signed in on this browser");
+    expect(screen.getByRole("note").textContent).toContain("never stores your password");
   });
 
   it("gives an accessible, actionable error when the deployment has no auth configuration", () => {
