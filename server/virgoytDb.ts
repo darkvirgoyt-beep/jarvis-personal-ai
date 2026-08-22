@@ -210,11 +210,12 @@ export async function createVirgoYTToolProposal(input: {
   riskLevel: VirgoYTRiskLevel;
   title: string;
   details: string;
+  payload?: unknown;
   expiresAt: Date;
 }) {
   if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.createVirgoYTToolProposal(input);
   const db = await requireDb();
-  const payload = { details: redactVirgoYTSensitiveText(input.details) };
+  const payload = input.payload ?? { details: redactVirgoYTSensitiveText(input.details) };
   const result = await db.insert(virgoytToolProposals).values({
     ...input,
     runId: input.runId ?? null,
@@ -328,12 +329,77 @@ export async function createVirgoYTRunnerConnection(input: {
   projectId: number;
   displayName: string;
   runnerType: "local_cli" | "remote_isolated";
+  pairingFingerprint?: string | null;
 }) {
   if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.createVirgoYTRunnerConnection(input);
   const db = await requireDb();
-  const result = await db.insert(virgoytRunnerConnections).values({ ...input, status: "pending" });
+  const result = await db.insert(virgoytRunnerConnections).values({
+    userId: input.userId,
+    projectId: input.projectId,
+    displayName: input.displayName,
+    runnerType: input.runnerType,
+    publicKeyFingerprint: input.pairingFingerprint ?? null,
+    status: "pending",
+  });
   const id = Number(result[0].insertId);
   const rows = await db.select().from(virgoytRunnerConnections)
     .where(and(eq(virgoytRunnerConnections.id, id), eq(virgoytRunnerConnections.userId, input.userId))).limit(1);
   return rows[0];
+}
+
+export async function pairVirgoYTRunner(runnerId: number, pairingFingerprint: string) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.pairVirgoYTRunner(runnerId, pairingFingerprint);
+  const db = await requireDb();
+  const result = await db.update(virgoytRunnerConnections).set({ status: "paired", lastSeenAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(virgoytRunnerConnections.id, runnerId), eq(virgoytRunnerConnections.publicKeyFingerprint, pairingFingerprint), eq(virgoytRunnerConnections.status, "pending")));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
+export async function getVirgoYTRunnerByPairingFingerprint(runnerId: number, pairingFingerprint: string) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.getVirgoYTRunnerByPairingFingerprint(runnerId, pairingFingerprint);
+  const db = await requireDb();
+  const rows = await db.select().from(virgoytRunnerConnections).where(and(eq(virgoytRunnerConnections.id, runnerId), eq(virgoytRunnerConnections.publicKeyFingerprint, pairingFingerprint))).limit(1);
+  return rows[0];
+}
+
+export async function touchVirgoYTRunner(runnerId: number, pairingFingerprint: string) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.touchVirgoYTRunner(runnerId, pairingFingerprint);
+  const db = await requireDb();
+  const result = await db.update(virgoytRunnerConnections).set({ status: "active", lastSeenAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(virgoytRunnerConnections.id, runnerId), eq(virgoytRunnerConnections.publicKeyFingerprint, pairingFingerprint), eq(virgoytRunnerConnections.status, "paired")));
+  return Number(result[0]?.affectedRows ?? 0);
+}
+
+export async function claimVirgoYTCompileProposal(input: { runnerId: number; pairingFingerprint: string }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.claimVirgoYTCompileProposal(input);
+  const runner = await getVirgoYTRunnerByPairingFingerprint(input.runnerId, input.pairingFingerprint);
+  if (!runner?.projectId || !runner.userId || !["paired", "active"].includes(runner.status)) return undefined;
+  const db = await requireDb();
+  const rows = await db.select().from(virgoytToolProposals).where(and(
+    eq(virgoytToolProposals.userId, runner.userId),
+    eq(virgoytToolProposals.projectId, runner.projectId),
+    eq(virgoytToolProposals.toolKind, "terminal_command"),
+    eq(virgoytToolProposals.status, "approved"),
+  )).orderBy(virgoytToolProposals.createdAt).limit(1);
+  const proposal = rows[0];
+  if (!proposal) return undefined;
+  const result = await db.update(virgoytToolProposals).set({ status: "claimed", updatedAt: new Date() }).where(and(eq(virgoytToolProposals.id, proposal.id), eq(virgoytToolProposals.status, "approved")));
+  if (Number(result[0]?.affectedRows ?? 0) !== 1) return undefined;
+  await touchVirgoYTRunner(input.runnerId, input.pairingFingerprint);
+  return getVirgoYTToolProposal(runner.userId, runner.projectId, proposal.id);
+}
+
+export async function completeVirgoYTCompileProposal(input: { runnerId: number; pairingFingerprint: string; proposalId: number; success: boolean; details: string }) {
+  if (usesSupabasePrivateRuntime()) return supabaseVirgoYTDb.completeVirgoYTCompileProposal(input);
+  const runner = await getVirgoYTRunnerByPairingFingerprint(input.runnerId, input.pairingFingerprint);
+  if (!runner?.projectId || !runner.userId) return undefined;
+  const db = await requireDb();
+  const nextStatus = input.success ? "executed" : "failed" as const;
+  const result = await db.update(virgoytToolProposals).set({ status: nextStatus, executedAt: new Date(), updatedAt: new Date() }).where(and(
+    eq(virgoytToolProposals.id, input.proposalId), eq(virgoytToolProposals.userId, runner.userId), eq(virgoytToolProposals.projectId, runner.projectId), eq(virgoytToolProposals.status, "claimed"),
+  ));
+  if (Number(result[0]?.affectedRows ?? 0) !== 1) return undefined;
+  await createVirgoYTAuditEvent({ userId: runner.userId, projectId: runner.projectId, proposalId: input.proposalId, eventKind: input.success ? "compile_completed" : "compile_failed", details: input.details });
+  await touchVirgoYTRunner(input.runnerId, input.pairingFingerprint);
+  return getVirgoYTToolProposal(runner.userId, runner.projectId, input.proposalId);
 }

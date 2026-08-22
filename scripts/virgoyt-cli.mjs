@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { resolve, sep } from "node:path";
+import { spawnSync } from "node:child_process";
 
 const TOOL_CONTRACTS = Object.freeze({
   file_write: { riskLevel: "medium", summary: "Proposes a file creation or modification." },
@@ -13,7 +16,7 @@ const TOOL_CONTRACTS = Object.freeze({
 });
 
 function usage() {
-  return `VirgoYT proposal-only runner\n\nUsage:\n  node scripts/virgoyt-cli.mjs status\n  node scripts/virgoyt-cli.mjs proposal --project <id> --kind <tool-kind> --title <title> --details <details>\n\nThis utility never executes commands, opens browsers, reads credentials, calls remote APIs, or applies a proposal. A proposal must be reviewed and approved in the VirgoYT workspace before an independently paired runner may act.`;
+  return `VirgoYT runner\n\nUsage:\n  node scripts/virgoyt-cli.mjs status\n  node scripts/virgoyt-cli.mjs proposal --project <id> --kind <tool-kind> --title <title> --details <details>\n  node scripts/virgoyt-cli.mjs pair --api-url <url> --runner-id <id> --token <one-time-token>\n  node scripts/virgoyt-cli.mjs work --api-url <url> --runner-id <id> --token <pairing-token> --workspace-root <dir>\n\nA paired worker executes only a server-issued fixed compile recipe after workspace approval. It never accepts a chat command, arbitrary shell string, signing key, store credential, or publishing request.`;
 }
 
 function parseArgs(argv) {
@@ -42,39 +45,110 @@ function fail(message) {
   return 2;
 }
 
-function main(argv) {
+function runnerEndpoint(apiUrl, suffix) {
+  return `${apiUrl.replace(/\/$/, "")}/api/virgoyt/runner${suffix}`;
+}
+
+async function runnerRequest(input, suffix, method = "POST", body) {
+  const response = await fetch(runnerEndpoint(input.apiUrl, suffix), {
+    method,
+    headers: { authorization: `Bearer ${input.token}`, ...(body ? { "content-type": "application/json" } : {}) },
+    ...(body ? { body: JSON.stringify({ runnerId: Number(input.runnerId), ...body }) } : {}),
+  });
+  const value = await response.json().catch(() => ({ ok: false, message: `HTTP ${response.status}` }));
+  if (!response.ok || !value.ok) throw new Error(value.message ?? `Runner API request failed (${response.status}).`);
+  return value;
+}
+
+function safeWorkspace(root, relativePath) {
+  const absoluteRoot = resolve(root);
+  const workspace = resolve(absoluteRoot, relativePath);
+  if (workspace !== absoluteRoot && !workspace.startsWith(`${absoluteRoot}${sep}`)) throw new Error("Rejected workspace path outside --workspace-root.");
+  if (!existsSync(workspace)) throw new Error(`Workspace does not exist: ${workspace}`);
+  return workspace;
+}
+
+function runFixed(command, args, cwd, transcript) {
+  transcript.push(`$ ${command} ${args.join(" ")}`);
+  const result = spawnSync(command, args, { cwd, encoding: "utf8", timeout: 20 * 60_000, shell: false, env: { ...process.env, CI: "1" } });
+  const output = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
+  if (output) transcript.push(redact(output).slice(-6000));
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`${command} exited with ${result.status ?? "an unknown status"}.`);
+}
+
+function executeFixedCompile(spec, workspaceRoot) {
+  if (!spec || spec.kind !== "compile" || spec.version !== 1 || spec.signingAllowed !== false || spec.publishingAllowed !== false) throw new Error("Rejected unsupported compile recipe.");
+  const workspace = safeWorkspace(workspaceRoot, spec.workspacePath);
+  const transcript = [`Target: ${spec.target}`, `Environment: ${spec.environment}`, `Workspace: ${spec.workspacePath}`];
+  if (spec.target === "android") {
+    if (!existsSync(resolve(workspace, "gradlew"))) throw new Error("Rejected Android build: gradlew was not found in the approved workspace.");
+    runFixed("./gradlew", ["assembleDebug"], workspace, transcript);
+  } else {
+    if (!existsSync(resolve(workspace, "package.json"))) throw new Error("Rejected Node build: package.json was not found in the approved workspace.");
+    runFixed("pnpm", ["install", "--frozen-lockfile"], workspace, transcript);
+    runFixed("pnpm", ["test", "--", "--run"], workspace, transcript);
+    runFixed("pnpm", ["build"], workspace, transcript);
+  }
+  return transcript.join("\n");
+}
+
+async function pairRunner(input) {
+  const result = await runnerRequest(input, "/pair", "POST", {});
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  return 0;
+}
+
+async function workOnce(input) {
+  await runnerRequest(input, "/heartbeat", "POST", {});
+  const claim = await runnerRequest(input, `/compile/claim?runnerId=${encodeURIComponent(input.runnerId)}`, "GET");
+  if (!claim.job) {
+    process.stdout.write("No approved compile job is waiting.\n");
+    return 0;
+  }
+  let success = false;
+  let summary = "";
+  try {
+    summary = executeFixedCompile(claim.job.spec, input.workspaceRoot);
+    success = true;
+  } catch (error) {
+    summary = `${summary}\nCompile failed: ${error instanceof Error ? error.message : "unknown failure"}`.trim();
+  }
+  await runnerRequest(input, "/compile/report", "POST", { proposalId: claim.job.proposalId, success, summary });
+  process.stdout.write(`${success ? "Compile completed." : "Compile failed; result reported."}\n`);
+  return success ? 0 : 1;
+}
+
+async function main(argv) {
   const command = argv[0] ?? "help";
   if (command === "help" || command === "--help" || command === "-h") {
     process.stdout.write(`${usage()}\n`);
     return 0;
   }
-
   if (command === "status") {
     process.stdout.write(`${JSON.stringify({
-      runner: "virgoyt-proposal-only",
-      version: 1,
-      mode: "offline",
-      externalNetwork: false,
+      runner: "virgoyt",
+      version: 2,
+      mode: "proposal-or-paired-compile-worker",
       credentialAccess: false,
-      commandExecution: false,
+      commandExecution: "fixed-approved-compile-recipes-only",
+      signingAllowed: false,
+      publishingAllowed: false,
       requiresWorkspaceApproval: true,
       supportedToolKinds: Object.keys(TOOL_CONTRACTS),
     }, null, 2)}\n`);
     return 0;
   }
-
-  if (command === "execute" || command === "connect" || command === "apply") {
-    return fail("Refused: this runner is proposal-only and cannot execute, connect, or apply actions.");
-  }
-
-  if (command !== "proposal") return fail(`Unknown command: ${command}`);
-
   let input;
-  try {
-    input = parseArgs(argv.slice(1));
-  } catch (error) {
-    return fail(error instanceof Error ? error.message : "Invalid arguments.");
+  try { input = parseArgs(argv.slice(1)); } catch (error) { return fail(error instanceof Error ? error.message : "Invalid arguments."); }
+  if (command === "pair" || command === "work") {
+    if (!input["api-url"] || !input["runner-id"] || !input.token) return fail(`${command} requires --api-url, --runner-id, and --token.`);
+    const runnerInput = { apiUrl: input["api-url"], runnerId: input["runner-id"], token: input.token, workspaceRoot: input["workspace-root"] };
+    if (command === "pair") return pairRunner(runnerInput);
+    if (!runnerInput.workspaceRoot) return fail("work requires --workspace-root.");
+    return workOnce(runnerInput);
   }
+  if (command !== "proposal") return fail(`Unknown command: ${command}`);
   const projectId = input.project?.trim();
   const toolKind = input.kind?.trim();
   const title = input.title?.trim();
@@ -82,23 +156,10 @@ function main(argv) {
   if (!projectId || !toolKind || !title || !details) return fail("Proposal requires --project, --kind, --title, and --details.");
   const contract = TOOL_CONTRACTS[toolKind];
   if (!contract) return fail(`Unsupported tool kind: ${toolKind}`);
-
-  const safeDetails = redact(details).slice(0, 12_000);
-  const proposal = {
-    version: 1,
-    type: "virgoyt.tool_proposal",
-    projectId,
-    toolKind,
-    riskLevel: contract.riskLevel,
-    requiresApproval: true,
-    executable: false,
-    title: redact(title).slice(0, 240),
-    details: safeDetails,
-    contract: contract.summary,
-  };
+  const proposal = { version: 1, type: "virgoyt.tool_proposal", projectId, toolKind, riskLevel: contract.riskLevel, requiresApproval: true, executable: false, title: redact(title).slice(0, 240), details: redact(details).slice(0, 12_000), contract: contract.summary };
   proposal.payloadDigest = createHash("sha256").update(JSON.stringify(proposal)).digest("hex");
   process.stdout.write(`${JSON.stringify(proposal, null, 2)}\n`);
   return 0;
 }
 
-process.exitCode = main(process.argv.slice(2));
+main(process.argv.slice(2)).then((exitCode) => { process.exitCode = exitCode; }).catch((error) => { process.stderr.write(`${error instanceof Error ? error.message : "Runner failed."}\n`); process.exitCode = 1; });

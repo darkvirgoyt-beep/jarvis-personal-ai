@@ -5,6 +5,7 @@ vi.mock("./virgoytDb", () => ({
   VIRGOYT_AGENT_VALUES: ["coding", "research", "ui", "security", "devops"],
   VIRGOYT_PROVIDER_VALUES: ["openrouter", "compatible", "nvidia_nim", "local_bridge"],
   VIRGOYT_TOOL_KIND_VALUES: ["file_write", "file_delete", "terminal_command", "browser_navigate", "git_operation", "deployment", "runner_connect"],
+  virgoytPayloadDigest: vi.fn(() => "pairing-digest"),
   getVirgoYTProject: vi.fn(),
   listVirgoYTProjects: vi.fn(),
   createVirgoYTProject: vi.fn(),
@@ -131,7 +132,7 @@ describe("VirgoYT private control-plane router", () => {
 
     const result = await caller.virgoyt.runners.register({ projectId: 7, displayName: "My Linux workstation", runnerType: "local_cli" });
 
-    expect(db.createVirgoYTRunnerConnection).toHaveBeenCalledWith({ userId: 42, projectId: 7, displayName: "My Linux workstation", runnerType: "local_cli" });
+    expect(db.createVirgoYTRunnerConnection).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, projectId: 7, displayName: "My Linux workstation", runnerType: "local_cli", pairingFingerprint: "pairing-digest" }));
     expect(result.runner.status).toBe("pending");
     expect(result.message).toContain("pending");
   });

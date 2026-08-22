@@ -207,3 +207,6 @@
 - [x] Add an approval-gated cloud-computer environment handoff for Ubuntu and Kali-compatible runner requirements, with explicit connected/unconnected state and no implied shell, browser, sandbox, credential, or external-link access before connection.
 - [x] Update the Jarvis capability contract and tests so ordinary conversational requests accurately offer reviewed end-to-end build, artifact, diagnostic, and cloud-runner workflows without broad capability denials.
 - [ ] Add protected, user-scoped cleanup contracts for temporary conversation, approval, and project validation records so approved live Supabase checks can remove their own test data immediately.
+- [x] Add an approval-gated connected-runner compilation workflow that turns ordinary build prompts into executable build jobs with selected Linux environment, command plan, live logs, result state, and artifact references.
+- [x] Add secure compile-job lifecycle controls that require a connected runner before execution, keep credentials out of chat and logs, and require separate explicit approval for signing, external publishing, store upload, or deployment.
+- [x] Update Jarvis normal-chat capability guidance and regression tests so it promises real compilation only when a connected runner reports a build result, rather than returning a blanket local-machine handoff.

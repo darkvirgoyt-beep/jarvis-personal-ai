@@ -5,6 +5,7 @@ import { registerStorageProxy } from "./_core/storageProxy";
 import { createContext } from "./_core/context";
 import { registerJarvisStream, registerJarvisVoice } from "./jarvisStream";
 import { registerJarvisMobilePairing } from "./jarvisMobile";
+import { registerVirgoYTRunnerApi } from "./virgoytRunner";
 import { appRouter } from "./routers";
 
 /**
@@ -26,6 +27,7 @@ export function createJarvisApp() {
   );
   registerJarvisVoice(app);
   registerJarvisMobilePairing(app);
+  registerVirgoYTRunnerApi(app);
   app.use(
     "/api/trpc",
     createExpressMiddleware({

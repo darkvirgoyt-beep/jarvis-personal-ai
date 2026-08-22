@@ -1,9 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../virgoytDb";
 import { getVirgoYTProviderRoutingSummary, isCredentialFreeProviderEndpoint } from "../virgoytProviderRouting";
+import { createVirgoYTCompileSpec, VIRGOYT_COMPILE_TARGETS } from "../../shared/virgoytCompile";
 
 const agentSchema = z.enum(db.VIRGOYT_AGENT_VALUES);
 const providerSchema = z.enum(db.VIRGOYT_PROVIDER_VALUES);
@@ -162,6 +163,31 @@ export const virgoytRouter = router({
       await db.createVirgoYTAuditEvent({ userId: ctx.user.id, projectId: input.projectId, runId: input.runId, proposalId: proposal.id, eventKind: "proposal.created", details: proposal.title });
       return proposal;
     }),
+    createCompile: protectedProcedure.input(z.object({
+      projectId: projectIdSchema,
+      target: z.enum(VIRGOYT_COMPILE_TARGETS),
+      workspacePath: z.string().trim().min(1).max(240),
+    })).mutation(async ({ ctx, input }) => {
+      await requireProject(ctx.user.id, input.projectId);
+      const spec = createVirgoYTCompileSpec({ target: input.target, workspacePath: input.workspacePath });
+      const proposal = await db.createVirgoYTToolProposal({
+        userId: ctx.user.id,
+        projectId: input.projectId,
+        toolKind: "terminal_command",
+        riskLevel: "high",
+        title: `Compile ${input.target} workspace`,
+        details: `Fixed ${spec.environment} build recipe for ${spec.workspacePath}. Signing and publishing are disabled.`,
+        payload: spec,
+        expiresAt: new Date(Date.now() + 15 * 60_000),
+      });
+      if (!proposal) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "VirgoYT compile job could not be created" });
+      await db.createVirgoYTAuditEvent({ userId: ctx.user.id, projectId: input.projectId, proposalId: proposal.id, eventKind: "compile.requested", details: `${spec.target}:${spec.workspacePath}` });
+      return {
+        proposal,
+        spec,
+        message: "Compile job staged. Approve it, then an active paired runner will claim and execute this fixed recipe.",
+      } as const;
+    }),
     resolve: protectedProcedure.input(z.object({
       projectId: projectIdSchema,
       proposalId: z.number().int().positive(),
@@ -224,12 +250,14 @@ export const virgoytRouter = router({
       runnerType: z.enum(["local_cli", "remote_isolated"]),
     })).mutation(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
-      const runner = await db.createVirgoYTRunnerConnection({ userId: ctx.user.id, ...input });
+      const pairingToken = randomBytes(32).toString("base64url");
+      const runner = await db.createVirgoYTRunnerConnection({ userId: ctx.user.id, ...input, pairingFingerprint: db.virgoytPayloadDigest({ pairingToken }) });
       if (!runner) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "VirgoYT runner request could not be created" });
       await db.createVirgoYTAuditEvent({ userId: ctx.user.id, projectId: input.projectId, eventKind: "runner.registration_requested", details: `${input.runnerType}:${input.displayName}` });
       return {
         runner,
-        message: "Runner registration is pending. Pairing and command execution are intentionally unavailable until the signed local or isolated runner adapter is installed.",
+        pairingToken,
+        message: "Runner registration is pending. Pair this one-time token with the signed runner CLI; only approved fixed compile jobs may execute after pairing.",
       } as const;
     }),
   }),

@@ -46,6 +46,18 @@ function StatusPill({ value }: { value: string }) {
   return <span className={cn("rounded-full border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em]", tone)}>{value.replaceAll("_", " ")}</span>;
 }
 
+function CompileRunnerPanel({ target, setTarget, workspacePath, setWorkspacePath, onCreate, isPending, runnerActive }: {
+  target: "web" | "android" | "service";
+  setTarget: (value: "web" | "android" | "service") => void;
+  workspacePath: string;
+  setWorkspacePath: (value: string) => void;
+  onCreate: () => void;
+  isPending: boolean;
+  runnerActive: boolean;
+}) {
+  return <section className="rounded-sm border border-fuchsia-300/25 bg-fuchsia-400/[0.035] p-4"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><p className="hud-label text-fuchsia-100">CONNECTED COMPILE WORKER</p><h1 className="mt-2 text-xl font-semibold text-white">Stage a real Linux build job.</h1><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">Jarvis queues a fixed Ubuntu recipe. After you approve it, a paired runner claims the job, runs dependency install, tests, and build, then reports a redacted result. It cannot sign or publish.</p></div><StatusPill value={runnerActive ? "active" : "runner_unconnected"} /></div><div className="mt-4 grid gap-3 sm:grid-cols-[150px_minmax(0,1fr)_auto]"><select aria-label="Compile target" value={target} onChange={(event) => setTarget(event.target.value as typeof target)} className="min-h-11 rounded-sm border border-white/10 bg-slate-950 px-3 text-xs text-slate-100"><option value="web">Web app</option><option value="android">Android debug APK</option><option value="service">Service</option></select><Input aria-label="Runner workspace directory" value={workspacePath} onChange={(event) => setWorkspacePath(event.target.value)} placeholder="projects/my-app (relative to runner workspace root)" className="border-white/10 bg-slate-950/70 text-slate-100" /><Button type="button" onClick={onCreate} disabled={isPending} className="min-h-11 bg-fuchsia-400 text-white hover:bg-fuchsia-300"><Play className="mr-2 size-4" />{isPending ? "Staging…" : "Stage compile"}</Button></div><p className="mt-3 font-mono text-[10px] text-fuchsia-100/80">FIXED RECIPE · NO ARBITRARY SHELL · SIGNING OFF · PUBLISHING OFF</p></section>;
+}
+
 export default function VirgoYTAgent() {
   const { user, loading } = useAuth();
   const utils = trpc.useUtils();
@@ -64,6 +76,8 @@ export default function VirgoYTAgent() {
   const [providerEndpoint, setProviderEndpoint] = useState("");
   const [runnerName, setRunnerName] = useState("");
   const [runnerType, setRunnerType] = useState<"local_cli" | "remote_isolated">("local_cli");
+  const [compileTarget, setCompileTarget] = useState<"web" | "android" | "service">("web");
+  const [compileWorkspacePath, setCompileWorkspacePath] = useState("");
   const [notice, setNotice] = useState("");
 
   const catalogQuery = trpc.virgoyt.catalog.useQuery(undefined, { enabled: Boolean(user) });
@@ -79,6 +93,7 @@ export default function VirgoYTAgent() {
   const createRun = trpc.virgoyt.runs.create.useMutation();
   const createPlanStep = trpc.virgoyt.plans.create.useMutation();
   const createProposal = trpc.virgoyt.proposals.create.useMutation();
+  const createCompile = trpc.virgoyt.proposals.createCompile.useMutation();
   const resolveProposal = trpc.virgoyt.proposals.resolve.useMutation();
   const createProvider = trpc.virgoyt.providers.create.useMutation();
   const registerRunner = trpc.virgoyt.runners.register.useMutation();
@@ -183,6 +198,18 @@ export default function VirgoYTAgent() {
     }
   };
 
+  const handleCreateCompile = async () => {
+    if (!activeProjectId) return setNotice("Select a private project before staging a compile job.");
+    if (!compileWorkspacePath.trim()) return setNotice("Enter the runner-relative workspace directory to compile.");
+    try {
+      const result = await createCompile.mutateAsync({ projectId: activeProjectId, target: compileTarget, workspacePath: compileWorkspacePath.trim() });
+      setNotice(result.message);
+      await refreshProject();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "VirgoYT could not stage this compile job.");
+    }
+  };
+
   const handleResolveProposal = async (proposalId: number, decision: "approved" | "rejected") => {
     if (!activeProjectId) return;
     try {
@@ -213,7 +240,7 @@ export default function VirgoYTAgent() {
     try {
       const result = await registerRunner.mutateAsync({ projectId: activeProjectId, displayName: runnerName.trim(), runnerType });
       setRunnerName("");
-      setNotice(result.message);
+      setNotice(`${result.message} One-time pairing command: node scripts/virgoyt-cli.mjs pair --api-url ${window.location.origin} --runner-id ${result.runner.id} --token ${result.pairingToken}`);
       await refreshProject();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "VirgoYT could not request the runner registration.");
@@ -237,7 +264,7 @@ export default function VirgoYTAgent() {
         {tab === "projects" && <div><p className="hud-label text-cyan-100">PRIVATE PROJECTS</p><h1 className="mt-2 text-2xl font-semibold text-white">Each agent action belongs to a project.</h1><div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="grid gap-3">{(projectsQuery.data ?? []).map((project) => <button key={project.id} type="button" onClick={() => { setActiveProjectId(project.id); setActiveRunId(undefined); setTab("chat"); }} className={cn("rounded-sm border p-4 text-left transition", project.id === activeProjectId ? "border-cyan-300/35 bg-cyan-300/[0.06]" : "border-white/[0.08] bg-black/20 hover:border-white/20")}><div className="flex items-center justify-between gap-3"><p className="font-medium text-white">{project.name}</p><StatusPill value={project.status} /></div><p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{project.description || "No description yet."}</p><p className="mt-3 font-mono text-[10px] text-slate-600">{project.slug}</p></button>)}{!projectsQuery.data?.length && <div className="rounded-sm border border-dashed border-white/15 p-6 text-sm text-slate-500">Create your first private project to begin agent planning.</div>}</div><div className="rounded-sm border border-fuchsia-400/20 bg-fuchsia-400/[0.035] p-4"><p className="text-sm font-semibold text-white">New private project</p><Input value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Project name" className="mt-3 border-white/10 bg-slate-950/70 text-slate-100" /><Textarea value={projectDescription} onChange={(event) => setProjectDescription(event.target.value)} placeholder="Short privacy-safe brief" className="mt-2 min-h-24 border-white/10 bg-slate-950/70 text-slate-100" /><Button onClick={() => void handleCreateProject()} disabled={createProject.isPending} className="mt-3 min-h-11 w-full bg-fuchsia-400/90 text-white hover:bg-fuchsia-300"><Plus className="mr-2 size-4" />Create project</Button></div></div></div>}
 
         {tab === "files" && <ToolProposalPanel title="Files are proposed, never silently changed." icon={<FileCode2 className="size-5 text-cyan-100" />} selectedKind={proposalKind} setSelectedKind={setProposalKind} proposalTitle={proposalTitle} setProposalTitle={setProposalTitle} proposalDetails={proposalDetails} setProposalDetails={setProposalDetails} onCreate={handleCreateProposal} isPending={createProposal.isPending} />}
-        {tab === "terminal" && <ToolProposalPanel title="Terminal requests stay reviewable and non-executable here." icon={<TerminalSquare className="size-5 text-fuchsia-200" />} selectedKind={proposalKind} setSelectedKind={setProposalKind} proposalTitle={proposalTitle} setProposalTitle={setProposalTitle} proposalDetails={proposalDetails} setProposalDetails={setProposalDetails} onCreate={handleCreateProposal} isPending={createProposal.isPending} forceKind="terminal_command" />}
+        {tab === "terminal" && <div className="space-y-6"><CompileRunnerPanel target={compileTarget} setTarget={setCompileTarget} workspacePath={compileWorkspacePath} setWorkspacePath={setCompileWorkspacePath} onCreate={handleCreateCompile} isPending={createCompile.isPending} runnerActive={(runnersQuery.data ?? []).some((runner) => runner.status === "active")} /><ToolProposalPanel title="Other terminal requests stay reviewable and non-executable here." icon={<TerminalSquare className="size-5 text-fuchsia-200" />} selectedKind={proposalKind} setSelectedKind={setProposalKind} proposalTitle={proposalTitle} setProposalTitle={setProposalTitle} proposalDetails={proposalDetails} setProposalDetails={setProposalDetails} onCreate={handleCreateProposal} isPending={createProposal.isPending} forceKind="terminal_command" /></div>}
 
         {tab === "agents" && <div><div className="flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-5 sm:flex-row sm:items-end"><div><p className="hud-label text-cyan-100">MULTI-AGENT BOARD</p><h1 className="mt-2 text-2xl font-semibold text-white">Visible roles. Reviewable plan.</h1></div><Button variant="outline" onClick={() => void handleCreatePlanStep()} disabled={!activeRunId || createPlanStep.isPending} className="min-h-11 border-cyan-300/25 text-cyan-100 hover:bg-cyan-300/10"><Plus className="mr-2 size-4" />Add review checkpoint</Button></div><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{(catalogQuery.data?.agents ?? []).map((agent) => <div key={agent.id} className="rounded-sm border border-white/[0.08] bg-black/20 p-4"><Bot className="size-4 text-cyan-100" /><p className="mt-3 font-medium text-white">{agent.name}</p><p className="mt-1 text-xs leading-5 text-slate-500">{agent.description}</p></div>)}</div><div className="mt-6 rounded-sm border border-white/[0.08] bg-black/20 p-4"><div className="flex items-center justify-between"><p className="text-sm font-semibold text-white">Plan for {activeRun ? `run #${activeRun.id}` : "selected run"}</p><span className="font-mono text-[10px] text-slate-600">AUTO REFRESH 6S</span></div><div className="mt-4 space-y-2">{(planQuery.data ?? []).map((step) => <div className="flex items-start gap-3 rounded-sm border border-white/[0.07] px-3 py-3" key={step.id}><span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 font-mono text-[10px] text-cyan-100">{step.stepOrder}</span><div className="min-w-0 flex-1"><p className="text-xs font-medium text-slate-200">{step.title}</p><p className="mt-1 text-[11px] leading-5 text-slate-500">{step.description}</p></div><StatusPill value={step.status} /></div>)}{!planQuery.data?.length && <p className="text-xs text-slate-500">No plan checkpoints yet. Start a run, then add a review checkpoint.</p>}</div></div></div>}
 

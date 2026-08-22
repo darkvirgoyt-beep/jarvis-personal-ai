@@ -507,6 +507,10 @@ export default function Home() {
                 void utils.jarvis.confirmations.list.invalidate();
               }).catch(() => addActivity("Runner review gate could not be created"));
             }}
+            onOpenCompileWorkspace={() => {
+              addActivity("Opening paired compile worker for this build request");
+              window.location.assign("/agent");
+            }}
           />
 
           {(activeIntent === "research" || activeIntent === "data") && <JarvisResearchDesk mode={activeIntent === "data" ? "data" : "research"} onSendBrief={(prompt) => { addActivity(activeIntent === "data" ? "Local data summary sent to Jarvis for explanation" : "Research brief sent to Jarvis for source-linked review"); void handleSendMessage(prompt, activeIntent === "data" ? "Research" : "Research"); }} />}

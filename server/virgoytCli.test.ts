@@ -30,12 +30,12 @@ describe("VirgoYT proposal-only CLI", () => {
     expect(proposal.payloadDigest).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it("refuses execute-like commands and reports an offline boundary", () => {
+  it("rejects unrecognized commands and reports the fixed approved-recipe boundary", () => {
     const status = JSON.parse(execFileSync(process.execPath, [cliPath, "status"], { encoding: "utf8" })) as Record<string, unknown>;
     const attempt = spawnSync(process.execPath, [cliPath, "execute"], { encoding: "utf8" });
 
-    expect(status).toMatchObject({ externalNetwork: false, credentialAccess: false, commandExecution: false });
+    expect(status).toMatchObject({ credentialAccess: false, commandExecution: "fixed-approved-compile-recipes-only", signingAllowed: false, publishingAllowed: false, requiresWorkspaceApproval: true });
     expect(attempt.status).toBe(2);
-    expect(attempt.stderr).toContain("proposal-only");
+    expect(attempt.stderr).toContain("Unknown command");
   });
 });

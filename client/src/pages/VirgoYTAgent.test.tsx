@@ -45,6 +45,7 @@ vi.mock("@/lib/trpc", () => ({
       proposals: {
         list: { useQuery: () => ({ data: [] }) },
         create: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
+        createCompile: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
         resolve: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
       },
       audit: { list: { useQuery: () => ({ data: [] }) } },
