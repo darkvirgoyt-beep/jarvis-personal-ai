@@ -175,6 +175,10 @@ describe("Jarvis authenticated endpoints", () => {
           role: "system",
           content: expect.stringContaining("Normal language first: infer the right workflow"),
         }),
+        expect.objectContaining({
+          role: "system",
+          content: expect.stringContaining("Never claim a search, runner execution, file change, browser action, Git operation, deployment, image output, or vision finding is complete"),
+        }),
       ]),
     }));
     expect(res.writes.join("")).toContain("reviewed build proposal");

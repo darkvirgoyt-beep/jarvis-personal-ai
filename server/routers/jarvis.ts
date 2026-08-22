@@ -128,6 +128,7 @@ export const jarvisRouter = router({
       contextualSuggestions: z.boolean().optional(),
       speechRate: z.number().int().min(70).max(140).optional(),
       privacyMode: z.enum(["standard", "minimal"]).optional(),
+      durableMemoryEnabled: z.boolean().optional(),
       visualMode: z.enum(["hud", "reduced_motion"]).optional(),
       pluginSettings: z.string().max(4000).nullable().optional(),
     })).mutation(({ ctx, input }) => db.updateJarvisPreferences({
@@ -140,6 +141,7 @@ export const jarvisRouter = router({
       contextualSuggestions: input.contextualSuggestions === undefined ? undefined : Number(input.contextualSuggestions),
       speechRate: input.speechRate,
       privacyMode: input.privacyMode,
+      durableMemoryEnabled: input.durableMemoryEnabled === undefined ? undefined : Number(input.durableMemoryEnabled),
       visualMode: input.visualMode,
       pluginSettings: input.pluginSettings,
     })),

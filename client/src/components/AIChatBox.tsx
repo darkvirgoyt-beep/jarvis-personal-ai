@@ -145,36 +145,13 @@ export function AIChatBox({
   const [input, setInput] = useState("");
   const [copiedMessage, setCopiedMessage] = useState<number | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   // Filter out system messages
   const displayMessages = messages.filter((msg) => msg.role !== "system");
 
-  // Calculate min-height for last assistant message to push user message to top
-  const [minHeightForLastMessage, setMinHeightForLastMessage] = useState(0);
-
-  useEffect(() => {
-    if (containerRef.current && inputAreaRef.current) {
-      const containerHeight = containerRef.current.offsetHeight;
-      const inputHeight = inputAreaRef.current.offsetHeight;
-      const scrollAreaHeight = containerHeight - inputHeight;
-
-      // Reserve space for:
-      // - padding (p-4 = 32px top+bottom)
-      // - user message: 40px (item height) + 16px (margin-top from space-y-4) = 56px
-      // Note: margin-bottom is not counted because it naturally pushes the assistant message down
-      const userMessageReservedHeight = 56;
-      const calculatedHeight = scrollAreaHeight - 32 - userMessageReservedHeight;
-
-      setMinHeightForLastMessage(Math.max(0, calculatedHeight));
-    }
-  }, []);
-
-  // Scroll to bottom helper function with smooth animation
-  const scrollToBottom = () => {
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const viewport = scrollAreaRef.current?.querySelector(
       '[data-radix-scroll-area-viewport]'
     ) as HTMLDivElement;
@@ -183,11 +160,15 @@ export function AIChatBox({
       requestAnimationFrame(() => {
         viewport.scrollTo({
           top: viewport.scrollHeight,
-          behavior: 'smooth'
+          behavior
         });
       });
     }
   };
+
+  useEffect(() => {
+    scrollToBottom("auto");
+  }, [messages, isLoading]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,7 +210,6 @@ export function AIChatBox({
 
   return (
     <div
-      ref={containerRef}
       className={cn(
         "flex min-h-0 flex-col overflow-hidden bg-slate-950/70 text-card-foreground",
         className
@@ -237,7 +217,7 @@ export function AIChatBox({
       style={{ height }}
     >
       {/* Messages Area */}
-      <div ref={scrollAreaRef} className="flex-1 overflow-hidden">
+      <div ref={scrollAreaRef} className="min-h-0 flex-1 overflow-hidden" aria-label="Jarvis conversation transcript">
         {displayMessages.length === 0 ? (
           <div className="flex h-full flex-col p-4">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground">
@@ -266,11 +246,6 @@ export function AIChatBox({
           <ScrollArea className="h-full">
             <div className="flex flex-col space-y-5 p-5">
               {displayMessages.map((message, index) => {
-                // Apply min-height to last message only if NOT loading (when loading, the loading indicator gets it)
-                const isLastMessage = index === displayMessages.length - 1;
-                const shouldApplyMinHeight =
-                  isLastMessage && !isLoading && minHeightForLastMessage > 0;
-
                 return (
                   <div
                     key={index}
@@ -280,11 +255,6 @@ export function AIChatBox({
                         ? "justify-end items-start"
                         : "justify-start items-start"
                     )}
-                    style={
-                      shouldApplyMinHeight
-                        ? { minHeight: `${minHeightForLastMessage}px` }
-                        : undefined
-                    }
                   >
                     {message.role === "assistant" && (
                       <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10">
@@ -329,14 +299,7 @@ export function AIChatBox({
               })}
 
               {isLoading && (
-                <div
-                  className="flex items-start gap-3"
-                  style={
-                    minHeightForLastMessage > 0
-                      ? { minHeight: `${minHeightForLastMessage}px` }
-                      : undefined
-                  }
-                >
+                <div className="flex items-start gap-3">
                   <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10">
                     <Sparkles className="size-4 text-cyan-200" />
                   </div>
@@ -352,9 +315,8 @@ export function AIChatBox({
 
       {/* Input Area */}
       <form
-        ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="border-t border-cyan-300/15 bg-slate-950/85 p-3"
+        className="z-10 shrink-0 border-t border-cyan-300/15 bg-slate-950/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(2,6,23,0.5)] backdrop-blur-xl"
       >
         {intents.length > 0 && <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1" aria-label="Jarvis work mode">{intents.map((intent) => <button type="button" key={intent.id} aria-pressed={activeIntent === intent.id} title={intent.description} onClick={() => onIntentChange?.(intent.id)} className={cn("shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] transition", activeIntent === intent.id ? "border-fuchsia-400/40 bg-fuchsia-400/10 text-fuchsia-100" : "border-white/10 bg-white/[0.025] text-slate-500 hover:border-cyan-300/30 hover:text-cyan-100")}>{intent.label}</button>)}</div>}
         {stagedAttachments.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{stagedAttachments.map((file) => <span className="inline-flex max-w-full items-center gap-1.5 rounded-sm border border-cyan-300/20 bg-cyan-300/[0.05] px-2 py-1 text-[10px] text-cyan-50" key={file.name}><Paperclip className="size-3 shrink-0" /><span className="max-w-32 truncate">{file.name}</span><span className="text-slate-500">{formatFileSize(file.size)}</span>{onRemoveAttachment && <button aria-label={`Remove ${file.name}`} type="button" onClick={() => onRemoveAttachment(file.name)} className="text-cyan-100 hover:text-white"><X className="size-3" /></button>}</span>)}</div>}

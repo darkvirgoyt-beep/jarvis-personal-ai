@@ -213,5 +213,10 @@
 - [x] Add visible secure session-persistence status and keep-signed-in guidance so users know their Supabase browser session is retained without storing passwords in Jarvis.
 - [x] Make Jarvis automatically speak completed assistant replies after the user explicitly enables voice, while keeping Listen as a replay control rather than the only speech trigger.
 - [x] Normalize Markdown, code fences, bullets, links, mathematical delimiters, and other formatting into clean natural speech before browser text-to-speech is invoked.
-- [ ] Refine the advanced-workflow contract using the supplied tool blueprint, retaining real-result-only claims and explicit approval gates for search, runner execution, file changes, browser work, Git operations, deployment, images, and vision.
+- [x] Refine the advanced-workflow contract using the supplied tool blueprint, retaining real-result-only claims and explicit approval gates for search, runner execution, file changes, browser work, Git operations, deployment, images, and vision.
 - [x] Assess the requested Anthropic model integration with an exact supported model identifier and server-only credential boundary before enabling any provider switch.
+
+- [x] Add privacy-aware long-term memory extraction from eligible chat facts, with a clear user setting, per-user storage, and review/delete controls.
+- [x] Rework the authenticated chat shell so only messages scroll while the input composer and voice controls remain fixed and usable on desktop and mobile keyboards.
+- [x] Upgrade the authenticated command workspace into a performance-aware holographic Jarvis dashboard with real state-driven core, voice, activity, and tool-status visuals.
+- [x] Add regression and responsive visual coverage for durable memory and the fixed-composer command workspace before publishing.

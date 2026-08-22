@@ -88,6 +88,7 @@ export const jarvisPreferences = mysqlTable("jarvisPreferences", {
   contextualSuggestions: int("contextualSuggestions").notNull().default(0),
   speechRate: int("speechRate").notNull().default(100),
   privacyMode: mysqlEnum("privacyMode", ["standard", "minimal"]).notNull().default("standard"),
+  durableMemoryEnabled: int("durableMemoryEnabled").notNull().default(0),
   visualMode: mysqlEnum("visualMode", ["hud", "reduced_motion"]).notNull().default("hud"),
   pluginSettings: text("pluginSettings"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

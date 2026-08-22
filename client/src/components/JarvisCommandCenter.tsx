@@ -1,5 +1,6 @@
 import { Activity, Bot, CheckCircle2, Clock3, Code2, LaptopMinimal, ShieldCheck, TerminalSquare } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { getJarvisWorkflowTools } from "../../../shared/jarvisAdvancedWorkflow";
 import type { JarvisPromptRoute } from "@/lib/jarvisIntentRouter";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ export function JarvisCommandCenter({
 
   const profile = route.runnerProfile ?? "ubuntu";
   const needsRunner = route.needsRunner;
+  const activeToolLabels = getJarvisWorkflowTools(route.intent).map((contract) => contract.label).join(" · ");
 
   return (
     <section aria-label="Jarvis advanced operations" className="overflow-hidden rounded-xl border border-cyan-300/15 bg-slate-950/65 shadow-[0_16px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
@@ -36,7 +38,7 @@ export function JarvisCommandCenter({
         <div className="bg-slate-950/80 p-4">
           <div className="flex items-center justify-between gap-3"><p className="hud-label">COMMAND INTERPRETATION</p><span className={cn("rounded-full border px-2 py-1 font-mono text-[9px] tracking-[0.11em]", isWorking ? "border-cyan-300/30 bg-cyan-300/[0.08] text-cyan-100" : "border-white/10 text-slate-500")}>{isWorking ? "WORKING" : "READY"}</span></div>
           <div className="mt-4 rounded-lg border border-fuchsia-400/20 bg-fuchsia-400/[0.045] p-3"><div className="flex items-center gap-2"><Code2 className="size-3.5 text-fuchsia-200" /><p className="text-xs font-semibold text-fuchsia-50">{route.label}</p></div><p className="mt-2 text-[11px] leading-5 text-slate-400">{route.summary}</p></div>
-          <div className="mt-3 rounded-lg border border-white/[0.08] bg-black/25 p-3 font-mono text-[10px] leading-5 text-slate-500"><p><span className="text-cyan-200">›</span> classify.prompt <span className="text-slate-300">{route.intent}</span></p><p><span className="text-cyan-200">›</span> {route.executionLine}</p><p><span className="text-cyan-200">›</span> {isWorking ? "streaming reviewed response…" : "awaiting your next normal-language command"}</p></div>
+          <div className="mt-3 rounded-lg border border-white/[0.08] bg-black/25 p-3 font-mono text-[10px] leading-5 text-slate-500"><p><span className="text-cyan-200">›</span> classify.prompt <span className="text-slate-300">{route.intent}</span></p><p><span className="text-cyan-200">›</span> {route.executionLine}</p><p><span className="text-cyan-200">›</span> {activeToolLabels ? `review gate: ${activeToolLabels}` : "no external tool requested"}</p><p><span className="text-cyan-200">›</span> {isWorking ? "streaming reviewed response…" : "awaiting your next normal-language command"}</p></div>
         </div>
 
         <div className="bg-slate-950/80 p-4"><div className="flex items-center gap-2"><Clock3 className="size-4 text-amber-200" /><p className="hud-label">TIME & CONTEXT</p></div><p className="mt-4 font-mono text-sm text-amber-100">{now.toLocaleString()}</p><p className="mt-1 text-[10px] leading-4 text-slate-600">Local device clock. Jarvis receives a separate server-side UTC timestamp with every new response.</p><div className="mt-4 space-y-2"><div className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-black/15 px-3 py-2"><span className="text-[11px] text-slate-400">Artifacts</span><span className="font-mono text-[10px] text-cyan-100">REVIEWED</span></div><div className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-black/15 px-3 py-2"><span className="text-[11px] text-slate-400">External actions</span><span className="font-mono text-[10px] text-amber-100">APPROVAL</span></div></div></div>

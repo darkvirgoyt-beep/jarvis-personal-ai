@@ -17,10 +17,10 @@ vi.mock("@/lib/trpc", () => ({
     }),
     jarvis: {
       preferences: {
-        get: { useQuery: () => ({ data: { model: "nemotron-3-ultra", personality: "balanced", speechRate: 100, privacyMode: "standard", continuousMode: 0, visualMode: "hud", pluginSettings: "{}" } }) },
+        get: { useQuery: () => ({ data: { model: "nemotron-3-ultra", personality: "balanced", speechRate: 100, privacyMode: "standard", continuousMode: 0, durableMemoryEnabled: 0, visualMode: "hud", pluginSettings: "{}" } }) },
         update: { useMutation: () => ({ mutateAsync: updatePreferences, isPending: false }) },
       },
-      memory: { list: { useQuery: () => ({ data: [] }) }, update: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) } },
+      memory: { list: { useQuery: () => ({ data: [] }) }, update: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) }, delete: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) } },
       tasks: { list: { useQuery: () => ({ data: [] }) }, create: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) } },
       confirmations: { list: { useQuery: () => ({ data: [] }) } },
       research: { list: { useQuery: () => ({ data: [] }) } },
@@ -36,17 +36,19 @@ describe("JarvisExtensions persisted preference controls", () => {
     invalidatePreferences.mockClear();
   });
 
-  it("sends model, privacy, and continuous-mode changes through the authenticated preferences mutation", async () => {
+  it("sends model, privacy, continuous-mode, and durable-memory changes through the authenticated preferences mutation", async () => {
     render(<JarvisExtensions voiceStorageKey="jarvisVoice:test" onRun={vi.fn()} onCopyLatest={vi.fn()} onExportLatest={vi.fn()} />);
 
     fireEvent.change(screen.getByLabelText("Response model"), { target: { value: "nemotron-3-ultra" } });
     fireEvent.change(screen.getByLabelText("Privacy mode"), { target: { value: "minimal" } });
     fireEvent.click(screen.getByLabelText("Continuous conversation"));
+    fireEvent.click(screen.getByLabelText("Long-term memory"));
 
     await waitFor(() => {
       expect(updatePreferences).toHaveBeenCalledWith({ model: "nemotron-3-ultra" });
       expect(updatePreferences).toHaveBeenCalledWith({ privacyMode: "minimal" });
       expect(updatePreferences).toHaveBeenCalledWith({ continuousMode: true });
+      expect(updatePreferences).toHaveBeenCalledWith({ durableMemoryEnabled: true });
     });
     await waitFor(() => expect(invalidatePreferences).toHaveBeenCalled());
   });

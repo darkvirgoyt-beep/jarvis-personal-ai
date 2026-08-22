@@ -1,0 +1,1 @@
+ALTER TABLE `jarvisPreferences` ADD `durableMemoryEnabled` int DEFAULT 0 NOT NULL;

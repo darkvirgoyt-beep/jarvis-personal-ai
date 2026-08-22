@@ -4,7 +4,7 @@ import { JarvisModelSelector } from "@/components/JarvisModelSelector";
 import { selectJarvisBrowserVoice } from "@/lib/jarvisVoice";
 import { buildJarvisCodingPrompt } from "../../../shared/jarvisCoding";
 import { parseJarvisSourceLedger } from "../../../shared/jarvisResearch";
-import { BookOpen, Bot, Code2, Copy, Database, PlugZap, Save, Search, Sparkles } from "lucide-react";
+import { BookOpen, Bot, Code2, Copy, Database, PlugZap, Save, Search, Sparkles, Trash2 } from "lucide-react";
 import React from "react";
 import { useEffect, useState } from "react";
 
@@ -16,6 +16,7 @@ export function JarvisExtensions({ onRun, onCopyLatest, onExportLatest, voiceSto
   const updatePreferences = trpc.jarvis.preferences.update.useMutation();
   const memories = trpc.jarvis.memory.list.useQuery();
   const updateMemory = trpc.jarvis.memory.update.useMutation();
+  const deleteMemory = trpc.jarvis.memory.delete.useMutation();
   const tasks = trpc.jarvis.tasks.list.useQuery();
   const createTask = trpc.jarvis.tasks.create.useMutation();
   const confirmations = trpc.jarvis.confirmations.list.useQuery();
@@ -83,6 +84,11 @@ export function JarvisExtensions({ onRun, onCopyLatest, onExportLatest, voiceSto
     setMemoryEdit(undefined);
     await utils.jarvis.memory.list.invalidate();
   };
+  const removeMemory = async (id: number) => {
+    await deleteMemory.mutateAsync({ id });
+    if (memoryEdit?.id === id) setMemoryEdit(undefined);
+    await utils.jarvis.memory.list.invalidate();
+  };
 
   const pendingPlans = (confirmations.data ?? []).filter((item) => item.status === "pending");
   const describePlan = (payload: string) => {
@@ -147,6 +153,10 @@ export function JarvisExtensions({ onRun, onCopyLatest, onExportLatest, voiceSto
           <label className="mt-3 flex items-center justify-between gap-3 text-[10px] text-slate-500">Continuous conversation
             <input aria-label="Continuous conversation" type="checkbox" checked={Boolean(preferences.data?.continuousMode)} onChange={(event) => void updatePreferences.mutateAsync({ continuousMode: event.target.checked }).then(() => utils.jarvis.preferences.get.invalidate())} className="size-4 accent-fuchsia-400" />
           </label>
+          <label className="mt-3 flex items-center justify-between gap-3 text-[10px] text-slate-500">Long-term memory
+            <input aria-label="Long-term memory" type="checkbox" checked={Boolean(preferences.data?.durableMemoryEnabled)} onChange={(event) => void updatePreferences.mutateAsync({ durableMemoryEnabled: event.target.checked }).then(() => utils.jarvis.preferences.get.invalidate())} className="size-4 accent-cyan-300" />
+          </label>
+          <p className="mt-1 text-[9px] leading-4 text-slate-600">When enabled, Jarvis may retain direct, non-sensitive preferences and project facts from your chats. Minimal privacy mode disables this. Review or delete saved items below.</p>
           <label className="mt-3 block text-[10px] text-slate-500">Privacy mode<select value={preferences.data?.privacyMode ?? "standard"} onChange={(event) => void updatePreferences.mutateAsync({ privacyMode: event.target.value as "standard" | "minimal" }).then(() => utils.jarvis.preferences.get.invalidate())} className="mt-1 w-full rounded-sm border border-white/10 bg-black/35 px-2 py-1.5 text-xs text-slate-300"><option value="standard">Standard private history</option><option value="minimal">Minimal local context</option></select></label>
           <label className="mt-2 block text-[10px] text-slate-500">Visual motion<select value={preferences.data?.visualMode ?? "hud"} onChange={(event) => void updatePreferences.mutateAsync({ visualMode: event.target.value as "hud" | "reduced_motion" }).then(() => utils.jarvis.preferences.get.invalidate())} className="mt-1 w-full rounded-sm border border-white/10 bg-black/35 px-2 py-1.5 text-xs text-slate-300"><option value="hud">HUD motion</option><option value="reduced_motion">Reduced motion</option></select></label>
         </section>
@@ -179,7 +189,7 @@ export function JarvisExtensions({ onRun, onCopyLatest, onExportLatest, voiceSto
 
         <section className="rounded-sm border border-white/[0.08] bg-black/20 p-3">
           <div className="flex items-center gap-2"><Save className="size-4 text-cyan-200" /><p className="hud-label">EDIT MEMORY</p></div>
-          {memoryEdit ? <><textarea value={memoryEdit.content} onChange={(event) => setMemoryEdit({ ...memoryEdit, content: event.target.value })} className="mt-3 min-h-20 w-full resize-none rounded-sm border border-white/10 bg-black/35 p-2.5 text-xs text-slate-200 outline-none focus:border-cyan-300/35" /><div className="mt-2 flex gap-2"><select value={memoryEdit.category} onChange={(event) => setMemoryEdit({ ...memoryEdit, category: event.target.value as typeof memoryEdit.category })} className="min-w-0 flex-1 rounded-sm border border-white/10 bg-black/35 px-2 text-xs text-slate-300"><option value="note">Note</option><option value="preference">Preference</option><option value="project">Project</option><option value="personal">Personal</option><option value="fact">Fact</option></select><button onClick={() => void saveMemory()} className="rounded-sm border border-cyan-300/30 bg-cyan-300/10 px-3 text-[10px] font-semibold text-cyan-100">SAVE</button></div></> : <div className="mt-3 space-y-2">{(memories.data ?? []).slice(0, 3).map((memory) => <button key={memory.id} onClick={() => setMemoryEdit({ id: memory.id, content: memory.content, category: memory.category as typeof memoryEdit extends undefined ? never : "note" })} className="block w-full truncate rounded-sm border border-white/[0.07] bg-black/20 px-2.5 py-2 text-left text-xs text-slate-500 transition hover:border-cyan-300/25 hover:text-slate-200">{memory.content}</button>)}{!memories.data?.length && <p className="py-5 text-center text-xs text-slate-600">Save a memory from the private workspace to edit it here.</p>}</div>}
+          {memoryEdit ? <><textarea value={memoryEdit.content} onChange={(event) => setMemoryEdit({ ...memoryEdit, content: event.target.value })} className="mt-3 min-h-20 w-full resize-none rounded-sm border border-white/10 bg-black/35 p-2.5 text-xs text-slate-200 outline-none focus:border-cyan-300/35" /><div className="mt-2 flex gap-2"><select value={memoryEdit.category} onChange={(event) => setMemoryEdit({ ...memoryEdit, category: event.target.value as typeof memoryEdit.category })} className="min-w-0 flex-1 rounded-sm border border-white/10 bg-black/35 px-2 text-xs text-slate-300"><option value="note">Note</option><option value="preference">Preference</option><option value="project">Project</option><option value="personal">Personal</option><option value="fact">Fact</option></select><button onClick={() => void saveMemory()} className="rounded-sm border border-cyan-300/30 bg-cyan-300/10 px-3 text-[10px] font-semibold text-cyan-100">SAVE</button><button aria-label="Delete memory" onClick={() => void removeMemory(memoryEdit.id)} className="rounded-sm border border-rose-300/25 px-2 text-rose-200"><Trash2 className="size-3.5" /></button></div></> : <div className="mt-3 space-y-2">{(memories.data ?? []).slice(0, 5).map((memory) => <div key={memory.id} className="flex items-center gap-1 rounded-sm border border-white/[0.07] bg-black/20 pr-1"><button onClick={() => setMemoryEdit({ id: memory.id, content: memory.content, category: memory.category as typeof memoryEdit extends undefined ? never : "note" })} className="min-w-0 flex-1 truncate px-2.5 py-2 text-left text-xs text-slate-500 transition hover:text-slate-200">{memory.content}</button><button aria-label={`Delete memory ${memory.id}`} onClick={() => void removeMemory(memory.id)} className="rounded-sm p-1.5 text-slate-600 transition hover:bg-rose-400/10 hover:text-rose-200"><Trash2 className="size-3.5" /></button></div>)}{!memories.data?.length && <p className="py-5 text-center text-xs text-slate-600">No private memories are saved yet.</p>}</div>}
         </section>
       </div>
 

@@ -131,6 +131,7 @@ export default function Home() {
   const agentId = agent.toLowerCase() as "general" | "coding" | "research" | "files" | "system" | "creative";
   const openTasks = (tasksQuery.data ?? []).filter((task) => task.status !== "done");
   const pendingConfirmations = (confirmationsQuery.data ?? []).filter((item) => item.status === "pending");
+  const durableMemoryEnabled = Boolean(preferencesQuery.data?.durableMemoryEnabled);
 
   useEffect(() => {
     if (!activeConversationId && !isNewChat && conversationsQuery.data?.[0]) {
@@ -526,7 +527,7 @@ export default function Home() {
               <div className="absolute left-5 top-4 flex items-center gap-2"><span className="hud-label">NEURAL PRESENCE</span></div>
               <JarvisCore state={coreState} />
               <div className="grid grid-cols-3 gap-2 border-t border-cyan-300/10 pt-3">
-                {[{ label: "VOICE", value: voiceState === "recording" ? "OPEN" : voiceState === "transcribing" ? "SYNC" : "READY" }, { label: "MEMORY", value: "PRIVATE" }, { label: "TOOLS", value: "GUARDED" }].map((item) => <div key={item.label} className="rounded-sm bg-white/[0.025] px-2 py-2 text-center"><p className="text-[9px] tracking-[0.16em] text-slate-600">{item.label}</p><p className="mt-1 font-mono text-[10px] text-cyan-100">{item.value}</p></div>)}
+                {[{ label: "VOICE", value: voiceState === "recording" ? "OPEN" : voiceState === "transcribing" ? "SYNC" : "READY" }, { label: "MEMORY", value: durableMemoryEnabled ? "LEARNING" : "MANUAL", onClick: () => setActiveMode("memory") }, { label: "TOOLS", value: "GUARDED" }].map((item) => <button key={item.label} type="button" onClick={item.onClick} disabled={!item.onClick} className={cn("rounded-sm bg-white/[0.025] px-2 py-2 text-center transition", item.onClick ? "hover:bg-cyan-300/[0.08] hover:text-cyan-50" : "cursor-default")}><p className="text-[9px] tracking-[0.16em] text-slate-600">{item.label}</p><p className="mt-1 font-mono text-[10px] text-cyan-100">{item.value}</p></button>)}
               </div>
             </HudPanel>
 
@@ -542,7 +543,7 @@ export default function Home() {
           <HudPanel className="p-4">
             <div className="flex items-center justify-between"><p className="hud-label">SYSTEM STATUS</p><span className="flex items-center gap-1.5 text-[10px] text-cyan-100"><StatusDot state={coreState} />ONLINE</span></div>
             <div className="mt-4 space-y-3">
-              {[{ icon: Cpu, label: "Brain", value: "Nemotron Ultra" }, { icon: Database, label: "Memory", value: "Private" }, { icon: LockKeyhole, label: "Actions", value: "Confirm" }].map((item) => { const Icon = item.icon; return <div className="flex items-center justify-between" key={item.label}><div className="flex items-center gap-2 text-xs text-slate-400"><Icon className="size-3.5 text-cyan-200" />{item.label}</div><span className="font-mono text-[10px] text-slate-300">{item.value}</span></div>; })}
+              {[{ icon: Cpu, label: "Brain", value: "Nemotron Ultra" }, { icon: Database, label: "Memory", value: durableMemoryEnabled ? "Learning" : "Manual" }, { icon: LockKeyhole, label: "Actions", value: "Confirm" }].map((item) => { const Icon = item.icon; return <div className="flex items-center justify-between" key={item.label}><div className="flex items-center gap-2 text-xs text-slate-400"><Icon className="size-3.5 text-cyan-200" />{item.label}</div><span className="font-mono text-[10px] text-slate-300">{item.value}</span></div>; })}
             </div>
           </HudPanel>
           <HudPanel className="p-4">

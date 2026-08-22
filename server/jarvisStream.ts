@@ -4,6 +4,8 @@ import * as db from "./db";
 import { streamLLM } from "./_core/llm";
 import { ANTHROPIC_FABLE_5_MODEL, isNemotronCredentialUnavailable, streamNemotronUltra, streamOpenRouterModel } from "./nemotron";
 import { isAlternateJarvisModel } from "../shared/jarvisModels";
+import { JARVIS_REAL_RESULT_ONLY_RULE } from "../shared/jarvisAdvancedWorkflow";
+import { extractDurableMemoryCandidate, isDuplicateDurableMemory, shouldCaptureDurableMemory } from "../shared/jarvisDurableMemory";
 import { authenticateJarvisRequest, type AuthenticatedUser } from "./_core/authentication";
 import { OpenAITranscriptionError, transcribeJarvisVoice } from "./openaiTranscription";
 import { agentInstructions, extractMemoryCommand, extractTaskCommand, requiresExplicitConfirmation } from "./jarvisPolicies";
@@ -130,6 +132,9 @@ export function registerJarvisStream(app: Express) {
         db.getJarvisPreferences(user.id),
       ]);
       const minimalContext = preferences?.privacyMode === "minimal";
+      const automaticMemory = shouldCaptureDurableMemory({ enabled: preferences?.durableMemoryEnabled, privacyMode: preferences?.privacyMode, hasExplicitMemoryCommand: Boolean(pendingMemory) })
+        ? extractDurableMemoryCandidate(input.content)
+        : undefined;
       const recentHistory = (minimalContext ? [] : history.slice(-18)).map((message) => ({ role: message.role, content: message.content }));
       const memoryContext = minimalContext ? "Minimal privacy mode is active. Do not include stored memory context." : (memories.slice(0, 8).map((memory) => `- [${memory.category}] ${memory.content}`).join("\n") || "No saved memories.");
       const systemPrompt = [
@@ -140,6 +145,7 @@ export function registerJarvisStream(app: Express) {
         `Runtime time context (UTC, generated at this request): ${new Date().toISOString()}. Treat this as the authoritative current timestamp for this response; explain time-zone conversions instead of guessing local time.`,
         "Capability contract: Jarvis supports app and website work. For build requests, confidently offer to turn requirements into a reviewed Builder brief, architecture, implementation plan, code and artifact proposals, compile-readiness review, cloud-runner requirements, repository handoff, and an explicit deployment proposal. First identify the intended target (web build, Android package, or cloud service) and explain the toolchain, test, artifact, and signing or runtime requirements. Never falsely say that Jarvis cannot build applications, make code, compile a project, or deploy as a broad limitation. Be precise instead: a real external build, repository mutation, deployment, signing, app-store submission, or virtual-computer action occurs only after a connected tool result and any required explicit approval. Do not use an unavailable file system, IDE, CI/CD pipeline, app-store account, or unconnected cloud runner as a reason to deny app-building assistance.",
         "Normal language first: infer the right workflow from the user’s ordinary prompt. For build, code, debugging, research, documents, data, images, or environment requests, lead with a concrete reviewed plan and useful artifacts instead of requiring the user to select a technical mode. For Ubuntu, Kali-compatible security-lab, terminal, browser, sandbox, or virtual-computer requests, prepare requirements and an explicit approval-gated handoff; never claim the environment is connected before an actual tool result exists.",
+        `Advanced tool contract: ${JARVIS_REAL_RESULT_ONLY_RULE}`,
         "Safety is mandatory: never claim to have accessed a computer, file system, account, device, email, calendar, smart-home system, terminal, or other external service unless a connected tool result is supplied in the conversation. Never execute, simulate executing, or imply completion of external or destructive actions. Describe proposed actions and require explicit user confirmation for high-impact operations.",
         "The user may request web research. If live source material is not provided, state the limitation and give a concrete research plan rather than fabricating current facts or citations.",
         `Private memory relevant to this conversation:\n${memoryContext}`,
@@ -278,6 +284,9 @@ export function registerJarvisStream(app: Express) {
 
       if (fullResponse.trim()) {
         await db.createJarvisMessage({ userId: user.id, conversationId, role: "assistant", content: fullResponse, agent: input.agent });
+        if (automaticMemory && !isDuplicateDurableMemory(automaticMemory, memories)) {
+          await db.createJarvisMemory({ userId: user.id, content: automaticMemory.content, category: automaticMemory.category, source: "conversation" });
+        }
         if (input.agent === "research") {
           await db.createJarvisResearchRecord({
             userId: user.id,
@@ -288,7 +297,7 @@ export function registerJarvisStream(app: Express) {
           });
         }
       }
-      if (!closed) writeEvent(res, "done", { taskCreated: Boolean(pendingTask), memorySaved: Boolean(pendingMemory) });
+      if (!closed) writeEvent(res, "done", { taskCreated: Boolean(pendingTask), memorySaved: Boolean(pendingMemory || automaticMemory) });
     } catch (error) {
       if (!closed) {
         const message = error instanceof z.ZodError

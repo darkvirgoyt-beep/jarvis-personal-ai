@@ -84,4 +84,15 @@ describe("AIChatBox Jarvis interaction states", () => {
     expect(markup).toContain("Copy Jarvis response");
     expect(markup).toContain("Replay Jarvis response");
   });
+
+  it("contains transcript scrolling while keeping the composer fixed within the chat shell", () => {
+    const markup = renderToStaticMarkup(
+      <AIChatBox messages={[{ role: "assistant", content: "Streaming reply" }]} onSendMessage={vi.fn()} />,
+    );
+
+    expect(markup).toContain("Jarvis conversation transcript");
+    expect(markup).toContain("min-h-0 flex-1 overflow-hidden");
+    expect(markup).toContain("shrink-0 border-t");
+    expect(markup).toContain("safe-area-inset-bottom");
+  });
 });

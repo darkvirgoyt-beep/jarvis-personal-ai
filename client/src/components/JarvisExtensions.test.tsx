@@ -19,7 +19,7 @@ vi.mock("@/lib/trpc", () => ({
           get: { useQuery: () => query({ personality: "balanced", speechRate: 100, privacyMode: "standard", visualMode: "hud", pluginSettings: "{}" }) },
           update: { useMutation: mutation },
         },
-        memory: { list: { useQuery: () => query([]) }, update: { useMutation: mutation } },
+        memory: { list: { useQuery: () => query([]) }, update: { useMutation: mutation }, delete: { useMutation: mutation } },
         tasks: { list: { useQuery: () => query([]) }, create: { useMutation: mutation } },
         confirmations: { list: { useQuery: () => query([]) } },
         research: { list: { useQuery: () => query([]) } },

@@ -343,6 +343,7 @@ export async function updateJarvisPreferences(input: {
   contextualSuggestions?: number;
   speechRate?: number;
   privacyMode?: "standard" | "minimal";
+  durableMemoryEnabled?: number;
   visualMode?: "hud" | "reduced_motion";
   pluginSettings?: string | null;
 }) {
