@@ -24,7 +24,7 @@ Puter may be used as an external **development assistant** only after a fresh ta
 
 ## Verified AI discovery contract for the next task
 
-Puter's official AI documentation identifies `puter.ai.listModels()` as the current catalog lookup. Each returned model record contains at least an `id` and `provider`, so the fresh task should first list models (and, if available, filter by the Anthropic/Claude provider), then match **Claude Fable 5** by the returned identifier. Only after that exact result is returned may it call `puter.ai.chat()` with the selected model. The chat call supports normal message arrays and optional streaming; it must be used only for a narrowly scoped engineering review, not to authorize file, Worker, app, hosting, or deployment actions. [1] [2]
+Puter's official AI documentation identifies `puter.ai.listModels()` as the current catalog lookup. Each returned model record contains at least an `id` and `provider`, so the fresh task should first list models (and, if available, filter by the Anthropic/Claude provider), then match **Claude Fable 5** by the returned identifier. The current public Puter catalog lists it as `anthropic/claude-fable-5`; the fresh runtime must still return that model before it is selected. Only after that confirmation may it call `puter.ai.chat()` with the selected model. The chat call supports normal message arrays and optional streaming; it must be used only for a narrowly scoped engineering review, not to authorize file, Worker, app, hosting, or deployment actions. [1] [2] [3]
 
 | Step | Fresh-task action | Permitted scope |
 |---|---|---|
@@ -45,3 +45,4 @@ The connector configuration shows Puter as enabled, but the active runtime regis
 
 [1]: https://docs.puter.com/AI/listModels/ "Puter.js documentation: puter.ai.listModels()"
 [2]: https://docs.puter.com/AI/chat/ "Puter.js documentation: puter.ai.chat()"
+[3]: https://developer.puter.com/ai/models/ "Puter public AI model catalog"
