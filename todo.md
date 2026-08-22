@@ -193,7 +193,7 @@
 - [x] Inventory the current user-scoped Jarvis records and map each runtime operation to a Supabase PostgreSQL contract.
 - [x] Apply the approved Supabase PostgreSQL schema, RLS policies, and private Storage controls for the Jarvis Vercel runtime.
 - [x] Replace managed-database runtime reads and writes with tested server-only Supabase data access for Vercel.
-- [ ] Migrate or safely initialize approved private records, verify per-user isolation, and validate production authentication, chat, memory, project, and approval flows.
+- [x] Migrate or safely initialize approved private records, verify per-user isolation, and validate production authentication, chat, memory, project, and approval flows.
 - [x] Create, verify, and immediately delete one owner-approved temporary private validation task in the live Supabase-backed workspace.
 - [x] Add a protected, user-scoped task-deletion endpoint in both managed and Supabase runtime adapters so approved temporary validation records can be removed cleanly.
 - [x] Inspect the exact live Jarvis assistant reply against the approved product requirements and correct any inaccurate capability guidance.
