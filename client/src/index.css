@@ -129,6 +129,15 @@
   .jarvis-core--thinking .jarvis-core__halo--middle { animation-duration: 2.1s; }
   .jarvis-core--speaking .jarvis-core__halo--inner { border-style: dashed; animation-duration: 0.46s; }
   .jarvis-core--speaking .jarvis-core__arc { animation-duration: 1.75s; }
+  .jarvis-glyph { position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: 32%; background: radial-gradient(circle at 50% 50%, rgba(120, 236, 255, .14), transparent 64%); }
+  .jarvis-glyph svg { width: 100%; height: 100%; overflow: visible; }
+  .jarvis-glyph__outer, .jarvis-glyph__inner { opacity: .74; }
+  .jarvis-glyph__core { filter: drop-shadow(0 0 4px #8ff8ff); }
+  .jarvis-glyph--active .jarvis-glyph__outer { transform-origin: center; animation: jarvis-glyph-orbit 7s linear infinite; }
+  .jarvis-glyph--active .jarvis-glyph__inner { transform-origin: center; animation: jarvis-glyph-orbit 4.5s linear infinite reverse; }
+  .jarvis-glyph--active .jarvis-glyph__core { animation: jarvis-glyph-pulse 1.8s ease-in-out infinite; }
+  .jarvis-glyph--guarded { filter: saturate(.55); opacity: .8; }
+  .jarvis-memory-dashboard__mesh { position: absolute; inset: 0; pointer-events: none; opacity: .52; background-image: linear-gradient(rgba(83, 213, 233, .065) 1px, transparent 1px), linear-gradient(90deg, rgba(201, 108, 255, .05) 1px, transparent 1px); background-size: 30px 30px; mask-image: linear-gradient(to right, black, transparent 80%); }
   .voice-command-button { display: flex; width: 40px; height: 40px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid rgba(255, 126, 228, 0.32); border-radius: 2px; background: rgba(255, 72, 207, 0.09); color: rgb(255, 202, 243); transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 160ms cubic-bezier(0.23, 1, 0.32, 1); }
   .voice-command-button:hover { border-color: rgba(255, 149, 235, 0.6); background: rgba(255, 72, 207, 0.17); }
   .voice-command-button:active { transform: scale(0.97); }
@@ -164,6 +173,8 @@
 @keyframes jarvis-listening-wave { 0% { height: 10px; opacity: 0.52; } 100% { height: 54px; opacity: 1; } }
 @keyframes jarvis-thinking-wave { 0%, 100% { transform: scaleY(0.5); opacity: 0.35; } 50% { transform: scaleY(1.7); opacity: 0.9; } }
 @keyframes jarvis-speaking-wave { 0% { height: 12px; opacity: 0.54; } 100% { height: 64px; opacity: 1; } }
+@keyframes jarvis-glyph-orbit { to { transform: rotate(360deg); } }
+@keyframes jarvis-glyph-pulse { 50% { opacity: .58; transform: scale(.72); } }
 
 [data-jarvis-visual="reduced_motion"] *, [data-jarvis-visual="reduced_motion"] *::before, [data-jarvis-visual="reduced_motion"] *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 

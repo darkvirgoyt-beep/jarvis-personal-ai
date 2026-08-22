@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+const liveIt = process.env.RUN_OPENROUTER_LIVE_TESTS === "1" ? it : it.skip;
+
 describe("OpenRouter credential", () => {
-  it("authenticates against the model catalog for Jarvis inference", async () => {
+  liveIt("authenticates against the model catalog for Jarvis inference", async () => {
     const apiKey = process.env.OPENROUTER_API_KEY;
     expect(apiKey, "OPENROUTER_API_KEY must be available to the server").toBeTruthy();
 
@@ -15,7 +17,7 @@ describe("OpenRouter credential", () => {
     expect(body.data?.some((model) => model.id === "nvidia/nemotron-3-ultra-550b-a55b" || model.id === "nvidia/nemotron-3-ultra-550b-a55b:free")).toBe(true);
   }, 15_000);
 
-  it("returns server-sent response frames from Nemotron 3 Ultra", async () => {
+  liveIt("returns server-sent response frames from Nemotron 3 Ultra", async () => {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {

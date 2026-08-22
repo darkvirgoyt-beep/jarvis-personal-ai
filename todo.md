@@ -220,3 +220,10 @@
 - [x] Rework the authenticated chat shell so only messages scroll while the input composer and voice controls remain fixed and usable on desktop and mobile keyboards.
 - [x] Upgrade the authenticated command workspace into a performance-aware holographic Jarvis dashboard with real state-driven core, voice, activity, and tool-status visuals.
 - [x] Add regression and responsive visual coverage for durable memory and the fixed-composer command workspace before publishing.
+
+- [x] Create and apply a distinct branded Jarvis glyph system across the authenticated workspace to strengthen product identity without reducing accessibility.
+- [x] Build a dedicated private Memory dashboard for reviewing, filtering, categorizing, and deleting the signed-in user’s saved memories.
+- [x] Inspect the Supabase Google and GitHub OAuth provider configuration and complete all available implementation steps without exposing OAuth client secrets.
+- [x] Audit the earlier pasted requirements brief against the current Jarvis implementation and report which requests are complete, partial, deferred, or blocked by account configuration.
+
+- [x] Replace outdated Jarvis replies that claim it cannot compile or deploy with an accurate explanation of its approval-gated connected compile-runner workflow and its current connection status.

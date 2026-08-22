@@ -205,7 +205,8 @@ describe("Jarvis authenticated endpoints", () => {
     const emitted = res.writes.join("");
     expect(emitted).not.toContain("I can’t compile, run, sign, or publish it for you");
     expect(emitted).toContain("Jarvis can prepare the architecture");
-    expect(emitted).toContain("requires a connected runner or provider result");
+    expect(emitted).toContain("a paired runner executes the approved job");
+    expect(emitted).toContain("When no runner is paired");
     expect(db.createJarvisMessage).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining("Jarvis can prepare the architecture") }));
   });
 

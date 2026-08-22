@@ -47,7 +47,7 @@ function isJarvisBuildRequest(content: string, agent: string) {
 }
 
 const broadBuildDenialPattern = /\b(?:I|Jarvis)\s+(?:can(?:not|['’]t)|cannot)\s+(?:compile|run|sign|publish|deploy)\b[^.!?]{0,360}[.!?]?/gi;
-const correctedBuildCapability = "Jarvis can prepare the architecture, reviewed code and artifacts, compile-readiness checks, cloud-runner requirements, GitHub handoff, and an explicit deployment proposal. A real compile, signing, publishing, or deployment step requires a connected runner or provider result and any required explicit approval.";
+const correctedBuildCapability = "Jarvis can prepare the architecture, reviewed code and artifacts, compile-readiness checks, a paired compile-worker job, GitHub handoff, and an explicit deployment proposal. For supported build recipes, a paired runner executes the approved job and returns a real sanitized result. When no runner is paired, Jarvis stages the reviewed job and clearly reports that connection status instead of claiming the build is complete. Signing, publishing, deployment, and app-store submission still require the relevant connected provider and explicit approval.";
 
 export function normalizeJarvisBuildCapabilityResponse(content: string, isBuildRequest: boolean) {
   if (!isBuildRequest) return content;

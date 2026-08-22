@@ -37,7 +37,7 @@ vi.mock("@/lib/trpc", () => ({
     }),
     jarvis: {
       tasks: { list: { useQuery: () => queryResult }, create: { useMutation: () => mutationResult }, update: { useMutation: () => mutationResult } },
-      memory: { list: { useQuery: () => queryResult }, create: { useMutation: () => mutationResult }, delete: { useMutation: () => mutationResult } },
+      memory: { list: { useQuery: () => queryResult }, create: { useMutation: () => mutationResult }, update: { useMutation: () => mutationResult }, delete: { useMutation: () => mutationResult } },
       confirmations: { list: { useQuery: () => queryResult }, propose: { useMutation: () => mutationResult }, resolve: { useMutation: () => mutationResult } },
       workspace: { list: { useQuery: () => queryResult }, propose: { useMutation: () => mutationResult }, execute: { useMutation: () => mutationResult } },
       preferences: {
