@@ -91,7 +91,7 @@ describe("AIChatBox Jarvis interaction states", () => {
     );
 
     expect(markup).toContain("Jarvis conversation transcript");
-    expect(markup).toContain("min-h-0 flex-1 overflow-hidden");
+    expect(markup).toContain("min-h-0 flex-1 overflow-y-auto overscroll-contain");
     expect(markup).toContain("shrink-0 border-t");
     expect(markup).toContain("safe-area-inset-bottom");
   });

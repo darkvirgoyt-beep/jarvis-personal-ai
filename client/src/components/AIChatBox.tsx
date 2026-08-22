@@ -1,5 +1,4 @@
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Check, Copy, Loader2, Mic, Paperclip, Send, Sparkles, Square, User, Volume2, X } from "lucide-react";
 import React from "react";
@@ -152,10 +151,7 @@ export function AIChatBox({
   const displayMessages = messages.filter((msg) => msg.role !== "system");
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
-    const viewport = scrollAreaRef.current?.querySelector(
-      '[data-radix-scroll-area-viewport]'
-    ) as HTMLDivElement;
-
+    const viewport = scrollAreaRef.current;
     if (viewport) {
       requestAnimationFrame(() => {
         viewport.scrollTo({
@@ -217,7 +213,7 @@ export function AIChatBox({
       style={{ height }}
     >
       {/* Messages Area */}
-      <div ref={scrollAreaRef} className="min-h-0 flex-1 overflow-hidden" aria-label="Jarvis conversation transcript">
+      <div ref={scrollAreaRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]" aria-label="Jarvis conversation transcript">
         {displayMessages.length === 0 ? (
           <div className="flex h-full flex-col p-4">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground">
@@ -243,8 +239,7 @@ export function AIChatBox({
             </div>
           </div>
         ) : (
-          <ScrollArea className="h-full">
-            <div className="flex flex-col space-y-5 p-5">
+          <div className="flex min-h-full flex-col space-y-5 p-5">
               {displayMessages.map((message, index) => {
                 return (
                   <div
@@ -308,8 +303,7 @@ export function AIChatBox({
                   </div>
                 </div>
               )}
-            </div>
-          </ScrollArea>
+          </div>
         )}
       </div>
 

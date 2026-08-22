@@ -227,3 +227,6 @@
 - [x] Audit the earlier pasted requirements brief against the current Jarvis implementation and report which requests are complete, partial, deferred, or blocked by account configuration.
 
 - [x] Replace outdated Jarvis replies that claim it cannot compile or deploy with an accurate explanation of its approval-gated connected compile-runner workflow and its current connection status.
+
+- [x] Block remaining stale blanket denials for compilation, deployment, and image work, and replace them with accurate connected-tool and approval-status guidance.
+- [x] Re-verify live chat transcript scrolling so the composer remains fixed, keyboard-safe, and responsive while only messages scroll.

@@ -210,6 +210,31 @@ describe("Jarvis authenticated endpoints", () => {
     expect(db.createJarvisMessage).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining("Jarvis can prepare the architecture") }));
   });
 
+  it("replaces a stale image-file denial with accurate connected-image capability guidance", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
+    registerJarvisStream(app);
+    vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
+    vi.mocked(db.createJarvisConversation).mockResolvedValue({ id: 18 } as never);
+    vi.mocked(db.listJarvisMessages).mockResolvedValue([] as never);
+    vi.mocked(db.listJarvisMemories).mockResolvedValue([] as never);
+    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ personality: "balanced" } as never);
+    vi.mocked(db.createJarvisMessage).mockResolvedValue(undefined);
+    vi.mocked(streamNemotronUltra).mockResolvedValue(new Response(
+      'data: {"choices":[{"delta":{"content":"No. I cannot generate, edit, or return image files (PNG/JPG/WebP)."}}]}\n\ndata: [DONE]\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    const res = responseRecorder();
+
+    await handler!({ body: { content: "Can you generate a Jarvis logo image?", agent: "creative" } } as Request, res as unknown as Response);
+
+    const emitted = res.writes.join("");
+    expect(emitted).not.toContain("I cannot generate, edit, or return image files");
+    expect(emitted).toContain("approved connected image capability");
+    expect(emitted).toContain("does not claim a PNG");
+    expect(db.createJarvisMessage).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining("production-ready image brief") }));
+  });
+
   it("honors a validated persisted model preference while retaining Nemotron as the default path", async () => {
     let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
     const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;

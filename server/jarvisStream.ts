@@ -47,11 +47,13 @@ function isJarvisBuildRequest(content: string, agent: string) {
 }
 
 const broadBuildDenialPattern = /\b(?:I|Jarvis)\s+(?:can(?:not|['’]t)|cannot)\s+(?:compile|run|sign|publish|deploy)\b[^.!?]{0,360}[.!?]?/gi;
+const broadImageDenialPattern = /\b(?:I|Jarvis)\s+(?:can(?:not|['’]t)|cannot)\s+(?:generate|create|edit|return)\b[^.!?]{0,360}\b(?:image|photo|picture|file|png|jpe?g|webp|svg)\b[^.!?]*[.!?]?/gi;
 const correctedBuildCapability = "Jarvis can prepare the architecture, reviewed code and artifacts, compile-readiness checks, a paired compile-worker job, GitHub handoff, and an explicit deployment proposal. For supported build recipes, a paired runner executes the approved job and returns a real sanitized result. When no runner is paired, Jarvis stages the reviewed job and clearly reports that connection status instead of claiming the build is complete. Signing, publishing, deployment, and app-store submission still require the relevant connected provider and explicit approval.";
+const correctedImageCapability = "Jarvis can prepare a production-ready image brief and, when an approved connected image capability is available, request an image job and return the real result. When no image capability is connected, Jarvis provides the ready-to-use visual brief and clearly states that no image file was produced; it does not claim a PNG, JPG, SVG, or edited image exists without a returned result.";
 
-export function normalizeJarvisBuildCapabilityResponse(content: string, isBuildRequest: boolean) {
-  if (!isBuildRequest) return content;
-  return content.replace(broadBuildDenialPattern, correctedBuildCapability);
+export function normalizeJarvisToolCapabilityResponse(content: string, isBuildRequest: boolean, isImageRequest: boolean) {
+  const buildSafe = isBuildRequest ? content.replace(broadBuildDenialPattern, correctedBuildCapability) : content;
+  return isImageRequest ? buildSafe.replace(broadImageDenialPattern, correctedImageCapability) : buildSafe;
 }
 
 async function sendStaticCompletion(res: Response, content: string, state: { closed: boolean }) {
@@ -85,6 +87,8 @@ export function registerJarvisStream(app: Express) {
     try {
       const input = streamInputSchema.parse(req.body);
       const buildRequest = isJarvisBuildRequest(input.content, input.agent);
+      const imageRequest = /\b(?:create|generate|make|edit|design)\b[\s\S]{0,56}\b(?:image|photo|picture|illustration|poster|logo|icon|graphic)\b|\b(?:image|photo|picture|illustration|poster|logo|icon|graphic)\b[\s\S]{0,56}\b(?:create|generate|make|edit|design)\b/i.test(input.content);
+      const capabilitySensitiveRequest = buildRequest || imageRequest;
       let conversationId = input.conversationId;
       if (conversationId) {
         const conversation = await db.getJarvisConversation(user.id, conversationId);
@@ -144,7 +148,7 @@ export function registerJarvisStream(app: Express) {
         `Privacy mode: ${preferences?.privacyMode ?? "standard"}.`,
         `Runtime time context (UTC, generated at this request): ${new Date().toISOString()}. Treat this as the authoritative current timestamp for this response; explain time-zone conversions instead of guessing local time.`,
         "Capability contract: Jarvis supports app and website work. For build requests, confidently offer to turn requirements into a reviewed Builder brief, architecture, implementation plan, code and artifact proposals, compile-readiness review, cloud-runner requirements, repository handoff, and an explicit deployment proposal. First identify the intended target (web build, Android package, or cloud service) and explain the toolchain, test, artifact, and signing or runtime requirements. Never falsely say that Jarvis cannot build applications, make code, compile a project, or deploy as a broad limitation. Be precise instead: a real external build, repository mutation, deployment, signing, app-store submission, or virtual-computer action occurs only after a connected tool result and any required explicit approval. Do not use an unavailable file system, IDE, CI/CD pipeline, app-store account, or unconnected cloud runner as a reason to deny app-building assistance.",
-        "Normal language first: infer the right workflow from the user’s ordinary prompt. For build, code, debugging, research, documents, data, images, or environment requests, lead with a concrete reviewed plan and useful artifacts instead of requiring the user to select a technical mode. For Ubuntu, Kali-compatible security-lab, terminal, browser, sandbox, or virtual-computer requests, prepare requirements and an explicit approval-gated handoff; never claim the environment is connected before an actual tool result exists.",
+        "Normal language first: infer the right workflow from the user’s ordinary prompt. For build, code, debugging, research, documents, data, images, or environment requests, lead with a concrete reviewed plan and useful artifacts instead of requiring the user to select a technical mode. For image requests, prepare a production-ready visual brief and, only where an approved image capability is connected, an explicit image-job proposal; never broadly deny image assistance or claim an image file exists without a result. For Ubuntu, Kali-compatible security-lab, terminal, browser, sandbox, or virtual-computer requests, prepare requirements and an explicit approval-gated handoff; never claim the environment is connected before an actual tool result exists.",
         `Advanced tool contract: ${JARVIS_REAL_RESULT_ONLY_RULE}`,
         "Safety is mandatory: never claim to have accessed a computer, file system, account, device, email, calendar, smart-home system, terminal, or other external service unless a connected tool result is supplied in the conversation. Never execute, simulate executing, or imply completion of external or destructive actions. Describe proposed actions and require explicit user confirmation for high-impact operations.",
         "The user may request web research. If live source material is not provided, state the limitation and give a concrete research plan rather than fabricating current facts or citations.",
@@ -156,7 +160,7 @@ export function registerJarvisStream(app: Express) {
       let fullResponse = "";
       let pendingBuildSentence = "";
       const emitModelText = (text: string) => {
-        const normalizedText = normalizeJarvisBuildCapabilityResponse(text, buildRequest);
+        const normalizedText = normalizeJarvisToolCapabilityResponse(text, buildRequest, imageRequest);
         if (!normalizedText) return;
         fullResponse += normalizedText;
         if (!closed) writeEvent(res, "delta", { text: normalizedText });
@@ -266,7 +270,7 @@ export function registerJarvisStream(app: Express) {
             try {
               const delta = parseDelta(JSON.parse(data));
               if (delta) {
-                if (buildRequest) {
+                if (capabilitySensitiveRequest) {
                   pendingBuildSentence += delta;
                   emitBuildSentences();
                 } else {
@@ -280,7 +284,7 @@ export function registerJarvisStream(app: Express) {
         }
       }
 
-      if (buildRequest) emitBuildSentences(true);
+      if (capabilitySensitiveRequest) emitBuildSentences(true);
 
       if (fullResponse.trim()) {
         await db.createJarvisMessage({ userId: user.id, conversationId, role: "assistant", content: fullResponse, agent: input.agent });
