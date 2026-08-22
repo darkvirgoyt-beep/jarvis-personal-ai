@@ -22,7 +22,9 @@ vi.mock("./openaiTranscription", () => ({
   },
 }));
 vi.mock("./nemotron", () => ({
+  ANTHROPIC_FABLE_5_MODEL: "anthropic/claude-fable-5",
   streamNemotronUltra: vi.fn(),
+  streamOpenRouterModel: vi.fn(),
   isNemotronCredentialUnavailable: (error: unknown) => /not configured|\b401\b|\b403\b|unauthorized|forbidden|invalid (api )?key|authorization/i.test(error instanceof Error ? error.message : String(error)),
 }));
 
@@ -30,7 +32,7 @@ import * as db from "./db";
 import { sdk } from "./_core/sdk";
 import { transcribeJarvisVoice } from "./openaiTranscription";
 import { streamLLM } from "./_core/llm";
-import { streamNemotronUltra } from "./nemotron";
+import { streamNemotronUltra, streamOpenRouterModel } from "./nemotron";
 import { registerJarvisStream, registerJarvisVoice } from "./jarvisStream";
 
 function authUser() {
@@ -225,6 +227,30 @@ describe("Jarvis authenticated endpoints", () => {
     expect(streamLLM).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-5" }));
     expect(streamNemotronUltra).not.toHaveBeenCalled();
     expect(res.writes.join("")).toContain('"model":"gpt-5"');
+  });
+
+  it("routes the selected Anthropic Claude Fable 5 model through the server-only OpenRouter stream", async () => {
+    let handler: ((req: Request, res: Response) => Promise<unknown>) | undefined;
+    const app = { post: vi.fn((_path: string, fn: typeof handler) => { handler = fn; }) } as unknown as Express;
+    registerJarvisStream(app);
+    vi.mocked(sdk.authenticateRequest).mockResolvedValue(authUser());
+    vi.mocked(db.createJarvisConversation).mockResolvedValue({ id: 17 } as never);
+    vi.mocked(db.listJarvisMessages).mockResolvedValue([] as never);
+    vi.mocked(db.listJarvisMemories).mockResolvedValue([] as never);
+    vi.mocked(db.getJarvisPreferences).mockResolvedValue({ personality: "balanced", model: "claude-fable-5" } as never);
+    vi.mocked(db.createJarvisMessage).mockResolvedValue(undefined);
+    vi.mocked(streamOpenRouterModel).mockResolvedValue(new Response(
+      'data: {"choices":[{"delta":{"content":"Fable response"}}]}\n\ndata: [DONE]\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    const res = responseRecorder();
+
+    await handler!({ body: { content: "Use Claude Fable for this coding plan", agent: "coding" } } as Request, res as unknown as Response);
+
+    expect(streamOpenRouterModel).toHaveBeenCalledWith(expect.objectContaining({ model: "anthropic/claude-fable-5" }));
+    expect(streamNemotronUltra).not.toHaveBeenCalled();
+    expect(res.writes.join("")).toContain('"provider":"openrouter-selected"');
+    expect(res.writes.join("")).toContain('"text":"Fable response"');
   });
 
   it("uses the labelled local basic mode directly when the primary provider key is unauthorized", async () => {

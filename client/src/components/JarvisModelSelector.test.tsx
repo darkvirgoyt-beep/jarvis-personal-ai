@@ -11,6 +11,7 @@ describe("JarvisModelSelector", () => {
 
     const selector = screen.getByLabelText("Response model") as HTMLSelectElement;
     expect(selector.value).toBe("nemotron-3-ultra");
+    expect((screen.getByRole("option", { name: "Anthropic — Claude Fable 5" }) as HTMLOptionElement).value).toBe("claude-fable-5");
     fireEvent.change(selector, { target: { value: "gpt-5" } });
     expect(onChange).toHaveBeenCalledWith("gpt-5");
   });

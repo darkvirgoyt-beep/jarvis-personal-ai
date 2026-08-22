@@ -2,6 +2,7 @@ export const JARVIS_MODEL_VALUES = [
   "nemotron-3-ultra",
   "gpt-5-mini",
   "gpt-5",
+  "claude-fable-5",
   "claude-sonnet-4-6",
   "gemini-3-flash-preview",
 ] as const;
@@ -14,6 +15,7 @@ export const JARVIS_MODEL_OPTIONS: ReadonlyArray<{ value: JarvisModelPreference;
   { value: "nemotron-3-ultra", label: "Default primary — Nemotron 3 Ultra" },
   { value: "gpt-5-mini", label: "Fast — GPT-5 mini" },
   { value: "gpt-5", label: "Deep reasoning — GPT-5" },
+  { value: "claude-fable-5", label: "Anthropic — Claude Fable 5" },
   { value: "claude-sonnet-4-6", label: "Coding & analysis — Claude Sonnet" },
   { value: "gemini-3-flash-preview", label: "Long context — Gemini Flash" },
 ];

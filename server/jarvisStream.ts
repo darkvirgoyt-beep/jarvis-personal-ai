@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import { z } from "zod";
 import * as db from "./db";
 import { streamLLM } from "./_core/llm";
-import { isNemotronCredentialUnavailable, streamNemotronUltra } from "./nemotron";
+import { ANTHROPIC_FABLE_5_MODEL, isNemotronCredentialUnavailable, streamNemotronUltra, streamOpenRouterModel } from "./nemotron";
 import { isAlternateJarvisModel } from "../shared/jarvisModels";
 import { authenticateJarvisRequest, type AuthenticatedUser } from "./_core/authentication";
 import { OpenAITranscriptionError, transcribeJarvisVoice } from "./openaiTranscription";
@@ -187,13 +187,22 @@ export function registerJarvisStream(app: Express) {
       const alternateModel = isAlternateJarvisModel(preferences?.model) ? preferences.model : undefined;
       if (alternateModel) {
         try {
-          writeEvent(res, "meta", { provider: "selected", model: alternateModel });
-          upstream = await streamLLM({
-            model: alternateModel,
-            maxTokens: 1100,
-            messages: modelMessages,
-            signal: controller.signal,
-          });
+          if (alternateModel === "claude-fable-5") {
+            writeEvent(res, "meta", { provider: "openrouter-selected", model: ANTHROPIC_FABLE_5_MODEL });
+            upstream = await streamOpenRouterModel({
+              model: ANTHROPIC_FABLE_5_MODEL,
+              messages: modelMessages,
+              signal: controller.signal,
+            });
+          } else {
+            writeEvent(res, "meta", { provider: "selected", model: alternateModel });
+            upstream = await streamLLM({
+              model: alternateModel,
+              maxTokens: 1100,
+              messages: modelMessages,
+              signal: controller.signal,
+            });
+          }
         } catch (providerError) {
           if (controller.signal.aborted) throw providerError;
           console.warn(`[Jarvis] Selected model ${alternateModel} unavailable; returning to Nemotron 3 Ultra.`);

@@ -10,8 +10,15 @@ describe("Jarvis shared model contract", () => {
 
   it("recognizes only contract values and separates the default from allowed alternates", () => {
     expect(isJarvisModelPreference("gpt-5-mini")).toBe(true);
+    expect(isJarvisModelPreference("claude-fable-5")).toBe(true);
     expect(isJarvisModelPreference("unapproved-model")).toBe(false);
     expect(isAlternateJarvisModel("gpt-5-mini")).toBe(true);
+    expect(isAlternateJarvisModel("claude-fable-5")).toBe(true);
     expect(isAlternateJarvisModel(JARVIS_DEFAULT_MODEL)).toBe(false);
+  });
+
+  it("exposes the verified Anthropic Fable 5 option without changing Nemotron’s default role", () => {
+    expect(JARVIS_MODEL_OPTIONS).toContainEqual({ value: "claude-fable-5", label: "Anthropic — Claude Fable 5" });
+    expect(JARVIS_DEFAULT_MODEL).toBe("nemotron-3-ultra");
   });
 });
