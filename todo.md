@@ -230,3 +230,8 @@
 
 - [x] Block remaining stale blanket denials for compilation, deployment, and image work, and replace them with accurate connected-tool and approval-status guidance.
 - [x] Re-verify live chat transcript scrolling so the composer remains fixed, keyboard-safe, and responsive while only messages scroll.
+
+- [x] Inspect the configured Puter connection and Claude Fable 5 provider path before enabling any external workspace or model action.
+- [x] Add a reviewed terminal and code-diff workspace that exposes plans, commands, outputs, and artifacts without silent execution.
+- [x] Extend supported approval-gated compile-job controls with clear runner status, build logs, and sanitized result artifacts.
+- [x] Add deterministic and responsive validation for the terminal, diff, and compilation workspace before publishing.

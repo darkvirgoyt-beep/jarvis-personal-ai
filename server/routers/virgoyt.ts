@@ -9,6 +9,7 @@ import { createVirgoYTCompileSpec, VIRGOYT_COMPILE_TARGETS } from "../../shared/
 const agentSchema = z.enum(db.VIRGOYT_AGENT_VALUES);
 const providerSchema = z.enum(db.VIRGOYT_PROVIDER_VALUES);
 const toolKindSchema = z.enum(db.VIRGOYT_TOOL_KIND_VALUES);
+const modelSchema = z.enum(["nvidia/nemotron-3-ultra-550b-a55b", "anthropic/claude-fable-5"]);
 const projectIdSchema = z.number().int().positive();
 const providerEndpointSchema = z.string().url().max(500).refine((value) => {
   return isCredentialFreeProviderEndpoint(value);
@@ -84,7 +85,7 @@ export const virgoytRouter = router({
       conversationId: z.number().int().positive().nullable().optional(),
       agent: agentSchema.default("coding"),
       provider: providerSchema.default("openrouter"),
-      modelId: z.string().trim().min(1).max(160).default("nvidia/nemotron-3-ultra-550b-a55b"),
+      modelId: modelSchema.default("nvidia/nemotron-3-ultra-550b-a55b"),
       request: z.string().trim().min(4).max(12_000),
     })).mutation(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
